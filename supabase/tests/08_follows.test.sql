@@ -2,7 +2,7 @@
 -- the two parties, never to anon, no follow across a block, block severs.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(11);
+select plan(14);
 
 create function pg_temp.act_as(uid uuid) returns void language sql as $$
   select set_config('request.jwt.claims',
@@ -86,6 +86,20 @@ select lives_ok(
                           and followee_id = '11111111-1111-4111-8111-111111111111'$$,
   'dave can unfollow alice'
 );
+reset role;
+
+-- 006: 'followers' posts are visible to followers as well as returners.
+-- dave has no relationship with alice; aaaaaaaa-…-0002 is her followers-only post.
+set local role authenticated;
+select pg_temp.act_as('55555555-5555-4555-8555-555555555555');
+select is((select count(*)::int from posts where id = 'aaaaaaaa-0000-4000-8000-000000000002'),
+  0, 'before following, dave cannot see alice''s followers-only post');
+insert into follows (follower_id, followee_id)
+  values ('55555555-5555-4555-8555-555555555555', '11111111-1111-4111-8111-111111111111');
+select is((select count(*)::int from posts where id = 'aaaaaaaa-0000-4000-8000-000000000002'),
+  1, 'after following, dave can see alice''s followers-only post');
+select is((select count(*)::int from posts where id = 'aaaaaaaa-0000-4000-8000-000000000003'),
+  0, 'following does not unlock alice''s friends-only post');
 reset role;
 
 select * from finish();
