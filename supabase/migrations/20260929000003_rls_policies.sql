@@ -9,10 +9,16 @@
 --     in this milestone (preserved on branch later/money-rpcs).
 --   * Age and safety rules (brief §7) are enforced here, in the database, via
 --     triggers that run for every role (service role included), not in the app.
---   * Helpers that reveal another user's age or relationships (is_adult,
---     is_age_verified_adult, can_dm, relationship_state, is_mutual) are NOT
---     executable by anon/authenticated. Policies and triggers reach them through
---     security-definer functions, which execute as the owner.
+--   * No function a client can reach answers a question about SOMEONE ELSE:
+--       - helpers that reveal another user's age, relationships, blocks or
+--         memberships (public.is_adult, is_age_verified_adult, can_dm,
+--         relationship_state, is_mutual, private.blocked_between,
+--         private.member_of) are not executable by anon/authenticated;
+--       - the helpers RLS policies call live in schema `private`, which the API
+--         does not expose (config.toml: schemas = public, graphql_public), and
+--         each of them answers only about the caller (auth.uid()).
+--   * Guard failures that could otherwise reveal why (minor? blocked?
+--     unverified? nonexistent?) raise one generic error per operation.
 -- ============================================================================
 
 -- ============================================================================
@@ -34,6 +40,15 @@ create unique index creator_terms_one_active
   on creator_terms (user_id) nulls not distinct
   where superseded_at is null;
 
+-- One 'like' interaction per (actor, post): like/unlike/like must not inflate
+-- the relationship signal.
+create unique index interactions_one_like_per_post
+  on interactions (actor_id, post_id) where kind = 'like';
+
+-- Storage objects are resolved to their media_assets row by path.
+create index media_provider_asset_idx
+  on media_assets (provider_asset_id) where provider_asset_id is not null;
+
 -- DM message requests (brief §7). There is deliberately NO body column: see
 -- "MESSAGE REQUESTS" below for how the body is withheld until acceptance.
 create table message_requests (
@@ -52,10 +67,13 @@ create index message_requests_recipient_idx
   on message_requests (recipient_id, created_at desc);
 
 -- ============================================================================
--- HELPER FUNCTIONS
--- security definer so RLS policies can consult other RLS-protected tables
+-- INTERNAL HELPERS (not executable by clients)
+-- security definer so triggers/policy helpers can consult RLS-protected tables
 -- without recursion. All pin search_path.
 -- ============================================================================
+create schema if not exists private;
+revoke all on schema private from public;
+grant usage on schema private to anon, authenticated, service_role;
 
 -- 18+ by DOB AND verified by a provider (brief §7: live, receiving gifts).
 create function public.is_age_verified_adult(uid uuid) returns boolean
@@ -64,7 +82,7 @@ language sql stable security definer set search_path = public as $$
      and exists (select 1 from public.users u where u.id = uid and u.age_verified);
 $$;
 
-create function public.is_blocked_between(a uuid, b uuid) returns boolean
+create function private.blocked_between(a uuid, b uuid) returns boolean
 language sql stable security definer set search_path = public as $$
   select a is not null and b is not null and exists (
     select 1 from public.blocks
@@ -72,31 +90,147 @@ language sql stable security definer set search_path = public as $$
 $$;
 
 -- Active (not left) member of a conversation.
-create function public.is_member(conv uuid, uid uuid) returns boolean
+create function private.member_of(conv uuid, uid uuid) returns boolean
 language sql stable security definer set search_path = public as $$
   select uid is not null and exists (
     select 1 from public.conversation_members
     where conversation_id = conv and user_id = uid and left_at is null);
 $$;
 
-create function public.is_moderator() returns boolean
-language sql stable security definer set search_path = public as $$
-  select exists (
-    select 1 from public.users
-    where id = auth.uid() and app_role in ('moderator','admin'));
-$$;
-
--- Post visibility: the single source of truth for posts and everything hanging
--- off a post (likes, comments, post_media).
+-- Post visibility on row values, for an explicit viewer:
 --   author          → always (including deleted/expired)
 --   everyone else   → not deleted, not expired, not blocked either way, and
 --     public    → anyone (anon included)
 --     followers → relationship_state(viewer, author) in ('returning','regular')
 --     friends   → is_mutual(viewer, author)
 --     private   → author only
--- A client may only ask about itself: for anon/authenticated JWTs, a p_viewer
--- other than auth.uid() is answered as "no", so this cannot be used to probe
--- someone else's relationship with an author.
+create function private.post_visible_for(
+  p_author uuid, p_visibility public.visibility, p_deleted_at timestamptz,
+  p_expires_at timestamptz, p_viewer uuid
+) returns boolean
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if p_viewer is not null and p_author = p_viewer then
+    return true;
+  end if;
+  if p_deleted_at is not null
+     or (p_expires_at is not null and p_expires_at <= now())
+     or private.blocked_between(p_author, p_viewer) then
+    return false;
+  end if;
+  return case p_visibility
+    when 'public'    then true
+    when 'followers' then p_viewer is not null
+                          and coalesce(public.relationship_state(p_viewer, p_author)
+                                       in ('returning','regular'), false)
+    when 'friends'   then public.is_mutual(p_viewer, p_author)
+    when 'private'   then false  -- author handled above
+  end;
+end $$;
+
+-- DM permission (brief §7). Never across a block. Then:
+--   * either side a minor → only when is_mutual(a, b);
+--   * adult ↔ adult       → is_mutual(a, b) OR both are age-verified adults.
+-- Hence an adult and an unconnected minor can never DM.
+create function public.can_dm(a uuid, b uuid) returns boolean
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if a is null or b is null or a = b or private.blocked_between(a, b) then
+    return false;
+  end if;
+  if not (public.is_adult(a) and public.is_adult(b)) then
+    return public.is_mutual(a, b);
+  end if;
+  return public.is_mutual(a, b)
+      or (public.is_age_verified_adult(a) and public.is_age_verified_adult(b));
+end $$;
+
+-- ============================================================================
+-- POLICY HELPERS (executable by anon/authenticated; each answers only about
+-- the caller, auth.uid(), so none is an oracle about other users)
+-- ============================================================================
+
+-- Is the caller blocked with `other` (either direction)?
+create function private.blocked_with_me(other uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select private.blocked_between(auth.uid(), other);
+$$;
+
+-- Is the caller an active member of `conv`?
+create function private.i_am_member(conv uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select private.member_of(conv, auth.uid());
+$$;
+
+create function private.i_am_moderator() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.users
+    where id = auth.uid() and app_role in ('moderator','admin'));
+$$;
+
+-- Post visibility for the caller, from the row's own columns. posts_select uses
+-- this (not a re-query of posts) so INSERT … RETURNING works for the author.
+create function private.post_visible(
+  p_author uuid, p_visibility public.visibility, p_deleted_at timestamptz, p_expires_at timestamptz
+) returns boolean
+language sql stable security definer set search_path = public as $$
+  select private.post_visible_for(p_author, p_visibility, p_deleted_at, p_expires_at, auth.uid());
+$$;
+
+-- Can the caller see post `p_post`? Looks the post up (for child tables).
+create function private.post_id_visible(p_post uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select coalesce(
+    (select private.post_visible_for(p.author_id, p.visibility, p.deleted_at, p.expires_at, auth.uid())
+     from public.posts p where p.id = p_post),
+    false);
+$$;
+
+-- Can the caller see media asset `p_media`? The owner always; anyone else only
+-- for ready, non-deleted media that is attached to a post they can see, or that
+-- is the avatar of a profile they can see (not blocked).
+create function private.media_visible(p_media uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.media_assets m
+    where m.id = p_media
+      and (m.owner_id = auth.uid()
+           or (m.status = 'ready' and m.deleted_at is null
+               and (exists (select 1
+                            from public.post_media pm
+                            join public.posts p on p.id = pm.post_id
+                            where pm.media_id = m.id
+                              and private.post_visible_for(p.author_id, p.visibility, p.deleted_at,
+                                                           p.expires_at, auth.uid()))
+                    or exists (select 1 from public.profiles pr
+                               where pr.avatar_media_id = m.id
+                                 and not private.blocked_between(pr.user_id, auth.uid()))))));
+$$;
+
+-- Can the caller read storage object `p_name` in bucket `media`? Only through
+-- a media_assets row that points at it (provider_asset_id = object path) and
+-- that the caller can see. (Uploaders read their own folder via the policy.)
+create function private.media_object_visible(p_name text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.media_assets m
+    where m.provider_asset_id = p_name and private.media_visible(m.id));
+$$;
+
+-- May the caller join/chat in stream `p_stream`? Adult-only streams require the
+-- caller to be an adult.
+create function private.can_join_stream(p_stream uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.live_streams s
+    where s.id = p_stream
+      and (not s.is_adult_only or public.is_adult(auth.uid())));
+$$;
+
+-- Public, self-only post check kept for the app. For anon/authenticated JWTs a
+-- p_viewer other than auth.uid() is answered as "no", so it cannot be used to
+-- probe someone else's relationship with an author.
 create function public.can_view_post(p_post uuid, p_viewer uuid) returns boolean
 language plpgsql stable security definer set search_path = public as $$
 declare
@@ -110,39 +244,7 @@ begin
   if not found then
     return false;
   end if;
-  if p_viewer is not null and p.author_id = p_viewer then
-    return true;
-  end if;
-  if p.deleted_at is not null
-     or (p.expires_at is not null and p.expires_at <= now())
-     or public.is_blocked_between(p.author_id, p_viewer) then
-    return false;
-  end if;
-  return case p.visibility
-    when 'public'    then true
-    when 'followers' then p_viewer is not null
-                          and coalesce(public.relationship_state(p_viewer, p.author_id)
-                                       in ('returning','regular'), false)
-    when 'friends'   then public.is_mutual(p_viewer, p.author_id)
-    when 'private'   then false  -- author handled above
-  end;
-end $$;
-
--- DM permission (brief §7). Never across a block. Then:
---   * either side a minor → only when is_mutual(a, b);
---   * adult ↔ adult       → is_mutual(a, b) OR both are age-verified adults.
--- Hence an adult and an unconnected minor can never DM.
-create function public.can_dm(a uuid, b uuid) returns boolean
-language plpgsql stable security definer set search_path = public as $$
-begin
-  if a is null or b is null or a = b or public.is_blocked_between(a, b) then
-    return false;
-  end if;
-  if not (public.is_adult(a) and public.is_adult(b)) then
-    return public.is_mutual(a, b);
-  end if;
-  return public.is_mutual(a, b)
-      or (public.is_age_verified_adult(a) and public.is_age_verified_adult(b));
+  return private.post_visible_for(p.author_id, p.visibility, p.deleted_at, p.expires_at, p_viewer);
 end $$;
 
 -- ============================================================================
@@ -275,8 +377,16 @@ begin
     return new;  -- self-like / self-comment: not a relationship signal
   end if;
 
-  insert into public.interactions (actor_id, subject_id, post_id, kind, occurred_at)
-  values (actor, author, new.post_id, interaction_kind, new.created_at);
+  if interaction_kind = 'like' then
+    -- At most one 'like' interaction per (actor, post): unlike/re-like is not a
+    -- new relationship signal (interactions_one_like_per_post).
+    insert into public.interactions (actor_id, subject_id, post_id, kind, occurred_at)
+    values (actor, author, new.post_id, 'like', new.created_at)
+    on conflict (actor_id, post_id) where kind = 'like' do nothing;
+  else
+    insert into public.interactions (actor_id, subject_id, post_id, kind, occurred_at)
+    values (actor, author, new.post_id, interaction_kind, new.created_at);
+  end if;
   return new;
 end $$;
 create trigger likes_record_interaction after insert on likes
@@ -303,14 +413,15 @@ create trigger live_streams_require_verified_adult
   for each row execute function public.require_verified_adult_host();
 
 -- A message must be permitted between the sender and EVERY other active member
--- (group chats included).
+-- (group chats included). Also applies to edits of the body, so a sender who
+-- lost DM permission (or left) cannot rewrite what others will read.
 create function public.require_dm_permission() returns trigger
 language plpgsql security definer set search_path = public as $$
 declare
   other_member uuid;
 begin
-  if not public.is_member(new.conversation_id, new.sender_id) then
-    raise exception 'not_a_member' using errcode = 'P0001';
+  if not private.member_of(new.conversation_id, new.sender_id) then
+    raise exception 'dm_not_allowed' using errcode = 'P0001';
   end if;
   for other_member in
     select user_id from public.conversation_members
@@ -323,35 +434,48 @@ begin
   return new;
 end $$;
 create trigger messages_require_dm_permission
-  before insert on messages
+  before insert or update of body on messages
   for each row execute function public.require_dm_permission();
 
--- Joining a conversation exposes its history, so a new member must be DM-able
--- with every other active member. Without this, an adult could write messages
--- into a conversation alone and then add a minor, who would read them. The one
--- exception is an ACCEPTED message request for this conversation from that
--- member (see MESSAGE REQUESTS), which is only ever between two adults.
+-- Joining a conversation exposes its whole history. So, for every join or
+-- re-join:
+--   * a client adding someone else must itself be an ACTIVE member;
+--   * the new member must be DM-able with EVERY user who has ever been a member
+--     (left or not) and EVERY user who has ever sent a message there.
+-- Without the second rule an adult could write alone, leave, and add a minor.
+-- The one exception is an ACCEPTED message request for this conversation from
+-- that user (see MESSAGE REQUESTS), which is only ever between two adults.
+-- Every failure raises the same error, so the result cannot be used to learn
+-- which rule (age, verification, block) refused it.
 create function public.require_member_join_permission() returns trigger
 language plpgsql security definer set search_path = public as $$
 declare
-  other_member uuid;
+  adder uuid := auth.uid();
+  other_user uuid;
 begin
   -- Leaving (or staying left) is always allowed; only joining or re-joining is
   -- checked.
   if new.left_at is not null or (tg_op = 'UPDATE' and old.left_at is null) then
     return new;
   end if;
-  for other_member in
-    select user_id from public.conversation_members
-    where conversation_id = new.conversation_id and left_at is null and user_id <> new.user_id
+  if adder is not null and adder <> new.user_id
+     and not private.member_of(new.conversation_id, adder) then
+    raise exception 'member_join_not_allowed' using errcode = 'P0001';
+  end if;
+  for other_user in
+    select cm.user_id from public.conversation_members cm
+    where cm.conversation_id = new.conversation_id and cm.user_id <> new.user_id
+    union
+    select m.sender_id from public.messages m
+    where m.conversation_id = new.conversation_id and m.sender_id <> new.user_id
   loop
-    if not (public.can_dm(new.user_id, other_member)
+    if not (public.can_dm(new.user_id, other_user)
             or exists (select 1 from public.message_requests r
                        where r.conversation_id = new.conversation_id
-                         and r.sender_id = other_member
+                         and r.sender_id = other_user
                          and r.recipient_id = new.user_id
                          and r.status = 'accepted'
-                         and not public.is_blocked_between(other_member, new.user_id))) then
+                         and not private.blocked_between(other_user, new.user_id))) then
       raise exception 'member_join_not_allowed' using errcode = 'P0001';
     end if;
   end loop;
@@ -363,6 +487,7 @@ create trigger conversation_members_require_join_permission
 
 -- Receiving gifts requires 18+ verified + payout KYC (brief §7). gift_events has
 -- no client write path at all; this binds the service role / future RPC too.
+-- (Specific errors are fine here: only the service role can reach it.)
 create function public.require_gift_recipient_eligible() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
@@ -397,33 +522,25 @@ create trigger gift_events_require_eligible_recipient
 --   5. Requests exist only between two adults. A minor's only DM path is a
 --      mutual relationship (brief §7), so no request can put a message in front
 --      of a minor, and require_member_join_permission blocks every other route.
+--
+-- Every refusal to create (or accept) a request raises the SAME error,
+-- 'request_not_allowed' — recipient a minor, blocked either way, nonexistent,
+-- conversation not the sender's, recipient already a member — so a request
+-- cannot be used as an age or block oracle.
 -- ============================================================================
 create function public.message_request_guard() returns trigger
 language plpgsql security definer set search_path = public as $$
 begin
-  -- Creating or accepting a request re-checks the pair; declining never does,
-  -- so a request can always be refused.
-  if tg_op = 'INSERT' or new.status = 'accepted' then
-    if public.is_blocked_between(new.sender_id, new.recipient_id) then
-      raise exception 'message_request_blocked' using errcode = 'P0001';
-    end if;
-    if not (public.is_adult(new.sender_id) and public.is_adult(new.recipient_id)) then
-      raise exception 'message_request_requires_adults' using errcode = 'P0001';
-    end if;
-  end if;
-
   if tg_op = 'INSERT' then
-    if new.status <> 'pending' then
-      raise exception 'message_request_must_start_pending' using errcode = 'P0001';
-    end if;
-    if new.conversation_id is not null then
-      if not exists (select 1 from public.conversations c
-                     where c.id = new.conversation_id and c.created_by = new.sender_id) then
-        raise exception 'message_request_conversation_not_owned' using errcode = 'P0001';
-      end if;
-      if public.is_member(new.conversation_id, new.recipient_id) then
-        raise exception 'message_request_recipient_already_member' using errcode = 'P0001';
-      end if;
+    if new.status <> 'pending'
+       or not exists (select 1 from public.users u where u.id = new.recipient_id)
+       or private.blocked_between(new.sender_id, new.recipient_id)
+       or not (public.is_adult(new.sender_id) and public.is_adult(new.recipient_id))
+       or (new.conversation_id is not null
+           and (not exists (select 1 from public.conversations c
+                            where c.id = new.conversation_id and c.created_by = new.sender_id)
+                or private.member_of(new.conversation_id, new.recipient_id))) then
+      raise exception 'request_not_allowed' using errcode = 'P0001';
     end if;
     return new;
   end if;
@@ -437,6 +554,13 @@ begin
   if old.status <> 'pending' or new.status not in ('accepted','declined') then
     raise exception 'message_request_invalid_transition: % -> %', old.status, new.status
       using errcode = 'P0001';
+  end if;
+  -- Accepting re-checks the pair; declining never does, so a request can
+  -- always be refused.
+  if new.status = 'accepted'
+     and (private.blocked_between(new.sender_id, new.recipient_id)
+          or not (public.is_adult(new.sender_id) and public.is_adult(new.recipient_id))) then
+    raise exception 'request_not_allowed' using errcode = 'P0001';
   end if;
   return new;
 end $$;
@@ -561,17 +685,29 @@ create constraint trigger ledger_entries_balanced
 -- caller's RLS on ledger_entries.
 alter view ledger_balances set (security_invoker = true);
 
+
 -- ============================================================================
 -- FUNCTION PRIVILEGES
 -- Postgres grants EXECUTE to PUBLIC and Supabase to anon/authenticated by
--- default. Age/relationship helpers and trigger functions are revoked so
--- clients cannot probe other users' ages or relationships.
+-- default. Everything is revoked, then only the self-only policy helpers are
+-- granted back.
 -- ============================================================================
 revoke execute on function public.is_adult(uuid)                    from public, anon, authenticated;
 revoke execute on function public.is_age_verified_adult(uuid)       from public, anon, authenticated;
 revoke execute on function public.can_dm(uuid, uuid)                from public, anon, authenticated;
 revoke execute on function public.relationship_state(uuid, uuid)    from public, anon, authenticated;
 revoke execute on function public.is_mutual(uuid, uuid)             from public, anon, authenticated;
+
+revoke execute on all functions in schema private from public, anon, authenticated;
+grant  execute on function private.blocked_with_me(uuid)            to anon, authenticated;
+grant  execute on function private.i_am_member(uuid)                to anon, authenticated;
+grant  execute on function private.i_am_moderator()                 to anon, authenticated;
+grant  execute on function private.post_visible(uuid, public.visibility, timestamptz, timestamptz)
+  to anon, authenticated;
+grant  execute on function private.post_id_visible(uuid)            to anon, authenticated;
+grant  execute on function private.media_visible(uuid)              to anon, authenticated;
+grant  execute on function private.media_object_visible(text)       to anon, authenticated;
+grant  execute on function private.can_join_stream(uuid)            to anon, authenticated;
 
 revoke execute on function public.handle_new_auth_user()            from public, anon, authenticated;
 revoke execute on function public.maintain_post_count()             from public, anon, authenticated;
@@ -587,11 +723,7 @@ revoke execute on function public.message_request_on_accept()       from public,
 revoke execute on function public.reject_append_only_mutation()     from public, anon, authenticated;
 revoke execute on function public.creator_terms_guard_mutation()    from public, anon, authenticated;
 revoke execute on function public.assert_ledger_txn_balanced()      from public, anon, authenticated;
-
--- Policy helpers stay executable (RLS evaluates them as the caller). None of
--- them discloses age or relationship state:
---   can_view_post       — answers only for the caller (see its header)
---   is_blocked_between, is_member, is_moderator
+-- public.can_view_post stays executable: it answers only for the caller.
 
 -- ============================================================================
 -- ROW LEVEL SECURITY — every table in public.
@@ -634,8 +766,9 @@ alter table notifications          enable row level security;
 
 -- ============================================================================
 -- COLUMN PRIVILEGES
--- Clients may not write counters, verification flags, roles, or DOB. Those
--- move only via triggers / service role.
+-- Clients may not write counters, verification flags, roles, DOB, URLs the
+-- viewer's device would fetch, or any moderation outcome. Those move only via
+-- triggers / service role.
 -- ============================================================================
 revoke insert, update on users from anon, authenticated;
 grant  update (phone, country_code) on users to authenticated;
@@ -646,27 +779,50 @@ grant  insert (user_id, username, display_name, bio, avatar_media_id, link_url)
 grant  update (username, display_name, bio, avatar_media_id, link_url)
   on profiles to authenticated;
 
--- Removal is a soft delete (update deleted_at); no hard delete from a client.
-revoke insert, update, delete on posts from anon, authenticated;
+-- posts: counters are not readable by clients (no public counts); removal is a
+-- soft delete (update deleted_at), never a hard delete.
+revoke select, insert, update, delete on posts from anon, authenticated;
+grant  select (id, author_id, kind, caption, visibility, expires_at, allow_comments,
+               allow_gifts, created_at, deleted_at)
+  on posts to anon, authenticated;
 grant  insert (id, author_id, kind, caption, visibility, expires_at, allow_comments, allow_gifts)
   on posts to authenticated;
 grant  update (caption, visibility, expires_at, allow_comments, allow_gifts, deleted_at)
   on posts to authenticated;
 
+-- media_assets: playback_url / thumbnail_url are not client-writable (a client
+-- could otherwise make every viewer's device fetch an arbitrary URL). Images
+-- are addressed by provider_asset_id = storage path and served by signed URL.
 revoke insert, update on media_assets from anon, authenticated;
-grant  insert (id, owner_id, kind, status, provider, provider_asset_id, playback_url,
-               thumbnail_url, duration_ms, width, height, bytes, content_hash)
+grant  insert (id, owner_id, kind, status, provider, provider_asset_id,
+               duration_ms, width, height, bytes, content_hash)
   on media_assets to authenticated;
-grant  update (status, playback_url, thumbnail_url, duration_ms, width, height, bytes,
-               content_hash, deleted_at)
+grant  update (status, duration_ms, width, height, bytes, content_hash, deleted_at)
   on media_assets to authenticated;
 
-revoke insert, update on likes from anon, authenticated;
+revoke insert, update on post_media from anon, authenticated;
+grant  insert (post_id, media_id, position) on post_media to authenticated;
+
+-- likes: clients only ever read their own ("did I like this?").
+revoke select, insert, update on likes from anon, authenticated;
+grant  select on likes to authenticated;
 grant  insert (post_id, user_id) on likes to authenticated;
 
 revoke insert, update on comments from anon, authenticated;
 grant  insert (id, post_id, author_id, parent_id, body) on comments to authenticated;
 grant  update (body, deleted_at) on comments to authenticated;
+
+revoke insert, update on friendships from anon, authenticated;
+grant  insert (requester_id, addressee_id) on friendships to authenticated;
+grant  update (status, responded_at) on friendships to authenticated;
+
+revoke insert, update on conversations from anon, authenticated;
+grant  insert (id, is_group, title, created_by) on conversations to authenticated;
+grant  update (title) on conversations to authenticated;
+
+revoke insert, update on conversation_members from anon, authenticated;
+grant  insert (conversation_id, user_id) on conversation_members to authenticated;
+grant  update (last_read_at, muted_until, left_at) on conversation_members to authenticated;
 
 revoke insert, update on messages from anon, authenticated;
 grant  insert (id, conversation_id, sender_id, body, media_id, shared_post_id, reply_to_id)
@@ -678,9 +834,29 @@ grant  select on message_requests to authenticated;
 grant  insert (id, sender_id, recipient_id, conversation_id) on message_requests to authenticated;
 grant  update (status) on message_requests to authenticated;
 
+-- live_streams: ingest_url is the host's stream key. It is never readable by a
+-- client; it is issued to the host by server-side provisioning (service role).
+revoke select, insert, update on live_streams from anon, authenticated;
+grant  select (id, host_id, title, status, provider, provider_room_id, playback_url,
+               recording_media_id, is_adult_only, scheduled_for, started_at, ended_at,
+               peak_viewers, total_viewers, created_at)
+  on live_streams to anon, authenticated;
+grant  insert (id, host_id, title, provider, is_adult_only, scheduled_for)
+  on live_streams to authenticated;
+grant  update (title, is_adult_only, scheduled_for) on live_streams to authenticated;
+
+revoke insert, update on live_participants from anon, authenticated;
+grant  insert (stream_id, user_id) on live_participants to authenticated;
+grant  update (left_at) on live_participants to authenticated;
+
 revoke insert, update on live_chat_messages from anon, authenticated;
 grant  insert (stream_id, user_id, body) on live_chat_messages to authenticated;
 grant  update (deleted_at) on live_chat_messages to authenticated;
+
+-- appeals: the subject files a statement; only moderators record the outcome.
+revoke insert, update on appeals from anon, authenticated;
+grant  insert (id, decision_id, user_id, statement) on appeals to authenticated;
+grant  update (outcome, resolved_at, reviewer_id) on appeals to authenticated;
 
 -- interactions: NO client privileges of any kind (brief §8.3). Rows come only
 -- from the security-definer triggers above or the service role.
@@ -702,6 +878,8 @@ revoke insert, update, delete, truncate on
 
 -- ============================================================================
 -- POLICIES
+-- Every policy decides from the row's own columns or a self-only helper, so
+-- INSERT … RETURNING (supabase-js `.insert().select()`) works for the author.
 -- ============================================================================
 
 -- users: own row only (DOB of others is private).
@@ -712,7 +890,7 @@ create policy users_update_own on users for update to authenticated
 
 -- profiles: public read except across a block; create and edit your own only.
 create policy profiles_select on profiles for select to anon, authenticated
-  using (not public.is_blocked_between((select auth.uid()), user_id));
+  using (not private.blocked_with_me(user_id));
 create policy profiles_insert_own on profiles for insert to authenticated
   with check (user_id = (select auth.uid())
               and (avatar_media_id is null
@@ -739,16 +917,16 @@ grant select on public_profiles to anon, authenticated;
 create policy relationships_select_party on relationships for select to authenticated
   using ((select auth.uid()) in (actor_id, subject_id));
 
--- friendships: the two parties.
+-- friendships: the two parties read; the requester creates a pending request
+-- and may withdraw it; only the addressee answers it.
 create policy friendships_select on friendships for select to authenticated
   using ((select auth.uid()) in (requester_id, addressee_id));
 create policy friendships_insert on friendships for insert to authenticated
   with check (requester_id = (select auth.uid())
               and status = 'pending'
-              and not public.is_blocked_between(requester_id, addressee_id));
-create policy friendships_update on friendships for update to authenticated
-  using ((select auth.uid()) in (requester_id, addressee_id))
-  with check ((select auth.uid()) in (requester_id, addressee_id));
+              and not private.blocked_with_me(addressee_id));
+create policy friendships_update_addressee on friendships for update to authenticated
+  using (addressee_id = (select auth.uid())) with check (addressee_id = (select auth.uid()));
 create policy friendships_delete on friendships for delete to authenticated
   using ((select auth.uid()) in (requester_id, addressee_id));
 
@@ -756,18 +934,21 @@ create policy friendships_delete on friendships for delete to authenticated
 create policy blocks_own on blocks for all to authenticated
   using (blocker_id = (select auth.uid())) with check (blocker_id = (select auth.uid()));
 
--- media_assets: owner, or anyone for ready, non-deleted media.
+-- media_assets: the owner, or a viewer of a post/profile that uses it. A client
+-- may only register media under its own storage folder.
 create policy media_select on media_assets for select to anon, authenticated
-  using (owner_id = (select auth.uid()) or (status = 'ready' and deleted_at is null));
+  using (owner_id = (select auth.uid()) or private.media_visible(id));
 create policy media_insert_own on media_assets for insert to authenticated
-  with check (owner_id = (select auth.uid()));
+  with check (owner_id = (select auth.uid())
+              and provider_asset_id is not null
+              and starts_with(provider_asset_id, (select auth.uid())::text || '/'));
 create policy media_update_own on media_assets for update to authenticated
   using (owner_id = (select auth.uid())) with check (owner_id = (select auth.uid()));
 
--- posts: visibility via can_view_post; authors insert/update/soft-delete own.
--- No DELETE policy: removal is a soft delete (update deleted_at).
+-- posts: visibility from the row's own columns; authors insert/update/soft-delete
+-- their own.
 create policy posts_select on posts for select to anon, authenticated
-  using (public.can_view_post(id, (select auth.uid())));
+  using (private.post_visible(author_id, visibility, deleted_at, expires_at));
 create policy posts_insert_own on posts for insert to authenticated
   with check (author_id = (select auth.uid()));
 create policy posts_update_own on posts for update to authenticated
@@ -775,27 +956,26 @@ create policy posts_update_own on posts for update to authenticated
 
 -- post_media: attach only your own media to your own post.
 create policy post_media_select on post_media for select to anon, authenticated
-  using (public.can_view_post(post_id, (select auth.uid())));
+  using (private.post_id_visible(post_id));
 create policy post_media_insert_own on post_media for insert to authenticated
   with check (exists (select 1 from posts p where p.id = post_id and p.author_id = (select auth.uid()))
               and exists (select 1 from media_assets m where m.id = media_id and m.owner_id = (select auth.uid())));
 create policy post_media_delete_own on post_media for delete to authenticated
   using (exists (select 1 from posts p where p.id = post_id and p.author_id = (select auth.uid())));
 
--- likes/comments: read follows the post's visibility; write as yourself on a
--- post you can view; delete your own.
-create policy likes_select on likes for select to anon, authenticated
-  using (public.can_view_post(post_id, (select auth.uid())));
+-- likes: you read, write and delete only your own, on posts you can view.
+create policy likes_select_own on likes for select to authenticated
+  using (user_id = (select auth.uid()));
 create policy likes_insert_own on likes for insert to authenticated
-  with check (user_id = (select auth.uid()) and public.can_view_post(post_id, (select auth.uid())));
+  with check (user_id = (select auth.uid()) and private.post_id_visible(post_id));
 create policy likes_delete_own on likes for delete to authenticated
   using (user_id = (select auth.uid()));
 
 create policy comments_select on comments for select to anon, authenticated
-  using (public.can_view_post(post_id, (select auth.uid())));
+  using (private.post_id_visible(post_id));
 create policy comments_insert_own on comments for insert to authenticated
   with check (author_id = (select auth.uid())
-              and public.can_view_post(post_id, (select auth.uid()))
+              and private.post_id_visible(post_id)
               and exists (select 1 from posts p where p.id = post_id and p.allow_comments));
 create policy comments_update_own on comments for update to authenticated
   using (author_id = (select auth.uid())) with check (author_id = (select auth.uid()));
@@ -806,24 +986,23 @@ create policy comments_delete_own on comments for delete to authenticated
 -- (brief §6.2: readable by the affected creator).
 create policy reach_events_select on reach_events for select to authenticated
   using (exists (select 1 from posts p where p.id = post_id and p.author_id = (select auth.uid()))
-         or public.is_moderator());
+         or private.i_am_moderator());
 create policy post_daily_stats_select on post_daily_stats for select to authenticated
   using (exists (select 1 from posts p where p.id = post_id and p.author_id = (select auth.uid()))
-         or public.is_moderator());
+         or private.i_am_moderator());
 
--- conversations / members / messages: members only. Message sending is gated
--- by messages_require_dm_permission; joining by
+-- conversations / members / messages: members only. Message sending and body
+-- edits are gated by messages_require_dm_permission; joining by
 -- conversation_members_require_join_permission.
 create policy conversations_select on conversations for select to authenticated
-  using (public.is_member(id, (select auth.uid())) or created_by = (select auth.uid()));
+  using (private.i_am_member(id) or created_by = (select auth.uid()));
 create policy conversations_insert on conversations for insert to authenticated
   with check (created_by = (select auth.uid()));
 create policy conversations_update on conversations for update to authenticated
-  using (public.is_member(id, (select auth.uid())))
-  with check (public.is_member(id, (select auth.uid())));
+  using (private.i_am_member(id)) with check (private.i_am_member(id));
 
 create policy conversation_members_select on conversation_members for select to authenticated
-  using (public.is_member(conversation_id, (select auth.uid())));
+  using (private.i_am_member(conversation_id));
 -- The conversation creator adds members (including themself).
 create policy conversation_members_insert on conversation_members for insert to authenticated
   with check (exists (select 1 from conversations c
@@ -832,11 +1011,12 @@ create policy conversation_members_update_own on conversation_members for update
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
 create policy messages_select on messages for select to authenticated
-  using (public.is_member(conversation_id, (select auth.uid())));
+  using (private.i_am_member(conversation_id));
 create policy messages_insert_own on messages for insert to authenticated
-  with check (sender_id = (select auth.uid()) and public.is_member(conversation_id, (select auth.uid())));
+  with check (sender_id = (select auth.uid()) and private.i_am_member(conversation_id));
 create policy messages_update_own on messages for update to authenticated
-  using (sender_id = (select auth.uid())) with check (sender_id = (select auth.uid()));
+  using (sender_id = (select auth.uid()) and private.i_am_member(conversation_id))
+  with check (sender_id = (select auth.uid()) and private.i_am_member(conversation_id));
 
 -- message_requests: both parties can see the row (it has no body); the sender
 -- inserts as themselves; only the recipient changes status. Recipients list
@@ -855,8 +1035,9 @@ where recipient_id = (select auth.uid());
 revoke all on message_requests_inbox from anon, authenticated;
 grant select on message_requests_inbox to authenticated;
 
--- live: readable if the stream exists; host manages own stream. INSERT is also
--- gated by live_streams_require_verified_adult.
+-- live: readable (minus ingest_url, see grants); host manages own stream.
+-- INSERT is also gated by live_streams_require_verified_adult. Joining and
+-- chatting respect is_adult_only.
 create policy live_streams_select on live_streams for select to anon, authenticated
   using (true);
 create policy live_streams_insert_own on live_streams for insert to authenticated
@@ -869,14 +1050,14 @@ create policy live_streams_delete_own on live_streams for delete to authenticate
 create policy live_participants_select on live_participants for select to anon, authenticated
   using (true);
 create policy live_participants_insert_own on live_participants for insert to authenticated
-  with check (user_id = (select auth.uid()));
+  with check (user_id = (select auth.uid()) and private.can_join_stream(stream_id));
 create policy live_participants_update_own on live_participants for update to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
 create policy live_chat_select on live_chat_messages for select to anon, authenticated
   using (true);
 create policy live_chat_insert_own on live_chat_messages for insert to authenticated
-  with check (user_id = (select auth.uid()));
+  with check (user_id = (select auth.uid()) and private.can_join_stream(stream_id));
 create policy live_chat_update_own on live_chat_messages for update to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
@@ -910,15 +1091,15 @@ create policy payouts_select_own on payouts for select to authenticated
 create policy reports_insert_own on reports for insert to authenticated
   with check (reporter_id = (select auth.uid()));
 create policy reports_select on reports for select to authenticated
-  using (reporter_id = (select auth.uid()) or public.is_moderator());
+  using (reporter_id = (select auth.uid()) or private.i_am_moderator());
 create policy reports_update_moderator on reports for update to authenticated
-  using (public.is_moderator()) with check (public.is_moderator());
+  using (private.i_am_moderator()) with check (private.i_am_moderator());
 
 -- moderation_decisions: subject reads own; moderators do everything.
 create policy moderation_decisions_select on moderation_decisions for select to authenticated
-  using (subject_user_id = (select auth.uid()) or public.is_moderator());
+  using (subject_user_id = (select auth.uid()) or private.i_am_moderator());
 create policy moderation_decisions_moderator on moderation_decisions for all to authenticated
-  using (public.is_moderator()) with check (public.is_moderator());
+  using (private.i_am_moderator()) with check (private.i_am_moderator());
 
 -- appeals: subject files and reads own; moderators read and record outcomes.
 create policy appeals_insert_own on appeals for insert to authenticated
@@ -926,9 +1107,9 @@ create policy appeals_insert_own on appeals for insert to authenticated
               and exists (select 1 from moderation_decisions d
                           where d.id = decision_id and d.subject_user_id = (select auth.uid())));
 create policy appeals_select on appeals for select to authenticated
-  using (user_id = (select auth.uid()) or public.is_moderator());
+  using (user_id = (select auth.uid()) or private.i_am_moderator());
 create policy appeals_update_moderator on appeals for update to authenticated
-  using (public.is_moderator()) with check (public.is_moderator());
+  using (private.i_am_moderator()) with check (private.i_am_moderator());
 
 -- notifications / devices: own rows only.
 create policy devices_own on devices for all to authenticated
@@ -937,15 +1118,22 @@ create policy notifications_own on notifications for all to authenticated
   using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
 -- ============================================================================
--- STORAGE — bucket `media`: public read; authenticated upload under
--- `<auth.uid()>/...` only.
+-- STORAGE — bucket `media` is PRIVATE. Clients read objects only through
+-- signed URLs (createSignedUrl), and signing requires SELECT on the object:
+--   * your own folder `<auth.uid()>/...` always;
+--   * anyone else's object only if a media_assets row with
+--     provider_asset_id = object path is visible to you (private.media_visible:
+--     attached to a post you can see, or a visible profile's avatar).
+-- Uploads/updates/deletes: your own folder only.
 -- ============================================================================
 insert into storage.buckets (id, name, public)
-values ('media', 'media', true)
-on conflict (id) do nothing;
+values ('media', 'media', false)
+on conflict (id) do update set public = false;
 
-create policy media_public_read on storage.objects for select to public
-  using (bucket_id = 'media');
+create policy media_read_visible on storage.objects for select to anon, authenticated
+  using (bucket_id = 'media'
+         and ((storage.foldername(name))[1] = (select auth.uid())::text
+              or private.media_object_visible(name)));
 create policy media_owner_insert on storage.objects for insert to authenticated
   with check (bucket_id = 'media'
               and (storage.foldername(name))[1] = (select auth.uid())::text);
@@ -954,3 +1142,21 @@ create policy media_owner_update on storage.objects for update to authenticated
   with check (bucket_id = 'media' and (storage.foldername(name))[1] = (select auth.uid())::text);
 create policy media_owner_delete on storage.objects for delete to authenticated
   using (bucket_id = 'media' and (storage.foldername(name))[1] = (select auth.uid())::text);
+
+-- ============================================================================
+-- PLATFORM DEFAULT CREATOR TERMS (user_id null, version 1)
+-- Lives in a migration so every environment (including `db push` to
+-- production) has platform terms. Idempotent via creator_terms_user_version_uniq.
+-- ============================================================================
+insert into creator_terms (user_id, version, creator_share_bps, min_payout_cents,
+                           payout_delay_days, effective_from, summary)
+values (
+  null, 1, 7000, 2000, 7, now(),
+  'You keep 70% of what remains after Apple or Google takes their 30% app store '
+  'fee, which we do not control and cannot waive. Every gift you receive shows '
+  'all three numbers: what the sender paid, what the app store took, and what '
+  'reached you. Payouts run weekly once your balance clears $20. These terms '
+  'cannot be changed retroactively — a rate change creates a new version with a '
+  'future effective date, and everything earned before then settles at the old rate.'
+)
+on conflict do nothing;

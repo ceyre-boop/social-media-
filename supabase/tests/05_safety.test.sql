@@ -2,7 +2,7 @@
 -- member-join gating, live gating, message requests.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(38);
+select plan(57);
 
 -- Runs a DML statement as the current role and returns the affected row count.
 create function pg_temp.affected(stmt text) returns int language plpgsql as $f$
@@ -84,6 +84,7 @@ select throws_ok(
     values ('c0000000-0000-4000-8000-000000000001', '22222222-2222-4222-8222-222222222222', 'still there?')$$,
   'P0001', 'dm_not_allowed', 'bob cannot message alice across a block');
 reset role;
+select set_config('request.jwt.claims', '', true);  -- service path: no JWT
 delete from public.blocks;
 
 -- ------------------------------------------ messages: minor ↔ adult (C2)
@@ -162,7 +163,25 @@ select pg_temp.act_as('55555555-5555-4555-8555-555555555555');
 select throws_ok(
   $$insert into public.message_requests (sender_id, recipient_id)
     values ('55555555-5555-4555-8555-555555555555', '33333333-3333-4333-8333-333333333333')$$,
-  'P0001', 'message_request_requires_adults', 'an adult cannot send a message request to a minor');
+  'P0001', 'request_not_allowed', 'an adult cannot send a message request to a minor');
+reset role;
+insert into public.blocks (blocker_id, blocked_id)
+values ('11111111-1111-4111-8111-111111111111', '55555555-5555-4555-8555-555555555555');
+set local role authenticated;
+select pg_temp.act_as('55555555-5555-4555-8555-555555555555');
+select throws_ok(
+  $$insert into public.message_requests (sender_id, recipient_id)
+    values ('55555555-5555-4555-8555-555555555555', '11111111-1111-4111-8111-111111111111')$$,
+  'P0001', 'request_not_allowed',
+  'a request to an adult who blocked dave fails with the SAME error as to a minor (no age oracle)');
+select throws_ok(
+  $$insert into public.message_requests (sender_id, recipient_id)
+    values ('55555555-5555-4555-8555-555555555555', '99999999-9999-4999-8999-999999999999')$$,
+  'P0001', 'request_not_allowed',
+  'a request to a nonexistent user fails with the SAME error (no existence oracle)');
+reset role;
+delete from public.blocks;
+set local role authenticated;
 
 -- carol (unverified; cannot DM dave) holds a first message in a solo
 -- conversation and requests dave.
@@ -212,8 +231,109 @@ select throws_ok(
   'an answered request cannot be changed again');
 
 select pg_temp.act_as('44444444-4444-4444-8444-444444444444');
-select is((select count(*)::int from public.message_requests_inbox), 0,
+select is((select count(*)::int from public.message_requests_inbox
+           where id = 'd0000000-0000-4000-8000-000000000001'), 0,
   'the inbox view shows only requests addressed to the caller');
+
+-- -------------------------------------------- leave-then-add (review HIGH 1)
+select pg_temp.act_as('55555555-5555-4555-8555-555555555555');  -- dave
+insert into public.conversations (id, created_by)
+values ('c0000000-0000-4000-8000-000000000005', '55555555-5555-4555-8555-555555555555');
+insert into public.conversation_members (conversation_id, user_id)
+values ('c0000000-0000-4000-8000-000000000005', '55555555-5555-4555-8555-555555555555');
+insert into public.messages (id, conversation_id, sender_id, body)
+values ('e0000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000005',
+        '55555555-5555-4555-8555-555555555555', 'hi kid');
+update public.conversation_members set left_at = now()
+where conversation_id = 'c0000000-0000-4000-8000-000000000005' and user_id = '55555555-5555-4555-8555-555555555555';
+select throws_ok(
+  $$insert into public.conversation_members (conversation_id, user_id)
+    values ('c0000000-0000-4000-8000-000000000005', '33333333-3333-4333-8333-333333333333')$$,
+  'P0001', 'member_join_not_allowed',
+  'dave cannot add minnie after writing and leaving (adder must be an active member)');
+select is(
+  pg_temp.affected($$update public.messages set body = 'edited after leaving'
+                      where id = 'e0000000-0000-4000-8000-000000000001'$$),
+  0, 'a sender who left cannot edit their message');
+select throws_ok(
+  $$update public.conversation_members set conversation_id = 'c0000000-0000-4000-8000-000000000001'
+    where conversation_id = 'c0000000-0000-4000-8000-000000000005'
+      and user_id = '55555555-5555-4555-8555-555555555555'$$,
+  '42501', null, 'a member cannot move their membership row into another conversation');
+select throws_ok(
+  $$update public.conversations set created_by = '55555555-5555-4555-8555-555555555555'
+    where id = 'c0000000-0000-4000-8000-000000000005'$$,
+  '42501', null, 'conversations.created_by cannot be rewritten by a client');
+reset role;
+select set_config('request.jwt.claims', '', true);  -- service path: no JWT
+select throws_ok(
+  $$insert into public.conversation_members (conversation_id, user_id)
+    values ('c0000000-0000-4000-8000-000000000005', '33333333-3333-4333-8333-333333333333')$$,
+  'P0001', 'member_join_not_allowed',
+  'even the service path cannot add minnie: a past (left) member/sender she cannot DM is checked');
+select is((select body from public.messages where id = 'e0000000-0000-4000-8000-000000000001'),
+  'hi kid', 'the message body is unchanged');
+
+-- ------------------------------------------------ helper oracles (review 4)
+set local role anon;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+select throws_ok(
+  $$select private.blocked_between('11111111-1111-4111-8111-111111111111', '55555555-5555-4555-8555-555555555555')$$,
+  '42501', null, 'anon cannot call the internal block check for arbitrary users');
+reset role;
+set local role authenticated;
+select pg_temp.act_as('55555555-5555-4555-8555-555555555555');
+select throws_ok(
+  $$select private.member_of('c0000000-0000-4000-8000-000000000001', '11111111-1111-4111-8111-111111111111')$$,
+  '42501', null, 'dave cannot call the internal membership check for other users');
+select throws_ok(
+  $$select public.is_blocked_between('11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222')$$,
+  '42883', null, 'the old public block-check RPC no longer exists');
+select is(private.blocked_with_me('11111111-1111-4111-8111-111111111111'), false,
+  'the policy helper answers only about the caller (dave is not blocked with alice)');
+
+-- ----------------------------------------- friendships / appeals (review 8)
+select pg_temp.act_as('22222222-2222-4222-8222-222222222222');  -- bob
+insert into public.friendships (requester_id, addressee_id)
+values ('22222222-2222-4222-8222-222222222222', '55555555-5555-4555-8555-555555555555');
+select is(
+  pg_temp.affected($$update public.friendships set status = 'accepted'
+                      where requester_id = '22222222-2222-4222-8222-222222222222'
+                        and addressee_id = '55555555-5555-4555-8555-555555555555'$$),
+  0, 'the requester cannot accept their own friend request');
+select pg_temp.act_as('55555555-5555-4555-8555-555555555555');  -- dave, addressee
+select is(
+  pg_temp.affected($$update public.friendships set status = 'accepted', responded_at = now()
+                      where requester_id = '22222222-2222-4222-8222-222222222222'
+                        and addressee_id = '55555555-5555-4555-8555-555555555555'$$),
+  1, 'the addressee can accept');
+select throws_ok(
+  $$insert into public.appeals (decision_id, user_id, statement, outcome)
+    values (gen_random_uuid(), '55555555-5555-4555-8555-555555555555', 'x', 'granted')$$,
+  '42501', null, 'a client cannot set an appeal outcome');
+
+-- ---------------------------------------------------- live (review 7)
+select throws_ok($$select ingest_url from public.live_streams limit 1$$, '42501', null,
+  'authenticated cannot read live_streams.ingest_url (stream key)');
+reset role;
+insert into public.live_streams (id, host_id, provider, is_adult_only)
+values ('f1000000-0000-4000-8000-000000000001', '11111111-1111-4111-8111-111111111111', 'test', true);
+set local role authenticated;
+select pg_temp.act_as('33333333-3333-4333-8333-333333333333');
+select throws_ok(
+  $$insert into public.live_participants (stream_id, user_id)
+    values ('f1000000-0000-4000-8000-000000000001', '33333333-3333-4333-8333-333333333333')$$,
+  '42501', null, 'minnie cannot join an adult-only stream');
+select pg_temp.act_as('44444444-4444-4444-8444-444444444444');
+select lives_ok(
+  $$insert into public.live_participants (stream_id, user_id)
+    values ('f1000000-0000-4000-8000-000000000001', '44444444-4444-4444-8444-444444444444')$$,
+  'carol (adult) can join an adult-only stream');
+reset role;
+set local role anon;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
+select throws_ok($$select ingest_url from public.live_streams limit 1$$, '42501', null,
+  'anon cannot read live_streams.ingest_url');
 reset role;
 
 select hasnt_column('public', 'message_requests', 'body', 'message_requests has no body column');

@@ -979,15 +979,6 @@ isOneToOne: true
 "is_age_verified_adult":
 { Args: { "uid": string }; Returns: boolean
                            },
-"is_blocked_between":
-{ Args: { "a": string,"b": string }; Returns: boolean
-                           },
-"is_member":
-{ Args: { "conv": string,"uid": string }; Returns: boolean
-                           },
-"is_moderator":
-{ Args: Record<PropertyKey, never>; Returns: boolean
-                           },
 "is_mutual":
 { Args: { "a": string,"b": string }; Returns: boolean
                            },

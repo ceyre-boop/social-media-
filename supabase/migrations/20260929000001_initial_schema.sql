@@ -489,6 +489,6 @@ create index notifications_user_idx on notifications(user_id, created_at desc)
   where read_at is null;
 
 -- FIX: the default creator_terms row (platform-wide, user_id null, version 1)
--- moved to supabase/seed.sql. Data inserts do not belong in a schema migration,
--- and creator_terms is append-only after migration 003, so a migration-time row
--- could never be corrected.
+-- moved to the end of migration 003. It must be inserted after 003 adds the
+-- nulls-not-distinct unique index that makes the insert idempotent
+-- (on conflict do nothing) and the append-only guard that protects it.

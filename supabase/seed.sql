@@ -12,20 +12,6 @@
 -- create their profile in the app on first login.
 -- ============================================================================
 
--- DEFAULT CREATOR TERMS (platform-wide, user_id null, version 1).
--- Moved here from docs/schema-v0.1.sql (see FIX note in migration 001).
-insert into public.creator_terms (user_id, version, creator_share_bps, min_payout_cents,
-                                  payout_delay_days, effective_from, summary)
-values (
-  null, 1, 7000, 2000, 7, now(),
-  'You keep 70% of what remains after Apple or Google takes their 30% app store '
-  'fee, which we do not control and cannot waive. Every gift you receive shows '
-  'all three numbers: what the sender paid, what the app store took, and what '
-  'reached you. Payouts run weekly once your balance clears $20. These terms '
-  'cannot be changed retroactively — a rate change creates a new version with a '
-  'future effective date, and everything earned before then settles at the old rate.'
-);
-
 -- COIN PRODUCTS (Infrastructure Cost Model: bundles start at $4.99 because of
 -- Stripe's $0.30 fixed fee).
 insert into public.coin_products (sku, coins, price_cents, currency) values

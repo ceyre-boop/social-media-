@@ -2,7 +2,7 @@
 -- interactions/relationships privacy, blocks, anon.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(45);
+select plan(51);
 
 -- Runs a DML statement as the current role and returns the affected row count.
 create function pg_temp.affected(stmt text) returns int language plpgsql as $f$
@@ -102,7 +102,11 @@ select throws_ok(
   '42501', null, 'a client cannot write relationships');
 
 -- relationships: only the two parties see a row.
-select is((select count(*)::int from public.relationships), 2,
+select is((select count(*)::int from public.relationships
+           where (actor_id, subject_id) in (('22222222-2222-4222-8222-222222222222', '11111111-1111-4111-8111-111111111111'),
+                                            ('11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222'),
+                                            ('44444444-4444-4444-8444-444444444444', '11111111-1111-4111-8111-111111111111'))),
+  2,
   'bob sees exactly his two relationship rows (bob→alice, alice→bob)');
 select pg_temp.act_as('55555555-5555-4555-8555-555555555555');  -- dave
 select is((select count(*)::int from public.relationships), 0,
@@ -140,7 +144,15 @@ set local role anon;
 select pg_temp.act_as_anon();
 select is(pg_temp.visible_matrix(), array['public'],
   'anon reads alice''s public post only — never private, followers or friends');
-select is((select count(*)::int from public.profiles), 6, 'anon can read every profile (5 seeded + erin)');
+select is((select count(*)::int from public.profiles
+           where user_id in ('11111111-1111-4111-8111-111111111111', '22222222-2222-4222-8222-222222222222',
+                             '33333333-3333-4333-8333-333333333333', '44444444-4444-4444-8444-444444444444',
+                             '55555555-5555-4555-8555-555555555555', '66666666-6666-4666-8666-666666666666')),
+  6, 'anon can read every seeded profile (5 seeded + erin)');
+select throws_ok($$select user_id from public.likes limit 1$$, '42501', null,
+  'anon cannot read likes (who liked what is not public)');
+select throws_ok($$select like_count from public.posts limit 1$$, '42501', null,
+  'anon cannot read posts.like_count (no public counts)');
 select is((select count(*)::int from public.users), 0, 'anon cannot read users (DOB is private)');
 select throws_ok($$select count(*) from public.interactions$$, '42501', null,
   'anon cannot read interactions');
@@ -184,6 +196,29 @@ select is((select count(*)::int from public.interactions
   1, 'alice''s self-like wrote no interaction');
 select is((select like_count from public.posts where id = 'aaaaaaaa-0000-4000-8000-000000000005'),
   2::bigint, 'like_count counts both likes');
+
+set local role authenticated;
+select pg_temp.act_as('11111111-1111-4111-8111-111111111111');
+select is((select count(*)::int from public.likes
+           where post_id = 'aaaaaaaa-0000-4000-8000-000000000005'),
+  1, 'alice (the author) sees only her own like row, not bob''s');
+select throws_ok($$select comment_count from public.posts limit 1$$, '42501', null,
+  'authenticated cannot read posts.comment_count');
+
+-- like / unlike / like / unlike / like must not inflate the relationship signal.
+select pg_temp.act_as('55555555-5555-4555-8555-555555555555');  -- dave
+insert into public.likes (post_id, user_id) values ('aaaaaaaa-0000-4000-8000-000000000001', '55555555-5555-4555-8555-555555555555');
+delete from public.likes where post_id = 'aaaaaaaa-0000-4000-8000-000000000001' and user_id = '55555555-5555-4555-8555-555555555555';
+insert into public.likes (post_id, user_id) values ('aaaaaaaa-0000-4000-8000-000000000001', '55555555-5555-4555-8555-555555555555');
+delete from public.likes where post_id = 'aaaaaaaa-0000-4000-8000-000000000001' and user_id = '55555555-5555-4555-8555-555555555555';
+insert into public.likes (post_id, user_id) values ('aaaaaaaa-0000-4000-8000-000000000001', '55555555-5555-4555-8555-555555555555');
+reset role;
+select is((select count(*)::int from public.interactions
+           where actor_id = '55555555-5555-4555-8555-555555555555' and kind = 'like'
+             and post_id = 'aaaaaaaa-0000-4000-8000-000000000001'),
+  1, 'like/unlike/like x3 writes exactly one like interaction');
+select is((select like_count from public.posts where id = 'aaaaaaaa-0000-4000-8000-000000000001'),
+  1::bigint, 'like_count still tracks the live like');
 
 set local role authenticated;
 select pg_temp.act_as('22222222-2222-4222-8222-222222222222');
