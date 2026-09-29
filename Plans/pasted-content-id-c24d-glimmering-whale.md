@@ -1,76 +1,81 @@
-# Social platform — fixed schema + Next.js app scaffold
+# Smiley — milestone 1 vertical slice (per `docs/claude-code-brief_smiley.md`)
 
 ## Context
-TABOOST pasted `CORE SCHEMA v0.1` (identity, graph, posts/reels/stories, reach transparency, DMs, live, double-entry coin ledger, creator terms, T&S, notifications) into an empty repo (`~/social-media-`, only `.claude/` + `.git`). Chosen scope: **full app scaffold** — corrected schema as a Supabase migration plus a Next.js app on top. The schema as written fails to apply, so fixing it is step 1.
+Colin's brief replaces my earlier Next.js plan. Locked stack: Expo + Supabase, RLS as the authorization layer. The relationship model has no follow button.
 
-## Stack (defaults, no further questions)
-- Next.js App Router (latest), TypeScript, bun only, Tailwind + shadcn/ui.
-- Supabase: local via `bunx supabase` (Docker), `@supabase/ssr` for auth cookies, Supabase Storage for media in v0 (the `provider` column = `'supabase'`; Mux/Cloudflare Stream later).
-- Types generated with `bunx supabase gen types typescript --local > lib/db/types.ts`.
+This milestone is one loop on a real device: **signup → profile → post an image → feed → like**. It does not include video, money, live, DMs, moderation, ranking, stories, or the recompute job (§9).
 
-## Phase 1 — Migration `supabase/migrations/0001_core.sql`
-Paste the schema verbatim, then apply these fixes:
-1. `create extension if not exists citext;`
-2. `users.is_adult` → drop the generated column; add `function is_adult(uid uuid) returns boolean stable` (computes from `date_of_birth`).
-3. `users.id` references `auth.users(id) on delete cascade`; trigger on `auth.users` insert creates `users` + `profiles` rows (username from signup metadata).
-4. Ledger append-only: replace the `do instead nothing` rules with a `before update or delete` trigger that raises an error, plus a `before truncate` trigger. Apply the same to `gift_events`, `coin_purchases`, and `creator_terms` (only `superseded_at` may be set, once, and only from null).
-5. Balance guarantee: a deferrable constraint trigger on `ledger_entries` asserts sum(debits) = sum(credits) per `transaction_id` and currency at commit.
-6. Posting functions (`security definer`, the only write path): `purchase_coins(...)` and `send_gift(...)`. `send_gift` resolves the current `creator_terms`, computes the itemization in integer cents, writes `gift_events` + the balanced ledger transaction, and rejects the gift if the sender's balance is short or the sender/recipient is not an adult.
-7. `creator_terms`: `unique nulls not distinct (user_id, version)`; partial unique index so only one non-superseded row exists per user.
-8. Exactly-one checks: `gift_events` `num_nonnulls(stream_id, post_id) = 1`; `reports` `num_nonnulls(target_*) = 1`.
-9. Missing FKs: `profiles.avatar_media_id → media_assets`, `ledger_entries.currency` must match the account's currency (checked in the balance trigger).
-10. Counter triggers for follower, following, post, like, and comment counts.
-11. RLS on every table. Examples:
-    - Public posts are readable by anyone; followers-only posts by followers; nothing is visible across a block.
-    - `reach_events` and `post_daily_stats` are readable only by the post's author.
-    - Ledger and money tables are selectable by their owner; nobody gets direct insert (the posting functions only).
-    - Messages are readable by conversation members only.
-    - Reports can be inserted by any user and selected by the reporter only.
+**Where things stand:**
+- Forge's corrected DB is committed as 538b30f: a single migration, 72 passing pgTAP tests.
+- The Next.js files are still tracked (my `git rm` aborted). The untracked Next.js helpers are already deleted.
 
-`supabase/seed.sql`: the default creator-terms row, 3 coin products, 5 gift catalog items, and 3 test users.
+## Conflicts with the brief I'm resolving (Colin reviews the diff)
+1. **`users.is_adult` generated column (§7 says "use it"):** Postgres rejects it, because `current_date` is not immutable.
+   - I'm replacing it with a `stable` `is_adult(uid)` function, used inside RLS helpers.
+   - Clients get no EXECUTE on it, so they can't probe other users' age.
+2. **Migration 001 "as written":** it can't apply. 001 carries only the minimal fixes, each commented `-- FIX:`: `citext` extension, the is_adult function, and `users.id → auth.users`.
+3. **Ledger rules "discard writes" (§6.3):** I'm keeping Forge's triggers, which **raise** instead of discarding, and also block TRUNCATE. It's the same invariant, but a silent discard hides bugs.
+4. **Money RPCs Forge built** (`purchase_coins`, `send_gift`) are §9 scope creep. They move to branch `later/money-rpcs` and come out of main. Tables and no-client-write RLS stay.
+5. **`posts.visibility` mapping to relationships** (the brief doesn't define it):
+   - `public` = anyone.
+   - `followers` = the viewer's relationship to the author is `returning` or `regular`.
+   - `friends` = mutual (both directions `regular`).
+   - `private` = the author only.
+6. **`bun run typecheck`, not npm:** the global rule is bun only.
+7. **Dependencies:** Expo, expo-router, expo-image-picker, and expo-sqlite (for the Supabase session store), plus Supabase and FlashList. Nothing else, so no approval is needed under §10.
 
-## Phase 2 — Database tests (`supabase/tests/*.test.sql`, pgTAP via `bunx supabase test db`)
-- Ledger: UPDATE, DELETE, and TRUNCATE all raise; an unbalanced transaction fails at commit.
-- `send_gift`: the itemization adds up to gross; the terms snapshot is recorded; insufficient balance is rejected; a minor sender is rejected.
-- Terms: a second non-superseded row is rejected; editing `creator_share_bps` is rejected.
-- RLS: user B can't read A's reach_events, ledger, or DMs; blocked users can't see each other's posts.
+## Step 1 — DB restructure (Forge, reusing 538b30f)
+Split `supabase/migrations/20260929000000_core.sql` into:
+- **`..._001_initial_schema.sql`**: `docs/schema-v0.1.sql` verbatim, plus the `-- FIX:` items above.
+- **`..._002_relationship_model.sql`**: the brief's §4 SQL exactly.
+  - Drop `follows` and the follower/following counters and their triggers.
+  - Add `users.age_verified`, `age_verified_at`, and `age_verification_ref`.
+  - Add a check on `relationships.state`.
+  - Add helpers `relationship_state(actor, subject)` and `is_mutual(a, b)`.
+- **`..._003_rls_policies.sql`**: deny-by-default on every table, reusing Forge's policies, helpers, grants, and ledger/terms triggers. Changes:
+  - `profiles`: public read, self-insert and self-update. The profile is created on first login, **not** by the auth trigger; the auth trigger creates only the `users` row, with DOB from signup metadata.
+  - `posts`: read per the visibility mapping above, not across blocks; author-write only.
+  - `likes` and `comments`: authenticated insert, author-delete.
+  - `interactions`: no client grants at all. An `after insert` security-definer trigger on `likes` writes the `'like'` interaction. This is how "like writes both rows" holds without giving clients a write path.
+  - `relationships`: select by actor or subject; no client writes.
+  - `messages` insert follows the §7 age rules, via `can_dm`, rewritten on relationships:
+    - A minor may DM only a mutual relationship.
+    - An adult may DM an unconnected minor never.
+    - Adult ↔ adult requires both to be age-verified, or to be mutual.
+  - `live_streams` insert requires a verified adult. `gift_events` insert requires an adult, verified recipient with `payout_accounts.payouts_enabled`.
+  - `message_requests` view: exposes sender and created_at, never `body`, until the request is accepted.
+- **`seed.sql`**: alice, bob, and minnie from Forge, plus 2 more users; sample posts with every visibility; interactions and relationships rows so the visibility rules are testable.
+- **`supabase/tests/`**: keep the ledger and terms tests; drop the money-RPC tests and the follows-based tests. Add:
+  - A cannot update B's profile.
+  - A cannot insert interactions directly.
+  - A cannot read B's private post, or B's followers-only post without a relationship, and can after one.
+  - Liking writes one interaction.
+  - A minor cannot message an adult they have no mutual relationship with.
+  - A minor cannot insert a live stream.
+  - There's no client insert on ledger_entries or creator_terms.
 
-## Phase 3 — App (`app/`)
-| Route | Does |
-|---|---|
-| `/signup`, `/login` | Supabase email auth. DOB is collected at signup. |
-| `/` | Following feed, plus a public fallback (posts_feed_idx). |
-| `/new` | Upload image/video to Storage → `media_assets` → post, reel, or story (a story sets `expires_at` to now + 24h). |
-| `/[username]` | Profile, follow/unfollow, post grid, and a stories ring. |
-| `/p/[id]` | Post, likes, threaded comments, and a report button. |
-| `/p/[id]/insights` (author only) | `post_daily_stats` plus the `reach_events` list with each explanation shown verbatim. This page is what makes the no-shadowban promise visible. |
-| `/wallet` | Coin balance (from `ledger_balances`), purchase history, and a dev-only "buy coins" action (Stripe/IAP stub behind a flag). |
-| `/creator` | Current terms `summary`, a per-gift receipt table (gross / app store / platform / net), and earnings to date. |
-| `/messages` | DM list and thread; friends only; Supabase Realtime for new messages. |
-| `/mod` (moderator role) | Report queue ordered by priority, a decision form that requires a rationale, and the appeals due list. |
-
-Server actions live in `lib/actions/*`. Money goes only through `rpc('send_gift')` and `rpc('purchase_coins')`.
-
-**Deferred (schema only, no UI yet):** live streaming (LiveKit), real IAP/Stripe purchase verification, Stripe Connect payouts, push notifications. Each of these is its own follow-up.
-
-## Critical files
-- `supabase/migrations/0001_core.sql`, `supabase/seed.sql`, `supabase/tests/`
-- `lib/supabase/{server,client,middleware}.ts`, `lib/db/types.ts`, `lib/actions/`
-- `app/` routes above; `middleware.ts` refreshes the session
+## Step 2 — Expo app (builder, runs after Step 1's types exist)
+Replace the Next.js files in the repo root with `bunx create-expo-app@latest --template default`: TypeScript strict, expo-router.
+- **Tooling:** ESLint (`expo lint`) and Prettier; `.env.example` with `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY`; `.gitignore`.
+- **Scripts:** `typecheck`, `lint`, `format`, `db:types` (writes `lib/db/types.ts`, committed), `db:test`.
+- **`lib/supabase.ts`:** the client with the expo-sqlite localStorage session store, `autoRefreshToken`, and an AppState listener.
+- **`app/_layout.tsx`:** a session gate. Routes are `(auth)` or `(app)`; `(app)` redirects to onboarding when there's no profile.
+- **`(auth)/sign-in.tsx`:** email → OTP code → verify. On signup, the DOB is required and passed as `options.data.date_of_birth`.
+- **`(app)/onboarding.tsx`:** username, display name, and bio. Username uniqueness errors surface from the citext unique index.
+- **`(app)/profile.tsx` and `profile/edit.tsx`:** view and edit your own profile. **No counts anywhere.**
+- **`(app)/new.tsx`:** pick an image (expo-image-picker) → upload to the Storage `media` bucket at `{uid}/…` → create the `media_assets` row, the `posts` row (caption, visibility selector), and the `post_media` row.
+- **`(app)/index.tsx` (feed):** FlashList, reverse-chronological, cursor pagination on `created_at`, pull to refresh.
+- **Like:** optimistic toggle with rollback on error. Show the heart state only, no public counts.
+- **`README.md`:** from scratch — `bun install`, `bunx supabase start`, `db reset`, env setup, `bunx expo start`. Include the phone note: set the Supabase URL to the Mac's LAN IP, and read OTP codes from Mailpit at `:54324`.
 
 ## Execution
-Plan-then-build per CLAUDE.md:
-- Phases 1–2 go to Forge (E3 coding).
-- Phase 3 is split across 2 builders: feed/profile/post, and wallet/creator/messages/mod.
-- The reviewer reads the final diff.
-- Commit after each phase and push to origin.
+Step 1 → Forge. Step 2 → builder, once the types land. Then the reviewer reads the full diff.
 
-## Verification (pass/fail signals)
-1. `bunx supabase db reset` applies the migration and seed with zero errors.
-2. `bunx supabase test db`: all pgTAP tests pass.
-3. `bun run build` and `bun run lint` are clean; `bunx tsc --noEmit` is clean.
-4. `bun test` passes the server-action unit tests (itemization math, story expiry).
-5. `bun dev` + Interceptor walk, with screenshots:
-   - Sign up as A and B; A posts an image; B follows and sees it in the feed, likes it, and comments.
-   - B buys coins and gifts A; A's `/creator` receipt shows a gross that equals the sum of the three parts.
-   - A's `/p/[id]/insights` shows the seeded reach_event explanation; B gets a 404 on that page.
+Logical commits: remove Next.js; DB split; RLS + tests; Expo scaffold; auth; profile; post; feed + like. Push to `origin/main`. Then **stop**, per §9.
+
+## Verification
+1. `bunx supabase db reset`: zero errors.
+2. `bunx supabase test db`: all pass. Quote the counts.
+3. `bun run typecheck` and `bun run lint`: clean.
+4. **This Mac has no Xcode or simulators.** I verify with `bunx expo start --web` plus an Interceptor walk: sign up with OTP from Mailpit, onboard, post an image, see it in the feed, like it, reload, and the like persists.
+5. Colin runs the physical-device check (the brief's definition of done) through Expo Go, following the README. I'll say plainly that I didn't run it.
