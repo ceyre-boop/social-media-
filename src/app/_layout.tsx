@@ -1,38 +1,87 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
 
-import { Button, Centered } from '@/components/ui';
+import { RouteError } from '@/components/RouteError';
+import { StatusScreen } from '@/components/status-screen';
+import { Button, ToastProvider } from '@/components/ui';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import { configMissing, pingServer, supabaseUrl } from '@/lib/supabase';
+import { useTheme } from '@/lib/theme';
+
+export { RouteError as ErrorBoundary };
+
+type ServerState = 'checking' | 'ok' | 'down';
 
 function RootStack() {
   const { loading, session, profile, profileError, refreshProfile, signOut } = useAuth();
+  const { colors } = useTheme();
+  const [server, setServer] = useState<ServerState>(configMissing ? 'ok' : 'checking');
 
-  if (loading) {
+  const check = useCallback(() => {
+    setServer('checking');
+    void pingServer().then((ok) => setServer(ok ? 'ok' : 'down'));
+  }, []);
+
+  useEffect(() => {
+    if (configMissing) return;
+    let live = true;
+    void pingServer().then((ok) => live && setServer(ok ? 'ok' : 'down'));
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  if (configMissing) {
     return (
-      <Centered>
-        <ActivityIndicator />
-      </Centered>
+      <StatusScreen
+        title="Smiley isn't set up yet"
+        message="This build is missing its server settings."
+        detail={
+          __DEV__
+            ? 'Set EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY in .env (see .env.example and the README), then restart Expo.'
+            : undefined
+        }
+      />
     );
+  }
+
+  if (server === 'down') {
+    return (
+      <StatusScreen
+        title="Can't reach the server"
+        message={`We couldn't connect to ${supabaseUrl}. Check your connection and try again.`}
+        detail={
+          __DEV__
+            ? "Dev hint: on a phone, 127.0.0.1 is the phone itself. Set EXPO_PUBLIC_SUPABASE_URL to your computer's LAN IP (for example http://192.168.1.20:54321), restart Expo, and see the README."
+            : undefined
+        }
+      >
+        <Button title="Retry" onPress={check} />
+      </StatusScreen>
+    );
+  }
+
+  if (loading || server === 'checking') {
+    return <StatusScreen title="Smiley" spinner />;
   }
 
   // A failed profile fetch must not look like "no profile" (that would route to onboarding).
   if (session && !profile && profileError) {
     return (
-      <Centered>
-        <View style={{ gap: 12, padding: 24, alignSelf: 'stretch' }}>
-          <Text style={{ textAlign: 'center' }}>
-            Could not load your profile. Check your connection.
-          </Text>
-          <Button title="Retry" onPress={refreshProfile} />
-          <Button title="Sign out" variant="secondary" onPress={signOut} />
-        </View>
-      </Centered>
+      <StatusScreen
+        title={profileError.title}
+        message={profileError.message}
+        detail={__DEV__ ? profileError.detail : undefined}
+      >
+        <Button title="Retry" onPress={refreshProfile} />
+        <Button title="Sign out" variant="secondary" onPress={signOut} />
+      </StatusScreen>
     );
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
       <Stack.Protected guard={!session}>
         <Stack.Screen name="(auth)" />
       </Stack.Protected>
@@ -46,8 +95,10 @@ function RootStack() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <StatusBar style="dark" />
-      <RootStack />
+      <ToastProvider>
+        <StatusBar style="auto" />
+        <RootStack />
+      </ToastProvider>
     </AuthProvider>
   );
 }

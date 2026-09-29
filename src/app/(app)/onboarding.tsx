@@ -1,34 +1,33 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
-import { Button, ErrorText, Field } from '@/components/ui';
+import { ProfileForm, type ProfileValues } from '@/components/profile-form';
+import { Button, Screen } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
-import { colors, spacing } from '@/lib/theme';
+import { useTheme } from '@/lib/theme';
 import { USERNAME_RE } from '@/lib/validation';
 
 export default function Onboarding() {
-  const { session, refreshProfile, signOut } = useAuth();
-  const [username, setUsername] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [bio, setBio] = useState('');
+  const { colors, spacing } = useTheme();
+  const { session, refreshProfile, signOut, handleError } = useAuth();
+  const [values, setValues] = useState<ProfileValues>({ username: '', displayName: '', bio: '' });
   const [busy, setBusy] = useState(false);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function save() {
     setError(null);
+    setUsernameError(null);
     if (!session) return;
-    const name = username.trim();
-    if (!USERNAME_RE.test(name)) {
-      return setError('Username must be 3-30 characters: letters, numbers, _ and . only.');
-    }
-    if (bio.length > 500) return setError('Bio can be at most 500 characters.');
+    const name = values.username.trim();
+    if (!USERNAME_RE.test(name)) return; // the field already shows the format error
     setBusy(true);
     const { error: err } = await supabase.from('profiles').insert({
       user_id: session.user.id,
       username: name,
-      display_name: displayName.trim() || null,
-      bio: bio.trim() || null,
+      display_name: values.displayName.trim() || null,
+      bio: values.bio.trim() || null,
     });
     if (err) {
       setBusy(false);
@@ -36,55 +35,40 @@ export default function Onboarding() {
         if (err.message.includes('profiles_pkey')) {
           // The profile already exists (e.g. an earlier fetch failed): just load it.
           await refreshProfile();
-          return setBusy(false);
+          return;
         }
-        if (err.message.includes('profiles_username_key'))
-          return setError('That username is taken');
+        if (err.message.includes('profiles_username_key')) {
+          return setUsernameError('That username is taken');
+        }
       }
-      return setError(err.message);
+      return setError(handleError(err, 'createProfile').message);
     }
     await refreshProfile();
     setBusy(false);
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Field
-          label="Username"
-          hint="3-30 characters: letters, numbers, _ and ."
-          value={username}
-          onChangeText={setUsername}
-          autoCapitalize="none"
-          autoCorrect={false}
-          maxLength={30}
-        />
-        <Field
-          label="Display name"
-          value={displayName}
-          onChangeText={setDisplayName}
-          maxLength={60}
-        />
-        <Field
-          label="Bio"
-          hint={`${bio.length}/500`}
-          value={bio}
-          onChangeText={setBio}
-          multiline
-          maxLength={500}
-        />
-        <ErrorText message={error} />
-        <Button title="Create profile" onPress={save} loading={busy} />
-        <Button title="Sign out" variant="secondary" onPress={signOut} />
-      </ScrollView>
-    </KeyboardAvoidingView>
+    <Screen title="Create your profile" scroll center maxWidth={420} padded safeTop safeBottom>
+      <View style={{ gap: spacing.xs }}>
+        <Text style={[styles.title, { color: colors.text }]}>Create your profile</Text>
+        <Text style={[styles.sub, { color: colors.muted }]}>
+          This is how people will know you on Smiley.
+        </Text>
+      </View>
+      <ProfileForm values={values} onChange={setValues} usernameError={usernameError} />
+      {error ? <Text style={{ color: colors.danger }}>{error}</Text> : null}
+      <Button
+        title="Create profile"
+        onPress={save}
+        loading={busy}
+        disabled={!USERNAME_RE.test(values.username.trim())}
+      />
+      <Button title="Sign out" variant="ghost" onPress={signOut} />
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.bg },
-  container: { padding: spacing.lg, gap: spacing.md },
+  title: { fontSize: 26, fontWeight: '800' },
+  sub: { fontSize: 15, lineHeight: 21 },
 });

@@ -27,3 +27,23 @@ export function relativeTime(iso: string): string {
   if (days < 7) return `${days}d ago`;
   return new Date(iso).toLocaleDateString();
 }
+
+/** Keeps digits only and inserts dashes as the user types: 19950423 -> 1995-04-23. */
+export function formatDob(input: string): string {
+  const d = input.replace(/\D/g, '').slice(0, 8);
+  if (d.length <= 4) return d;
+  if (d.length <= 6) return `${d.slice(0, 4)}-${d.slice(4)}`;
+  return `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6)}`;
+}
+
+export const MIN_AGE = 13;
+
+/** True when someone born on `dob` (YYYY-MM-DD) has turned `years` by today. */
+export function isAtLeastAge(dob: string, years: number, now = new Date()): boolean {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dob);
+  if (!m) return false;
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  let age = now.getUTCFullYear() - y;
+  if (now.getUTCMonth() + 1 < mo || (now.getUTCMonth() + 1 === mo && now.getUTCDate() < d)) age -= 1;
+  return age >= years;
+}

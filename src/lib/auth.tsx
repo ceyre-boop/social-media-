@@ -1,8 +1,9 @@
 import type { Session } from '@supabase/supabase-js';
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import type { Database } from '@/lib/db/types';
-import { supabase } from '@/lib/supabase';
+import { toUserError, type UserError } from '@/lib/errors';
+import { configMissing, supabase } from '@/lib/supabase';
 
 export type Profile = Pick<
   Database['public']['Tables']['profiles']['Row'],
@@ -11,15 +12,22 @@ export type Profile = Pick<
 
 const PROFILE_COLUMNS = 'user_id, username, display_name, bio, avatar_media_id, link_url';
 
+export const SESSION_ENDED_NOTICE = 'Your session ended. Sign in again.';
+
 type AuthState = {
   /** True until the persisted session (and profile) have been read once. */
   loading: boolean;
   session: Session | null;
   profile: Profile | null;
-  /** True when loading the profile failed (as opposed to it not existing). */
-  profileError: boolean;
+  /** Set when loading the profile failed (as opposed to it not existing). */
+  profileError: UserError | null;
   refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
+  /** One-time message for the sign-in screen (e.g. the session ended). */
+  notice: string | null;
+  clearNotice: () => void;
+  /** Maps an error for display; if it means "session over", ends the session with a notice. */
+  handleError: (e: unknown, scope?: string) => UserError;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -35,24 +43,54 @@ async function fetchProfile(uid: string): Promise<Profile | null> {
   return data;
 }
 
+/** Same account and same tokens: keep the existing object so nothing downstream re-renders. */
+function sameSession(a: Session | null, b: Session | null): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return (
+    a.user.id === b.user.id &&
+    a.access_token === b.access_token &&
+    a.refresh_token === b.refresh_token
+  );
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [sessionChecked, setSessionChecked] = useState(false);
+  const [sessionChecked, setSessionChecked] = useState(configMissing);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [profileError, setProfileError] = useState<UserError | null>(null);
   // The user id whose profile has been fetched (null = signed out / nothing fetched yet).
-  const [profileError, setProfileError] = useState(false);
   const [profileFor, setProfileFor] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const sessionRef = useRef<Session | null>(null);
+  const userInitiatedSignOut = useRef(false);
 
   const userId = session?.user.id ?? null;
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setSessionChecked(true);
-    });
-    const { data } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));
-    return () => data.subscription.unsubscribe();
+  const applySession = useCallback((next: Session | null) => {
+    setSession((prev) => (sameSession(prev, next) ? prev : next));
+    sessionRef.current = next;
   }, []);
+
+  useEffect(() => {
+    if (configMissing) return;
+    supabase.auth
+      .getSession()
+      .then(({ data }) => applySession(data.session))
+      .catch((e) => toUserError(e, 'getSession'))
+      .finally(() => setSessionChecked(true));
+
+    const { data } = supabase.auth.onAuthStateChange((event, next) => {
+      // INITIAL_SESSION duplicates getSession() above; handling it re-sets an equal session.
+      if (event === 'INITIAL_SESSION') return;
+      if (event === 'SIGNED_OUT' && sessionRef.current && !userInitiatedSignOut.current) {
+        setNotice(SESSION_ENDED_NOTICE);
+      }
+      if (event === 'SIGNED_OUT') userInitiatedSignOut.current = false;
+      applySession(next);
+    });
+    return () => data.subscription.unsubscribe();
+  }, [applySession]);
 
   useEffect(() => {
     if (!userId) return;
@@ -61,13 +99,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .then((p) => {
         if (cancelled) return;
         setProfile(p);
-        setProfileError(false);
+        setProfileError(null);
         setProfileFor(userId);
       })
       .catch((e) => {
         if (cancelled) return;
-        if (__DEV__) console.warn("fetchProfile failed:", e);
-        setProfileError(true);
+        setProfileError(toUserError(e, 'fetchProfile'));
         setProfileFor(userId);
       });
     return () => {
@@ -81,20 +118,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!userId) return;
     try {
       setProfile(await fetchProfile(userId));
-      setProfileError(false);
+      setProfileError(null);
     } catch (e) {
-      if (__DEV__) console.warn("fetchProfile failed:", e);
-      setProfileError(true);
+      setProfileError(toUserError(e, 'refreshProfile'));
     }
     setProfileFor(userId);
   }, [userId]);
+
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    userInitiatedSignOut.current = true;
+    const { error } = await supabase.auth.signOut();
+    // Offline (or server down): still leave. Clearing the local session is what matters.
+    if (error) await supabase.auth.signOut({ scope: 'local' });
+  }, []);
+
+  const clearNotice = useCallback(() => setNotice(null), []);
+
+  const handleError = useCallback((e: unknown, scope?: string) => {
+    const err = toUserError(e, scope);
+    if (err.kind === 'session' && sessionRef.current) {
+      setNotice(SESSION_ENDED_NOTICE);
+      userInitiatedSignOut.current = true; // notice already set; avoid the listener doing it twice
+      void supabase.auth.signOut({ scope: 'local' });
+    }
+    return err;
   }, []);
 
   const value = useMemo<AuthState>(
-    () => ({ loading, session, profile: userId ? profile : null, profileError, refreshProfile, signOut }),
-    [loading, session, userId, profile, profileError, refreshProfile, signOut],
+    () => ({
+      loading,
+      session,
+      profile: userId ? profile : null,
+      profileError,
+      refreshProfile,
+      signOut,
+      notice,
+      clearNotice,
+      handleError,
+    }),
+    [
+      loading,
+      session,
+      userId,
+      profile,
+      profileError,
+      refreshProfile,
+      signOut,
+      notice,
+      clearNotice,
+      handleError,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,83 +1,76 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
+import { Text, View } from 'react-native';
 
-import { Button, ErrorText, Field } from '@/components/ui';
+import { ProfileForm, type ProfileValues } from '@/components/profile-form';
+import { AppBar, Button, IconButton, Screen } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
+import { useBreakpoint } from '@/lib/layout';
 import { supabase } from '@/lib/supabase';
-import { colors, spacing } from '@/lib/theme';
+import { useTheme } from '@/lib/theme';
 import { USERNAME_RE } from '@/lib/validation';
 
 export default function ProfileEdit() {
-  const { profile, refreshProfile } = useAuth();
+  const { colors, spacing } = useTheme();
+  const { profile, refreshProfile, signOut, handleError } = useAuth();
   const router = useRouter();
-  const [username, setUsername] = useState(profile?.username ?? '');
-  const [displayName, setDisplayName] = useState(profile?.display_name ?? '');
-  const [bio, setBio] = useState(profile?.bio ?? '');
+  const compact = useBreakpoint() === 'compact';
+  const [values, setValues] = useState<ProfileValues>({
+    username: profile?.username ?? '',
+    displayName: profile?.display_name ?? '',
+    bio: profile?.bio ?? '',
+  });
   const [busy, setBusy] = useState(false);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const leave = () => router.navigate('/profile');
 
   async function save() {
     setError(null);
+    setUsernameError(null);
     if (!profile) return;
-    const name = username.trim();
-    if (!USERNAME_RE.test(name)) {
-      return setError('Username must be 3-30 characters: letters, numbers, _ and . only.');
-    }
+    const name = values.username.trim();
+    if (!USERNAME_RE.test(name)) return;
     setBusy(true);
     const { error: err } = await supabase
       .from('profiles')
       .update({
         username: name,
-        display_name: displayName.trim() || null,
-        bio: bio.trim() || null,
+        display_name: values.displayName.trim() || null,
+        bio: values.bio.trim() || null,
       })
       .eq('user_id', profile.user_id);
     if (err) {
       setBusy(false);
-      return setError(err.code === '23505' ? 'That username is taken' : err.message);
+      if (err.code === '23505') return setUsernameError('That username is taken');
+      return setError(handleError(err, 'updateProfile').message);
     }
     await refreshProfile();
     setBusy(false);
-    router.back();
+    leave();
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <Field
-          label="Username"
-          value={username}
-          onChangeText={setUsername}
-          autoCapitalize="none"
-          autoCorrect={false}
-          maxLength={30}
-        />
-        <Field
-          label="Display name"
-          value={displayName}
-          onChangeText={setDisplayName}
-          maxLength={60}
-        />
-        <Field
-          label="Bio"
-          hint={`${bio.length}/500`}
-          value={bio}
-          onChangeText={setBio}
-          multiline
-          maxLength={500}
-        />
-        <ErrorText message={error} />
-        <Button title="Save" onPress={save} loading={busy} />
-      </ScrollView>
-    </KeyboardAvoidingView>
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <AppBar
+        title="Edit profile"
+        left={compact ? <IconButton icon="chevron-back" label="Back" onPress={leave} /> : undefined}
+      />
+      <Screen title="Edit profile" scroll padded safeBottom={false}>
+        <ProfileForm values={values} onChange={setValues} usernameError={usernameError} />
+        {error ? <Text style={{ color: colors.danger }}>{error}</Text> : null}
+        <View style={{ gap: spacing.md }}>
+          <Button
+            title="Save"
+            onPress={save}
+            loading={busy}
+            disabled={!USERNAME_RE.test(values.username.trim())}
+          />
+          <Button title="Cancel" variant="secondary" onPress={leave} />
+          <Button title="Sign out" variant="danger" onPress={signOut} />
+        </View>
+      </Screen>
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.bg },
-  container: { padding: spacing.lg, gap: spacing.md },
-});
