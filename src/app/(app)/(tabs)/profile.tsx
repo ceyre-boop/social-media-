@@ -25,6 +25,13 @@ function Thumb({ post }: { post: FeedPost }) {
             contentFit="cover"
             accessibilityLabel={post.caption ?? 'Your post'}
           />
+        ) : !post.imagePath && post.caption ? (
+          // Text-only post: show the words, not an empty tile.
+          <View style={styles.textTile}>
+            <Text numberOfLines={5} style={[styles.textTileBody, { color: colors.text }]}>
+              {post.caption}
+            </Text>
+          </View>
         ) : null}
         {vis ? (
           <View style={[styles.badge, { backgroundColor: colors.overlay }]}>
@@ -139,6 +146,8 @@ const styles = StyleSheet.create({
   // 3 columns on every size; the 1px padding on each side gives a 2px gutter.
   cell: { width: '33.3333%', aspectRatio: 1 },
   inner: { margin: 1, overflow: 'hidden' },
+  textTile: { flex: 1, padding: 10, paddingRight: 30, justifyContent: 'center' },
+  textTileBody: { fontSize: 13, lineHeight: 18, fontWeight: '600' },
   badge: {
     position: 'absolute',
     top: 6,

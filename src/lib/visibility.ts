@@ -18,7 +18,7 @@ export const VISIBILITY_META: Record<Visibility, Meta> = {
   },
   friends: {
     label: 'Friends',
-    icon: 'people-circle-outline',
+    icon: 'heart-outline',
     explain: 'People you both return to',
   },
   private: { label: 'Only me', icon: 'lock-closed-outline', explain: 'Just you' },

@@ -18,3 +18,9 @@ export function useBreakpoint(): Breakpoint {
   const { width } = useWindowDimensions();
   return breakpointFor(width);
 }
+
+/** Max width of the whole shell (sidebar + column + rail) so it centers as one group. */
+export const SHELL_MAX_WIDTH: Record<Exclude<Breakpoint, 'compact'>, number> = {
+  medium: SIDEBAR_COLLAPSED + COLUMN_MAX_WIDTH,
+  wide: SIDEBAR_EXPANDED + COLUMN_MAX_WIDTH + RAIL_WIDTH,
+};

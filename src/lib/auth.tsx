@@ -96,8 +96,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!userId) return;
     let cancelled = false;
     fetchProfile(userId)
-      .then((p) => {
+      .then(async (p) => {
         if (cancelled) return;
+        // No profile usually means "new user → onboarding". But a cached session can outlive its
+        // account (deleted, banned, or a wiped dev DB): getSession() never asks the server. Before
+        // routing to onboarding, confirm the account still exists; if the server rejects it, sign
+        // out locally instead of showing a form whose insert can only fail.
+        if (!p) {
+          const { error } = await supabase.auth.getUser();
+          if (cancelled) return;
+          if (error && error.status !== undefined && error.status >= 400 && error.status < 500) {
+            setNotice(SESSION_ENDED_NOTICE);
+            userInitiatedSignOut.current = true;
+            await supabase.auth.signOut({ scope: 'local' });
+            return;
+          }
+        }
         setProfile(p);
         setProfileError(null);
         setProfileFor(userId);

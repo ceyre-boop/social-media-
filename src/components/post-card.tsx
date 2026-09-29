@@ -68,6 +68,12 @@ export function PostCard({ post, onToggleLike }: { post: FeedPost; onToggleLike:
   const username = post.author?.username ?? 'unknown';
   const name = post.author?.display_name || post.author?.username || 'Unknown';
   const vis = post.visibility !== 'public' ? VISIBILITY_META[post.visibility] : null;
+  const textOnly = !post.imagePath;
+  const caption = post.caption ? (
+    <View style={{ paddingHorizontal: spacing.lg }}>
+      <Caption text={post.caption} />
+    </View>
+  ) : null;
 
   const imageBox = [
     styles.image,
@@ -114,15 +120,14 @@ export function PostCard({ post, onToggleLike }: { post: FeedPost; onToggleLike:
         </View>
       ) : null}
 
+      {/* Photo posts read photo → like → caption. Text-only posts read text → like. */}
+      {textOnly ? caption : null}
+
       <View style={{ paddingHorizontal: spacing.sm }}>
         <LikeButton liked={post.likedByMe} onPress={onToggleLike} />
       </View>
 
-      {post.caption ? (
-        <View style={{ paddingHorizontal: spacing.lg }}>
-          <Caption text={post.caption} />
-        </View>
-      ) : null}
+      {textOnly ? null : caption}
     </View>
   );
 }
