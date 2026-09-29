@@ -165,6 +165,13 @@ select is(public.can_view_post('aaaaaaaa-0000-4000-8000-000000000003', '22222222
   false, 'can_view_post refuses to answer for a viewer other than the caller');
 
 -- ----------------------------------------------------- likes → interactions
+-- Start post 5 from a clean slate so likes made through the app on a dev DB
+-- don't skew the counts below (the transaction rolls this back).
+reset role;
+delete from public.likes where post_id = 'aaaaaaaa-0000-4000-8000-000000000005';
+delete from public.interactions where post_id = 'aaaaaaaa-0000-4000-8000-000000000005';
+update public.posts set like_count = 0 where id = 'aaaaaaaa-0000-4000-8000-000000000005';
+set local role authenticated;
 select pg_temp.act_as('22222222-2222-4222-8222-222222222222');  -- bob likes alice's public post
 insert into public.likes (post_id, user_id)
 values ('aaaaaaaa-0000-4000-8000-000000000005', '22222222-2222-4222-8222-222222222222');
