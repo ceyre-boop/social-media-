@@ -1,21 +1,24 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
-import { Button, ErrorText, Field } from '@/components/ui';
+import { AppBar, Button, IconButton, Screen, SegmentedControl, TextField } from '@/components/ui';
+import type { Segment } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
+import { ImageProblem, MAX_UPLOAD_BYTES, checkPickedAsset, prepareImage } from '@/lib/image';
 import type { Visibility } from '@/lib/posts';
 import { supabase } from '@/lib/supabase';
-import { colors, spacing } from '@/lib/theme';
+import { useTheme } from '@/lib/theme';
+import { VISIBILITY_META, VISIBILITY_ORDER } from '@/lib/visibility';
 
-const VISIBILITY_OPTIONS: { value: Visibility; label: string }[] = [
-  { value: 'public', label: 'Public' },
-  { value: 'followers', label: 'Followers' },
-  { value: 'friends', label: 'Friends' },
-  { value: 'private', label: 'Only me' },
-];
+const SEGMENTS: Segment<Visibility>[] = VISIBILITY_ORDER.map((value) => ({
+  value,
+  label: VISIBILITY_META[value].label,
+  icon: VISIBILITY_META[value].icon,
+}));
 
 const MIME_EXT: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -32,7 +35,9 @@ function uniqueId(): string {
 }
 
 export default function NewPost() {
-  const { session } = useAuth();
+  const { colors, radius, spacing } = useTheme();
+  const { height: windowHeight } = useWindowDimensions();
+  const { session, handleError } = useAuth();
   const router = useRouter();
   const [asset, setAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [caption, setCaption] = useState('');
@@ -40,21 +45,40 @@ export default function NewPost() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Web: warn before closing the tab while an upload is in flight.
+  useEffect(() => {
+    if (!busy || Platform.OS !== 'web') return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [busy]);
+
   async function pick() {
     setError(null);
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) {
-      return Alert.alert('Permission needed', 'Allow photo library access to pick an image.');
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        return setError('Allow photo library access to pick a photo.');
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        quality: 0.8,
+      });
+      if (result.canceled) return;
+      const picked = result.assets[0];
+      const problem = checkPickedAsset(picked);
+      if (problem) return setError(problem);
+      setAsset(picked);
+    } catch (e) {
+      setError(handleError(e, 'pick').message);
     }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      quality: 0.8,
-    });
-    if (!result.canceled) setAsset(result.assets[0]);
   }
 
   async function publish() {
-    if (!session || !asset) return;
+    if (!session || !asset || busy) return;
     setError(null);
     setBusy(true);
     const uid = session.user.id;
@@ -63,9 +87,14 @@ export default function NewPost() {
     let postId: string | null = null;
 
     try {
-      const contentType = asset.mimeType ?? 'image/jpeg';
-      const ext = MIME_EXT[contentType] ?? 'jpg';
-      const buf = await (await fetch(asset.uri)).arrayBuffer();
+      // Downscale + re-encode as JPEG first: uploads stay small and every browser can show them.
+      const prepared = await prepareImage(asset);
+      const contentType = 'image/jpeg';
+      const ext = MIME_EXT[contentType];
+      const buf = await (await fetch(prepared.uri)).arrayBuffer();
+      if (buf.byteLength > MAX_UPLOAD_BYTES) {
+        throw new ImageProblem('That photo is still over 15 MB. Pick a smaller one.');
+      }
 
       const path = `${uid}/${uniqueId()}.${ext}`;
       const { error: upErr } = await supabase.storage
@@ -82,9 +111,9 @@ export default function NewPost() {
           status: 'ready',
           provider: 'supabase',
           provider_asset_id: path,
-          width: asset.width,
-          height: asset.height,
-          bytes: asset.fileSize ?? buf.byteLength,
+          width: prepared.width,
+          height: prepared.height,
+          bytes: buf.byteLength,
         })
         .select('id')
         .single();
@@ -137,82 +166,128 @@ export default function NewPost() {
         const { error: err } = await supabase.storage.from('media').remove([uploadedPath]);
         warn('remove storage object', err);
       }
-      const detail = e instanceof Error ? e.message : (e as { message?: string })?.message;
-      if (__DEV__) console.warn('publish failed:', e);
-      setError(
-        __DEV__ && detail ? `Could not publish the post: ${detail}` : 'Could not publish the post',
-      );
+      // The form state (photo, caption, visibility) is kept so they can just tap Post again.
+      if (e instanceof ImageProblem) setError(e.message);
+      else {
+        const ue = handleError(e, 'publish');
+        setError(__DEV__ && ue.detail ? `${ue.message} (${ue.detail})` : ue.message);
+      }
     } finally {
       setBusy(false);
     }
   }
 
+  const previewRatio = asset ? Math.min(Math.max(asset.width / asset.height, 0.5), 2) : 1;
+
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-      <Pressable onPress={pick} style={styles.picker} accessibilityRole="button">
+    <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      <AppBar title="New post" />
+      <Screen title="New post" scroll padded>
         {asset ? (
-          <Image source={{ uri: asset.uri }} style={styles.preview} contentFit="cover" />
-        ) : (
-          <Text style={styles.pickerText}>Choose an image</Text>
-        )}
-      </Pressable>
-      {asset ? (
-        <Button title="Choose a different image" variant="secondary" onPress={pick} />
-      ) : null}
-
-      <Field
-        label="Caption"
-        hint={`${caption.length}/2200`}
-        value={caption}
-        onChangeText={setCaption}
-        multiline
-        maxLength={2200}
-      />
-
-      <View style={styles.field}>
-        <Text style={styles.label}>Who can see this</Text>
-        <View style={styles.options}>
-          {VISIBILITY_OPTIONS.map((o) => (
-            <Pressable
-              key={o.value}
-              accessibilityRole="button"
-              accessibilityState={{ selected: visibility === o.value }}
-              onPress={() => setVisibility(o.value)}
-              style={[styles.option, visibility === o.value && styles.optionActive]}
+          <View style={{ gap: spacing.sm }}>
+            <View
+              style={[
+                styles.previewBox,
+                {
+                  aspectRatio: previewRatio,
+                  maxHeight: windowHeight * 0.6,
+                  borderRadius: radius.lg,
+                  backgroundColor: colors.surface2,
+                },
+              ]}
             >
-              <Text style={styles.optionText}>{o.label}</Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
+              <Image
+                source={{ uri: asset.uri }}
+                style={StyleSheet.absoluteFill}
+                contentFit="cover"
+                accessibilityLabel="Selected photo preview"
+              />
+              <IconButton
+                icon="close"
+                label="Remove photo"
+                onPress={() => setAsset(null)}
+                color="#FFFFFF"
+                style={[styles.remove, { backgroundColor: colors.overlay }]}
+              />
+            </View>
+            <Button title="Change" variant="secondary" icon="images-outline" onPress={pick} />
+          </View>
+        ) : (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Choose a photo"
+            onPress={pick}
+            style={(state) => {
+              const hovered = (state as { hovered?: boolean }).hovered;
+              return [
+                styles.dropzone,
+                {
+                  borderColor: hovered || state.pressed ? colors.primary : colors.border,
+                  borderRadius: radius.lg,
+                  backgroundColor: colors.surface,
+                },
+              ];
+            }}
+          >
+            <Ionicons name="image-outline" size={40} color={colors.primary} />
+            <Text style={[styles.dropText, { color: colors.text }]}>Choose a photo</Text>
+          </Pressable>
+        )}
 
-      <ErrorText message={error} />
-      <Button title="Post" onPress={publish} disabled={!asset} loading={busy} />
-    </ScrollView>
+        <TextField
+          label="Caption"
+          value={caption}
+          onChangeText={setCaption}
+          counter={`${caption.length}/2200`}
+          multiline
+          maxLength={2200}
+        />
+
+        <View style={{ gap: spacing.sm }}>
+          <Text style={[styles.label, { color: colors.text }]}>Who can see this</Text>
+          <SegmentedControl
+            label="Who can see this"
+            segments={SEGMENTS}
+            value={visibility}
+            onChange={setVisibility}
+          />
+          <Text style={{ color: colors.muted, fontSize: 13 }}>
+            {VISIBILITY_META[visibility].explain}
+          </Text>
+        </View>
+
+        {error ? <Text style={{ color: colors.danger }}>{error}</Text> : null}
+      </Screen>
+      <View
+        style={[
+          styles.footer,
+          { borderTopColor: colors.border, backgroundColor: colors.bg, padding: spacing.lg },
+        ]}
+      >
+        <Button
+          title={busy ? 'Posting…' : 'Post'}
+          onPress={publish}
+          disabled={!asset || busy}
+          icon={busy ? undefined : 'send'}
+        />
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: spacing.lg, gap: spacing.md, backgroundColor: colors.bg },
-  picker: {
-    aspectRatio: 1,
-    borderRadius: 12,
-    backgroundColor: colors.surface,
+  dropzone: {
+    minHeight: 200,
+    borderWidth: 2,
+    borderStyle: 'dashed',
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
+    gap: 8,
+    cursor: 'pointer',
   },
-  pickerText: { color: colors.muted, fontSize: 16 },
-  preview: { width: '100%', height: '100%' },
-  field: { gap: spacing.xs },
-  label: { fontSize: 14, fontWeight: '600', color: colors.text },
-  options: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  option: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: colors.surface,
-  },
-  optionActive: { backgroundColor: colors.accent },
-  optionText: { fontSize: 14, fontWeight: '600', color: colors.text },
+  dropText: { fontSize: 16, fontWeight: '700' },
+  previewBox: { width: '100%', overflow: 'hidden' },
+  remove: { position: 'absolute', top: 8, right: 8 },
+  label: { fontSize: 14, fontWeight: '600' },
+  footer: { borderTopWidth: StyleSheet.hairlineWidth },
 });
