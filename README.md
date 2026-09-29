@@ -1,56 +1,55 @@
-# Welcome to your Expo app 👋
+# Smiley
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Smiley is a social platform that optimizes for joy and genuine connection instead of attention.
+This repo is the first vertical slice: sign up, create a profile, post an image, see a feed, like it.
 
-## Get started
+## Prerequisites
 
-1. Install dependencies
+- [bun](https://bun.sh)
+- Docker (or Colima) for the local Supabase stack
+- Expo Go on your phone (for testing on a physical device)
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Setup
 
 ```bash
-npm run reset-project
+bun install
+bunx supabase start
+bun run db:reset
+cp .env.example .env
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Fill `EXPO_PUBLIC_SUPABASE_ANON_KEY` in `.env` with the anon key printed by `bunx supabase status`.
+Then start the app:
 
-### Other setup steps
+```bash
+bunx expo start
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+### Physical device
 
-## Learn more
+The phone cannot reach `127.0.0.1` on your Mac. Set `EXPO_PUBLIC_SUPABASE_URL` in `.env` to the
+Mac's LAN IP (for example `http://192.168.x.x:54321`), keep the phone on the same Wi-Fi, restart
+`bunx expo start`, and scan the QR code in Expo Go.
 
-To learn more about developing your project with Expo, look at the following resources:
+### Logging in
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Login is by email one-time code. Codes arrive in Mailpit at <http://127.0.0.1:54324>. The seed users
+(`alice`, `bob`, `minnie`, `carol`, `dave` at `@example.com`) also log in via OTP. Date of birth is
+required on the sign-in screen.
 
-## Join the community
+## Scripts
 
-Join our community of developers creating universal apps.
+| Script              | What it does                                   |
+| ------------------- | ---------------------------------------------- |
+| `bun run start`     | Start the Expo dev server                      |
+| `bun run typecheck` | `tsc --noEmit`                                 |
+| `bun run lint`      | `expo lint` (ESLint, Expo config + Prettier)   |
+| `bun run format`    | `prettier --write .`                           |
+| `bun run db:types`  | Regenerate `src/lib/db/types.ts` from local DB |
+| `bun run db:test`   | Run the database (pgTAP) tests                 |
+| `bun run db:reset`  | Reset the local DB (migrations + seed)         |
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Docs
+
+Design docs live in [`docs/`](docs/), starting with
+[`docs/claude-code-brief_smiley.md`](docs/claude-code-brief_smiley.md).
