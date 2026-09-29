@@ -1,0 +1,10 @@
+node_modules
+dist
+.expo
+bun.lock
+supabase
+lib
+logo options
+Plans
+docs
+src/lib/db/types.ts
