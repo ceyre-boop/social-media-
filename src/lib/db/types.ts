@@ -119,13 +119,13 @@ isOneToOne: false
                   ]
                 },"comments": {
                   Row: {
-                    "author_id": string,"body": string,"created_at": string,"deleted_at": string | null,"id": string,"like_count": number,"parent_id": string | null,"post_id": string,"tier": Database["public"]['Enums']["moderation_tier"] | null
+                    "author_id": string,"body": string,"created_at": string,"deleted_at": string | null,"id": string,"like_count": number,"parent_id": string | null,"post_id": string
                   }
                   Insert: {
-                    "author_id": string,"body": string,"created_at"?: string,"deleted_at"?: string | null,"id"?: string,"like_count"?: number,"parent_id"?: string | null,"post_id": string,"tier"?: Database["public"]['Enums']["moderation_tier"] | null
+                    "author_id": string,"body": string,"created_at"?: string,"deleted_at"?: string | null,"id"?: string,"like_count"?: number,"parent_id"?: string | null,"post_id": string
                   }
                   Update: {
-                    "author_id"?: string,"body"?: string,"created_at"?: string,"deleted_at"?: string | null,"id"?: string,"like_count"?: number,"parent_id"?: string | null,"post_id"?: string,"tier"?: Database["public"]['Enums']["moderation_tier"] | null
+                    "author_id"?: string,"body"?: string,"created_at"?: string,"deleted_at"?: string | null,"id"?: string,"like_count"?: number,"parent_id"?: string | null,"post_id"?: string
                   }
                   Relationships: [
                     {
@@ -230,31 +230,6 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"follows": {
-                  Row: {
-                    "created_at": string,"followee_id": string,"follower_id": string
-                  }
-                  Insert: {
-                    "created_at"?: string,"followee_id": string,"follower_id": string
-                  }
-                  Update: {
-                    "created_at"?: string,"followee_id"?: string,"follower_id"?: string
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "follows_followee_id_fkey"
-      columns: ["followee_id"]
-isOneToOne: false
-      referencedRelation: "users"
-      referencedColumns: ["id"]
-    },{
-      foreignKeyName: "follows_follower_id_fkey"
-      columns: ["follower_id"]
-isOneToOne: false
-      referencedRelation: "users"
-      referencedColumns: ["id"]
-    }
-                  ]
                 },"friendships": {
                   Row: {
                     "addressee_id": string,"created_at": string,"requester_id": string,"responded_at": string | null,"status": Database["public"]['Enums']["friend_status"]
@@ -348,6 +323,43 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"interactions": {
+                  Row: {
+                    "actor_id": string,"id": number,"kind": string,"occurred_at": string,"post_id": string | null,"stream_id": string | null,"subject_id": string
+                  }
+                  Insert: {
+                    "actor_id": string,"id"?: number,"kind": string,"occurred_at"?: string,"post_id"?: string | null,"stream_id"?: string | null,"subject_id": string
+                  }
+                  Update: {
+                    "actor_id"?: string,"id"?: number,"kind"?: string,"occurred_at"?: string,"post_id"?: string | null,"stream_id"?: string | null,"subject_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "interactions_actor_id_fkey"
+      columns: ["actor_id"]
+isOneToOne: false
+      referencedRelation: "users"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "interactions_post_id_fkey"
+      columns: ["post_id"]
+isOneToOne: false
+      referencedRelation: "posts"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "interactions_stream_id_fkey"
+      columns: ["stream_id"]
+isOneToOne: false
+      referencedRelation: "live_streams"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "interactions_subject_id_fkey"
+      columns: ["subject_id"]
+isOneToOne: false
+      referencedRelation: "users"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"ledger_accounts": {
                   Row: {
                     "created_at": string,"currency": string,"id": string,"kind": string,"owner_id": string | null
@@ -432,13 +444,13 @@ isOneToOne: false
                   ]
                 },"live_chat_messages": {
                   Row: {
-                    "body": string,"created_at": string,"deleted_at": string | null,"id": number,"stream_id": string,"tier": Database["public"]['Enums']["moderation_tier"] | null,"user_id": string
+                    "body": string,"created_at": string,"deleted_at": string | null,"id": number,"stream_id": string,"user_id": string
                   }
                   Insert: {
-                    "body": string,"created_at"?: string,"deleted_at"?: string | null,"id"?: number,"stream_id": string,"tier"?: Database["public"]['Enums']["moderation_tier"] | null,"user_id": string
+                    "body": string,"created_at"?: string,"deleted_at"?: string | null,"id"?: number,"stream_id": string,"user_id": string
                   }
                   Update: {
-                    "body"?: string,"created_at"?: string,"deleted_at"?: string | null,"id"?: number,"stream_id"?: string,"tier"?: Database["public"]['Enums']["moderation_tier"] | null,"user_id"?: string
+                    "body"?: string,"created_at"?: string,"deleted_at"?: string | null,"id"?: number,"stream_id"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -482,13 +494,13 @@ isOneToOne: false
                   ]
                 },"live_streams": {
                   Row: {
-                    "chat_strictness": string,"created_at": string,"ended_at": string | null,"host_id": string,"id": string,"ingest_url": string | null,"is_adult_only": boolean,"peak_viewers": number,"playback_url": string | null,"provider": string,"provider_room_id": string | null,"recording_media_id": string | null,"scheduled_for": string | null,"started_at": string | null,"status": Database["public"]['Enums']["stream_status"],"title": string | null,"total_viewers": number
+                    "created_at": string,"ended_at": string | null,"host_id": string,"id": string,"ingest_url": string | null,"is_adult_only": boolean,"peak_viewers": number,"playback_url": string | null,"provider": string,"provider_room_id": string | null,"recording_media_id": string | null,"scheduled_for": string | null,"started_at": string | null,"status": Database["public"]['Enums']["stream_status"],"title": string | null,"total_viewers": number
                   }
                   Insert: {
-                    "chat_strictness"?: string,"created_at"?: string,"ended_at"?: string | null,"host_id": string,"id"?: string,"ingest_url"?: string | null,"is_adult_only"?: boolean,"peak_viewers"?: number,"playback_url"?: string | null,"provider": string,"provider_room_id"?: string | null,"recording_media_id"?: string | null,"scheduled_for"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["stream_status"],"title"?: string | null,"total_viewers"?: number
+                    "created_at"?: string,"ended_at"?: string | null,"host_id": string,"id"?: string,"ingest_url"?: string | null,"is_adult_only"?: boolean,"peak_viewers"?: number,"playback_url"?: string | null,"provider": string,"provider_room_id"?: string | null,"recording_media_id"?: string | null,"scheduled_for"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["stream_status"],"title"?: string | null,"total_viewers"?: number
                   }
                   Update: {
-                    "chat_strictness"?: string,"created_at"?: string,"ended_at"?: string | null,"host_id"?: string,"id"?: string,"ingest_url"?: string | null,"is_adult_only"?: boolean,"peak_viewers"?: number,"playback_url"?: string | null,"provider"?: string,"provider_room_id"?: string | null,"recording_media_id"?: string | null,"scheduled_for"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["stream_status"],"title"?: string | null,"total_viewers"?: number
+                    "created_at"?: string,"ended_at"?: string | null,"host_id"?: string,"id"?: string,"ingest_url"?: string | null,"is_adult_only"?: boolean,"peak_viewers"?: number,"playback_url"?: string | null,"provider"?: string,"provider_room_id"?: string | null,"recording_media_id"?: string | null,"scheduled_for"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["stream_status"],"title"?: string | null,"total_viewers"?: number
                   }
                   Relationships: [
                     {
@@ -524,15 +536,46 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"messages": {
+                },"message_requests": {
                   Row: {
-                    "body": string | null,"conversation_id": string,"created_at": string,"deleted_at": string | null,"edited_at": string | null,"id": string,"media_id": string | null,"reply_to_id": string | null,"sender_id": string,"shared_post_id": string | null,"tier": Database["public"]['Enums']["moderation_tier"] | null
+                    "conversation_id": string | null,"created_at": string,"id": string,"recipient_id": string,"sender_id": string,"status": string
                   }
                   Insert: {
-                    "body"?: string | null,"conversation_id": string,"created_at"?: string,"deleted_at"?: string | null,"edited_at"?: string | null,"id"?: string,"media_id"?: string | null,"reply_to_id"?: string | null,"sender_id": string,"shared_post_id"?: string | null,"tier"?: Database["public"]['Enums']["moderation_tier"] | null
+                    "conversation_id"?: string | null,"created_at"?: string,"id"?: string,"recipient_id": string,"sender_id": string,"status"?: string
                   }
                   Update: {
-                    "body"?: string | null,"conversation_id"?: string,"created_at"?: string,"deleted_at"?: string | null,"edited_at"?: string | null,"id"?: string,"media_id"?: string | null,"reply_to_id"?: string | null,"sender_id"?: string,"shared_post_id"?: string | null,"tier"?: Database["public"]['Enums']["moderation_tier"] | null
+                    "conversation_id"?: string | null,"created_at"?: string,"id"?: string,"recipient_id"?: string,"sender_id"?: string,"status"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "message_requests_conversation_id_fkey"
+      columns: ["conversation_id"]
+isOneToOne: false
+      referencedRelation: "conversations"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "message_requests_recipient_id_fkey"
+      columns: ["recipient_id"]
+isOneToOne: false
+      referencedRelation: "users"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "message_requests_sender_id_fkey"
+      columns: ["sender_id"]
+isOneToOne: false
+      referencedRelation: "users"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"messages": {
+                  Row: {
+                    "body": string | null,"conversation_id": string,"created_at": string,"deleted_at": string | null,"edited_at": string | null,"id": string,"media_id": string | null,"reply_to_id": string | null,"sender_id": string,"shared_post_id": string | null
+                  }
+                  Insert: {
+                    "body"?: string | null,"conversation_id": string,"created_at"?: string,"deleted_at"?: string | null,"edited_at"?: string | null,"id"?: string,"media_id"?: string | null,"reply_to_id"?: string | null,"sender_id": string,"shared_post_id"?: string | null
+                  }
+                  Update: {
+                    "body"?: string | null,"conversation_id"?: string,"created_at"?: string,"deleted_at"?: string | null,"edited_at"?: string | null,"id"?: string,"media_id"?: string | null,"reply_to_id"?: string | null,"sender_id"?: string,"shared_post_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -744,22 +787,16 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "avatar_media_id": string | null,"bio": string | null,"display_name": string | null,"follower_count": number,"following_count": number,"is_creator": boolean,"is_verified": boolean,"link_url": string | null,"post_count": number,"updated_at": string,"user_id": string,"username": string
+                    "avatar_media_id": string | null,"bio": string | null,"display_name": string | null,"is_creator": boolean,"is_verified": boolean,"link_url": string | null,"post_count": number,"updated_at": string,"user_id": string,"username": string
                   }
                   Insert: {
-                    "avatar_media_id"?: string | null,"bio"?: string | null,"display_name"?: string | null,"follower_count"?: number,"following_count"?: number,"is_creator"?: boolean,"is_verified"?: boolean,"link_url"?: string | null,"post_count"?: number,"updated_at"?: string,"user_id": string,"username": string
+                    "avatar_media_id"?: string | null,"bio"?: string | null,"display_name"?: string | null,"is_creator"?: boolean,"is_verified"?: boolean,"link_url"?: string | null,"post_count"?: number,"updated_at"?: string,"user_id": string,"username": string
                   }
                   Update: {
-                    "avatar_media_id"?: string | null,"bio"?: string | null,"display_name"?: string | null,"follower_count"?: number,"following_count"?: number,"is_creator"?: boolean,"is_verified"?: boolean,"link_url"?: string | null,"post_count"?: number,"updated_at"?: string,"user_id"?: string,"username"?: string
+                    "avatar_media_id"?: string | null,"bio"?: string | null,"display_name"?: string | null,"is_creator"?: boolean,"is_verified"?: boolean,"link_url"?: string | null,"post_count"?: number,"updated_at"?: string,"user_id"?: string,"username"?: string
                   }
                   Relationships: [
                     {
-      foreignKeyName: "profiles_avatar_media_id_fkey"
-      columns: ["avatar_media_id"]
-isOneToOne: false
-      referencedRelation: "media_assets"
-      referencedColumns: ["id"]
-    },{
       foreignKeyName: "profiles_user_id_fkey"
       columns: ["user_id"]
 isOneToOne: true
@@ -769,13 +806,13 @@ isOneToOne: true
                   ]
                 },"reach_events": {
                   Row: {
-                    "actor_id": string | null,"created_at": string,"expires_at": string | null,"explanation": string,"id": number,"multiplier": number,"post_id": string,"reason": Database["public"]['Enums']["reach_reason"]
+                    "actor_id": string | null,"created_at": string,"explanation": string,"id": number,"multiplier": number,"post_id": string,"reason": Database["public"]['Enums']["reach_reason"]
                   }
                   Insert: {
-                    "actor_id"?: string | null,"created_at"?: string,"expires_at"?: string | null,"explanation": string,"id"?: number,"multiplier"?: number,"post_id": string,"reason": Database["public"]['Enums']["reach_reason"]
+                    "actor_id"?: string | null,"created_at"?: string,"explanation": string,"id"?: number,"multiplier"?: number,"post_id": string,"reason": Database["public"]['Enums']["reach_reason"]
                   }
                   Update: {
-                    "actor_id"?: string | null,"created_at"?: string,"expires_at"?: string | null,"explanation"?: string,"id"?: number,"multiplier"?: number,"post_id"?: string,"reason"?: Database["public"]['Enums']["reach_reason"]
+                    "actor_id"?: string | null,"created_at"?: string,"explanation"?: string,"id"?: number,"multiplier"?: number,"post_id"?: string,"reason"?: Database["public"]['Enums']["reach_reason"]
                   }
                   Relationships: [
                     {
@@ -789,6 +826,31 @@ isOneToOne: false
       columns: ["post_id"]
 isOneToOne: false
       referencedRelation: "posts"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"relationships": {
+                  Row: {
+                    "actor_id": string,"distinct_weeks": number,"first_seen_at": string,"interaction_count": number,"last_seen_at": string,"state": string,"subject_id": string
+                  }
+                  Insert: {
+                    "actor_id": string,"distinct_weeks"?: number,"first_seen_at": string,"interaction_count"?: number,"last_seen_at": string,"state"?: string,"subject_id": string
+                  }
+                  Update: {
+                    "actor_id"?: string,"distinct_weeks"?: number,"first_seen_at"?: string,"interaction_count"?: number,"last_seen_at"?: string,"state"?: string,"subject_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "relationships_actor_id_fkey"
+      columns: ["actor_id"]
+isOneToOne: false
+      referencedRelation: "users"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "relationships_subject_id_fkey"
+      columns: ["subject_id"]
+isOneToOne: false
+      referencedRelation: "users"
       referencedColumns: ["id"]
     }
                   ]
@@ -835,31 +897,6 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"stream_trusted_members": {
-                  Row: {
-                    "created_at": string,"host_id": string,"user_id": string
-                  }
-                  Insert: {
-                    "created_at"?: string,"host_id": string,"user_id": string
-                  }
-                  Update: {
-                    "created_at"?: string,"host_id"?: string,"user_id"?: string
-                  }
-                  Relationships: [
-                    {
-      foreignKeyName: "stream_trusted_members_host_id_fkey"
-      columns: ["host_id"]
-isOneToOne: false
-      referencedRelation: "users"
-      referencedColumns: ["id"]
-    },{
-      foreignKeyName: "stream_trusted_members_user_id_fkey"
-      columns: ["user_id"]
-isOneToOne: false
-      referencedRelation: "users"
-      referencedColumns: ["id"]
-    }
-                  ]
                 },"users": {
                   Row: {
                     "age_verification_ref": string | null,"age_verified": boolean,"age_verified_at": string | null,"app_role": string,"country_code": string | null,"created_at": string,"date_of_birth": string | null,"deleted_at": string | null,"email": string | null,"id": string,"phone": string | null,"status": Database["public"]['Enums']["account_status"]
@@ -889,24 +926,37 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"public_profiles": {
+                },"message_requests_inbox": {
                   Row: {
-                    "avatar_media_id": string | null,"bio": string | null,"display_name": string | null,"follower_count": number | null,"following_count": number | null,"is_creator": boolean | null,"is_verified": boolean | null,"link_url": string | null,"post_count": number | null,"updated_at": string | null,"user_id": string | null,"username": string | null
+                    "created_at": string | null,"id": string | null,"sender_id": string | null,"status": string | null
                   }
                   Insert: {
-                           "avatar_media_id"?: string | null,"bio"?: string | null,"display_name"?: string | null,"follower_count"?: number | null,"following_count"?: number | null,"is_creator"?: boolean | null,"is_verified"?: boolean | null,"link_url"?: string | null,"post_count"?: number | null,"updated_at"?: string | null,"user_id"?: string | null,"username"?: string | null
+                           "created_at"?: string | null,"id"?: string | null,"sender_id"?: string | null,"status"?: string | null
                          }
                         Update: {
-                           "avatar_media_id"?: string | null,"bio"?: string | null,"display_name"?: string | null,"follower_count"?: number | null,"following_count"?: number | null,"is_creator"?: boolean | null,"is_verified"?: boolean | null,"link_url"?: string | null,"post_count"?: number | null,"updated_at"?: string | null,"user_id"?: string | null,"username"?: string | null
+                           "created_at"?: string | null,"id"?: string | null,"sender_id"?: string | null,"status"?: string | null
                          }
                         Relationships: [
                     {
-      foreignKeyName: "profiles_avatar_media_id_fkey"
-      columns: ["avatar_media_id"]
+      foreignKeyName: "message_requests_sender_id_fkey"
+      columns: ["sender_id"]
 isOneToOne: false
-      referencedRelation: "media_assets"
+      referencedRelation: "users"
       referencedColumns: ["id"]
-    },{
+    }
+                  ]
+                },"public_profiles": {
+                  Row: {
+                    "avatar_media_id": string | null,"bio": string | null,"display_name": string | null,"is_creator": boolean | null,"is_verified": boolean | null,"link_url": string | null,"updated_at": string | null,"user_id": string | null,"username": string | null
+                  }
+                  Insert: {
+                           "avatar_media_id"?: string | null,"bio"?: string | null,"display_name"?: string | null,"is_creator"?: boolean | null,"is_verified"?: boolean | null,"link_url"?: string | null,"updated_at"?: string | null,"user_id"?: string | null,"username"?: string | null
+                         }
+                        Update: {
+                           "avatar_media_id"?: string | null,"bio"?: string | null,"display_name"?: string | null,"is_creator"?: boolean | null,"is_verified"?: boolean | null,"link_url"?: string | null,"updated_at"?: string | null,"user_id"?: string | null,"username"?: string | null
+                         }
+                        Relationships: [
+                    {
       foreignKeyName: "profiles_user_id_fkey"
       columns: ["user_id"]
 isOneToOne: true
@@ -917,23 +967,11 @@ isOneToOne: true
                 }
           }
           Functions: {
-            "are_friends":
-{ Args: { "a": string,"b": string }; Returns: boolean
-                           },
-"can_dm":
+            "can_dm":
 { Args: { "a": string,"b": string }; Returns: boolean
                            },
 "can_view_post":
 { Args: { "p_post": string,"p_viewer": string }; Returns: boolean
-                           },
-"coin_value_cents":
-{ Args: Record<PropertyKey, never>; Returns: number
-                           },
-"ensure_ledger_account":
-{ Args: { "currency": string,"kind": string,"owner": string }; Returns: string
-                           },
-"follows_user":
-{ Args: { "followee": string,"follower": string }; Returns: boolean
                            },
 "is_adult":
 { Args: { "uid": string }; Returns: boolean
@@ -950,51 +988,21 @@ isOneToOne: true
 "is_moderator":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
-"purchase_coins":
-{ Args: { "processor": string,"processor_txn_id": string,"product_id": string }; Returns: {
-              "coins": number,
-"created_at": string,
-"gross_cents": number,
-"id": string,
-"platform_fee_cents": number,
-"processor": string,
-"processor_txn_id": string | null,
-"product_id": string,
-"user_id": string
-            }
-                          SetofOptions: {
-        from: "*"
-        to: "coin_purchases"
-        isOneToOne: true
-        isSetofReturn: false
-      } },
-"send_gift":
-{ Args: { "gift": string,"post"?: string,"qty": number,"recipient": string,"stream"?: string }; Returns: {
-              "app_store_fee_cents": number,
-"coins_total": number,
-"created_at": string,
-"creator_net_cents": number,
-"gift_id": string,
-"gross_cents": number,
-"id": string,
-"ledger_transaction_id": string | null,
-"platform_fee_cents": number,
-"post_id": string | null,
-"quantity": number,
-"recipient_id": string,
-"sender_id": string,
-"stream_id": string | null,
-"terms_id": string
-            }
-                          SetofOptions: {
-        from: "*"
-        to: "gift_events"
-        isOneToOne: true
-        isSetofReturn: false
-      } }
+"is_mutual":
+{ Args: { "a": string,"b": string }; Returns: boolean
+                           },
+"relationship_state":
+{ Args: { "actor": string,"subject": string }; Returns: string
+                           },
+"show_limit":
+{ Args: Record<PropertyKey, never>; Returns: number
+                           },
+"show_trgm":
+{ Args: { "": string }; Returns: (string)[]
+                           }
           }
           Enums: {
-            "account_status": "active"|"suspended"|"deactivated"|"banned","friend_status": "pending"|"accepted"|"declined"|"blocked","ledger_side": "debit"|"credit","media_kind": "image"|"video"|"audio","media_status": "uploading"|"processing"|"ready"|"failed","moderation_action": "none"|"warn"|"age_gate"|"limit_reach"|"remove_content"|"suspend"|"ban"|"law_enforcement_referral","moderation_tier": "green"|"yellow"|"orange"|"red","payout_status": "pending"|"processing"|"paid"|"failed"|"reversed","post_kind": "post"|"reel"|"story","reach_reason": "normal"|"new_account"|"duplicate_content"|"engagement_manipulation"|"moderation_limit"|"boosted","report_reason": "spam"|"harassment"|"nudity"|"violence"|"csam"|"self_harm"|"illegal"|"impersonation"|"ip"|"other","report_status": "open"|"triaging"|"actioned"|"dismissed"|"appealed","stream_status": "scheduled"|"live"|"ended"|"errored","visibility": "public"|"followers"|"friends"|"private"
+            "account_status": "active"|"suspended"|"deactivated"|"banned","friend_status": "pending"|"accepted"|"declined"|"blocked","ledger_side": "debit"|"credit","media_kind": "image"|"video"|"audio","media_status": "uploading"|"processing"|"ready"|"failed","moderation_action": "none"|"warn"|"age_gate"|"limit_reach"|"remove_content"|"suspend"|"ban"|"law_enforcement_referral","payout_status": "pending"|"processing"|"paid"|"failed"|"reversed","post_kind": "post"|"reel"|"story","reach_reason": "normal"|"new_account"|"low_quality_signal"|"duplicate_content"|"moderation_limit"|"viewer_preference"|"rate_limited"|"boosted","report_reason": "spam"|"harassment"|"nudity"|"violence"|"csam"|"self_harm"|"illegal"|"impersonation"|"ip"|"other","report_status": "open"|"triaging"|"actioned"|"dismissed"|"appealed","stream_status": "scheduled"|"live"|"ended"|"errored","visibility": "public"|"followers"|"friends"|"private"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -1114,7 +1122,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "account_status": ["active", "suspended", "deactivated", "banned"],"friend_status": ["pending", "accepted", "declined", "blocked"],"ledger_side": ["debit", "credit"],"media_kind": ["image", "video", "audio"],"media_status": ["uploading", "processing", "ready", "failed"],"moderation_action": ["none", "warn", "age_gate", "limit_reach", "remove_content", "suspend", "ban", "law_enforcement_referral"],"moderation_tier": ["green", "yellow", "orange", "red"],"payout_status": ["pending", "processing", "paid", "failed", "reversed"],"post_kind": ["post", "reel", "story"],"reach_reason": ["normal", "new_account", "duplicate_content", "engagement_manipulation", "moderation_limit", "boosted"],"report_reason": ["spam", "harassment", "nudity", "violence", "csam", "self_harm", "illegal", "impersonation", "ip", "other"],"report_status": ["open", "triaging", "actioned", "dismissed", "appealed"],"stream_status": ["scheduled", "live", "ended", "errored"],"visibility": ["public", "followers", "friends", "private"]
+            "account_status": ["active", "suspended", "deactivated", "banned"],"friend_status": ["pending", "accepted", "declined", "blocked"],"ledger_side": ["debit", "credit"],"media_kind": ["image", "video", "audio"],"media_status": ["uploading", "processing", "ready", "failed"],"moderation_action": ["none", "warn", "age_gate", "limit_reach", "remove_content", "suspend", "ban", "law_enforcement_referral"],"payout_status": ["pending", "processing", "paid", "failed", "reversed"],"post_kind": ["post", "reel", "story"],"reach_reason": ["normal", "new_account", "low_quality_signal", "duplicate_content", "moderation_limit", "viewer_preference", "rate_limited", "boosted"],"report_reason": ["spam", "harassment", "nudity", "violence", "csam", "self_harm", "illegal", "impersonation", "ip", "other"],"report_status": ["open", "triaging", "actioned", "dismissed", "appealed"],"stream_status": ["scheduled", "live", "ended", "errored"],"visibility": ["public", "followers", "friends", "private"]
           }
         }
 } as const
