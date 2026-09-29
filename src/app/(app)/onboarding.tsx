@@ -32,7 +32,16 @@ export default function Onboarding() {
     });
     if (err) {
       setBusy(false);
-      return setError(err.code === '23505' ? 'That username is taken' : err.message);
+      if (err.code === '23505') {
+        if (err.message.includes('profiles_pkey')) {
+          // The profile already exists (e.g. an earlier fetch failed): just load it.
+          await refreshProfile();
+          return setBusy(false);
+        }
+        if (err.message.includes('profiles_username_key'))
+          return setError('That username is taken');
+      }
+      return setError(err.message);
     }
     await refreshProfile();
     setBusy(false);

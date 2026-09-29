@@ -16,19 +16,23 @@ type AuthState = {
   loading: boolean;
   session: Session | null;
   profile: Profile | null;
+  /** True when loading the profile failed (as opposed to it not existing). */
+  profileError: boolean;
   refreshProfile: () => Promise<void>;
   signOut: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
 
+/** Resolves null only when the profile row genuinely does not exist; throws on any error. */
 async function fetchProfile(uid: string): Promise<Profile | null> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('profiles')
     .select(PROFILE_COLUMNS)
     .eq('user_id', uid)
     .maybeSingle();
-  return data ?? null;
+  if (error) throw error;
+  return data;
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -36,6 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   // The user id whose profile has been fetched (null = signed out / nothing fetched yet).
+  const [profileError, setProfileError] = useState(false);
   const [profileFor, setProfileFor] = useState<string | null>(null);
 
   const userId = session?.user.id ?? null;
@@ -52,11 +57,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
-    fetchProfile(userId).then((p) => {
-      if (cancelled) return;
-      setProfile(p);
-      setProfileFor(userId);
-    });
+    fetchProfile(userId)
+      .then((p) => {
+        if (cancelled) return;
+        setProfile(p);
+        setProfileError(false);
+        setProfileFor(userId);
+      })
+      .catch((e) => {
+        if (cancelled) return;
+        if (__DEV__) console.warn("fetchProfile failed:", e);
+        setProfileError(true);
+        setProfileFor(userId);
+      });
     return () => {
       cancelled = true;
     };
@@ -66,7 +79,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshProfile = useCallback(async () => {
     if (!userId) return;
-    setProfile(await fetchProfile(userId));
+    try {
+      setProfile(await fetchProfile(userId));
+      setProfileError(false);
+    } catch (e) {
+      if (__DEV__) console.warn("fetchProfile failed:", e);
+      setProfileError(true);
+    }
     setProfileFor(userId);
   }, [userId]);
   const signOut = useCallback(async () => {
@@ -74,8 +93,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo<AuthState>(
-    () => ({ loading, session, profile: userId ? profile : null, refreshProfile, signOut }),
-    [loading, session, userId, profile, refreshProfile, signOut],
+    () => ({ loading, session, profile: userId ? profile : null, profileError, refreshProfile, signOut }),
+    [loading, session, userId, profile, profileError, refreshProfile, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

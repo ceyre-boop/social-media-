@@ -37,6 +37,14 @@ Login is by email one-time code. Codes arrive in Mailpit at <http://127.0.0.1:54
 (`alice`, `bob`, `minnie`, `carol`, `dave` at `@example.com`) also log in via OTP. Date of birth is
 required on the sign-in screen.
 
+### Hosted projects and media
+
+- Hosted Supabase projects need the OTP email templates from `supabase/templates` set in the
+  dashboard (Authentication > Email Templates) so emails carry the 6-digit code. Local dev picks
+  them up from `supabase/config.toml`.
+- The `media` storage bucket is private. Images are stored by path and shown through short-lived
+  signed URLs (1 hour), resolved per page in the feed and profile.
+
 ## Scripts
 
 | Script              | What it does                                   |

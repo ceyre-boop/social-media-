@@ -74,8 +74,6 @@ export default function NewPost() {
       if (upErr) throw upErr;
       uploadedPath = path;
 
-      const { data: pub } = supabase.storage.from('media').getPublicUrl(path);
-
       const { data: media, error: mErr } = await supabase
         .from('media_assets')
         .insert({
@@ -84,7 +82,6 @@ export default function NewPost() {
           status: 'ready',
           provider: 'supabase',
           provider_asset_id: path,
-          playback_url: pub.publicUrl,
           width: asset.width,
           height: asset.height,
           bytes: asset.fileSize ?? buf.byteLength,
@@ -117,11 +114,34 @@ export default function NewPost() {
       setVisibility('public');
       router.navigate('/');
     } catch (e) {
-      // Best-effort cleanup of whatever was created before the failure.
-      if (postId) await supabase.from('posts').delete().eq('id', postId);
-      if (mediaId) await supabase.from('media_assets').delete().eq('id', mediaId);
-      if (uploadedPath) await supabase.storage.from('media').remove([uploadedPath]);
-      setError(e instanceof Error ? e.message : 'Could not publish the post.');
+      // Best-effort cleanup. Hard deletes are not allowed by RLS, so soft-delete rows.
+      const now = new Date().toISOString();
+      const warn = (step: string, err: { message: string } | null) => {
+        if (err && __DEV__) console.warn(`cleanup: ${step} failed:`, err.message);
+      };
+      if (postId) {
+        const { error: err } = await supabase
+          .from('posts')
+          .update({ deleted_at: now })
+          .eq('id', postId);
+        warn('soft-delete post', err);
+      }
+      if (mediaId) {
+        const { error: err } = await supabase
+          .from('media_assets')
+          .update({ deleted_at: now })
+          .eq('id', mediaId);
+        warn('mark media deleted', err);
+      }
+      if (uploadedPath) {
+        const { error: err } = await supabase.storage.from('media').remove([uploadedPath]);
+        warn('remove storage object', err);
+      }
+      const detail = e instanceof Error ? e.message : (e as { message?: string })?.message;
+      if (__DEV__) console.warn('publish failed:', e);
+      setError(
+        __DEV__ && detail ? `Could not publish the post: ${detail}` : 'Could not publish the post',
+      );
     } finally {
       setBusy(false);
     }

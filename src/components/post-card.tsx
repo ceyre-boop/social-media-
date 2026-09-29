@@ -20,6 +20,10 @@ export function PostCard({ post, onToggleLike }: { post: FeedPost; onToggleLike:
           contentFit="cover"
           recyclingKey={post.id}
         />
+      ) : post.imagePath ? (
+        <View style={[styles.image, styles.placeholder, { aspectRatio: post.aspectRatio }]}>
+          <Text style={styles.time}>Image unavailable</Text>
+        </View>
       ) : null}
       <View style={styles.footer}>
         <Pressable
@@ -49,6 +53,7 @@ const styles = StyleSheet.create({
   name: { fontSize: 15, fontWeight: '700', color: colors.text },
   username: { fontSize: 13, color: colors.muted },
   image: { width: '100%', backgroundColor: colors.surface },
+  placeholder: { alignItems: 'center', justifyContent: 'center' },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',

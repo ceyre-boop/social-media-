@@ -5,7 +5,7 @@ import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
 
 import { PostCard } from '@/components/post-card';
 import { useAuth } from '@/lib/auth';
-import { PAGE_SIZE, fetchFeedPage, setLike, type FeedPost } from '@/lib/posts';
+import { PAGE_SIZE, cursorOf, fetchFeedPage, setLike, type FeedPost } from '@/lib/posts';
 import { colors, spacing } from '@/lib/theme';
 
 export default function Feed() {
@@ -17,6 +17,7 @@ export default function Feed() {
   const [error, setError] = useState<string | null>(null);
   const hasMore = useRef(true);
   const loadingMore = useRef(false);
+  const inFlight = useRef(new Set<string>());
 
   const refresh = useCallback(
     async (pull = false) => {
@@ -47,7 +48,7 @@ export default function Feed() {
     if (loadingMore.current || !hasMore.current || posts.length === 0) return;
     loadingMore.current = true;
     try {
-      const page = await fetchFeedPage(me, posts[posts.length - 1].created_at);
+      const page = await fetchFeedPage(me, cursorOf(posts[posts.length - 1]));
       hasMore.current = page.length === PAGE_SIZE;
       setPosts((prev) => {
         const seen = new Set(prev.map((p) => p.id));
@@ -61,6 +62,9 @@ export default function Feed() {
   }
 
   async function toggleLike(post: FeedPost) {
+    // One in-flight request per post: ignore taps until it settles.
+    if (inFlight.current.has(post.id)) return;
+    inFlight.current.add(post.id);
     const next = !post.likedByMe;
     const apply = (liked: boolean) =>
       setPosts((prev) => prev.map((p) => (p.id === post.id ? { ...p, likedByMe: liked } : p)));
@@ -68,8 +72,15 @@ export default function Feed() {
     try {
       await setLike(post.id, me, next);
     } catch (e) {
-      apply(!next);
-      Alert.alert('Could not update like', e instanceof Error ? e.message : 'Try again.');
+      const code = (e as { code?: string }).code;
+      if (next && code === '23505') {
+        // Already liked on the server: the desired state holds, nothing to roll back.
+      } else {
+        apply(!next);
+        Alert.alert('Could not update like', e instanceof Error ? e.message : 'Try again.');
+      }
+    } finally {
+      inFlight.current.delete(post.id);
     }
   }
 
