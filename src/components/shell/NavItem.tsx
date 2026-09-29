@@ -11,32 +11,15 @@ type Props = TabTriggerSlotProps & {
   icon: IconName;
   activeIcon: IconName;
   active: boolean;
-  /** Layout: bottom bar (stacked), sidebar expanded (row + label), sidebar collapsed (icon only). */
-  mode: 'bar' | 'side' | 'side-collapsed';
+  /** Layout: sidebar expanded (row + label), sidebar collapsed (icon only). */
+  mode: 'side' | 'side-collapsed';
 };
 
-/** A tab trigger rendered as a bar item or a sidebar row. Forwards trigger props to Pressable. */
+/** A tab trigger rendered as a sidebar row. Forwards trigger props to Pressable. */
 export function NavItem({ label, icon, activeIcon, active, mode, isFocused: _f, ...props }: Props) {
   const { colors, radius } = useTheme();
   const color = active ? colors.primary : colors.muted;
-  const glyph = (
-    <Ionicons name={active ? activeIcon : icon} size={mode === 'bar' ? 24 : 26} color={color} />
-  );
-
-  if (mode === 'bar') {
-    return (
-      <Pressable
-        {...props}
-        accessibilityRole="tab"
-        accessibilityLabel={label}
-        accessibilityState={{ selected: active }}
-        style={styles.barItem}
-      >
-        {glyph}
-        <Text style={[styles.barLabel, { color }]}>{label}</Text>
-      </Pressable>
-    );
-  }
+  const glyph = <Ionicons name={active ? activeIcon : icon} size={26} color={color} />;
 
   return (
     <Pressable
@@ -71,15 +54,6 @@ export function NavItem({ label, icon, activeIcon, active, mode, isFocused: _f, 
 }
 
 const styles = StyleSheet.create({
-  barItem: {
-    flex: 1,
-    minHeight: 56,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-    cursor: 'pointer',
-  },
-  barLabel: { fontSize: 11, fontWeight: '700' },
   sideItem: {
     minHeight: 48,
     flexDirection: 'row',

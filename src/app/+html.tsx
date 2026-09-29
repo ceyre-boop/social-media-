@@ -7,6 +7,9 @@ const css = `
 body { background-color: #0B0A0D; margin: 0; }
 :focus-visible { outline: 2px solid #FF6FB5 !important; outline-offset: 2px; }
 ::selection { background: #FF6FB5; color: #1A0710; }
+/* Reels feed: one page per snap point (FlashList cells are absolutely positioned, so mark the pages themselves). */
+[data-reels] { scroll-snap-type: y mandatory; }
+[data-reels] [data-reel-page] { scroll-snap-align: start; scroll-snap-stop: always; }
 @media (prefers-color-scheme: light) {
   body { background-color: #FFF8FB; }
   :focus-visible { outline-color: #8C1240 !important; }

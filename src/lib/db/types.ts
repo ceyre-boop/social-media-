@@ -230,6 +230,31 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"follows": {
+                  Row: {
+                    "created_at": string,"followee_id": string,"follower_id": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"followee_id": string,"follower_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"followee_id"?: string,"follower_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "follows_followee_id_fkey"
+      columns: ["followee_id"]
+isOneToOne: false
+      referencedRelation: "users"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "follows_follower_id_fkey"
+      columns: ["follower_id"]
+isOneToOne: false
+      referencedRelation: "users"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"friendships": {
                   Row: {
                     "addressee_id": string,"created_at": string,"requester_id": string,"responded_at": string | null,"status": Database["public"]['Enums']["friend_status"]

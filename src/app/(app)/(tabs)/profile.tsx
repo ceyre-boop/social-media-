@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/auth';
 import type { UserError } from '@/lib/errors';
 import { useRevalidate } from '@/lib/network';
 import { fetchUserPosts, type FeedPost } from '@/lib/posts';
+import { useNavClearance } from '@/lib/layout';
 import { useTheme } from '@/lib/theme';
 import { VISIBILITY_META } from '@/lib/visibility';
 
@@ -48,6 +49,7 @@ function linkHref(url: string): string {
 }
 
 export default function Profile() {
+  const navClearance = useNavClearance();
   const { colors, spacing } = useTheme();
   const { session, profile, handleError } = useAuth();
   const router = useRouter();
@@ -75,7 +77,7 @@ export default function Profile() {
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <PageTitle title="Profile" />
       <AppBar title="Profile" />
-      <ScrollView>
+      <ScrollView contentContainerStyle={{ paddingBottom: navClearance }}>
         <View style={{ padding: spacing.lg, gap: spacing.lg }}>
           <View style={styles.top}>
             <Avatar username={username} displayName={profile?.display_name} size={88} />

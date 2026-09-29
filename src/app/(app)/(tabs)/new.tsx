@@ -11,6 +11,7 @@ import { useAuth } from '@/lib/auth';
 import { ImageProblem, MAX_UPLOAD_BYTES, checkPickedAsset, prepareImage } from '@/lib/image';
 import type { Visibility } from '@/lib/posts';
 import { supabase } from '@/lib/supabase';
+import { useNavClearance } from '@/lib/layout';
 import { useTheme } from '@/lib/theme';
 import { VISIBILITY_META, VISIBILITY_ORDER } from '@/lib/visibility';
 
@@ -37,6 +38,7 @@ function uniqueId(): string {
 export default function NewPost() {
   const { colors, radius, spacing } = useTheme();
   const { height: windowHeight } = useWindowDimensions();
+  const navClearance = useNavClearance();
   const { session, handleError } = useAuth();
   const router = useRouter();
   const [asset, setAsset] = useState<ImagePicker.ImagePickerAsset | null>(null);
@@ -261,7 +263,12 @@ export default function NewPost() {
       <View
         style={[
           styles.footer,
-          { borderTopColor: colors.border, backgroundColor: colors.bg, padding: spacing.lg },
+          {
+            borderTopColor: colors.border,
+            backgroundColor: colors.bg,
+            padding: spacing.lg,
+            paddingBottom: spacing.lg + navClearance,
+          },
         ]}
       >
         <Button

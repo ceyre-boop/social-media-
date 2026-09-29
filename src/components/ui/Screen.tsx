@@ -2,6 +2,7 @@ import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useNavClearance } from '@/lib/layout';
 import { useTheme } from '@/lib/theme';
 
 import { PageTitle } from './PageTitle';
@@ -17,6 +18,8 @@ type Props = {
   /** Pad for the device top/bottom inset (screens without an AppBar / tab bar). */
   safeTop?: boolean;
   safeBottom?: boolean;
+  /** Add bottom padding so content clears the floating pill nav (compact, inside the tabs). */
+  clearNav?: boolean;
   /** Vertically center content (auth). */
   center?: boolean;
   padded?: boolean;
@@ -31,12 +34,14 @@ export function Screen({
   maxWidth,
   safeTop,
   safeBottom,
+  clearNav,
   center,
   padded,
   contentStyle,
 }: Props) {
   const { colors, spacing } = useTheme();
   const insets = useSafeAreaInsets();
+  const navClearance = useNavClearance();
   const pad = padded ? spacing.lg : 0;
 
   const inner: StyleProp<ViewStyle> = [
@@ -46,7 +51,7 @@ export function Screen({
       alignSelf: 'center',
       padding: pad,
       paddingTop: pad + (safeTop ? insets.top : 0),
-      paddingBottom: pad + (safeBottom ? insets.bottom : 0),
+      paddingBottom: pad + (safeBottom ? insets.bottom : 0) + (clearNav ? navClearance : 0),
       gap: padded ? spacing.lg : 0,
     },
     !scroll && { flex: 1 },

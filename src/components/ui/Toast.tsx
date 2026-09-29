@@ -65,7 +65,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {toast ? (
         <View
           pointerEvents="box-none"
-          style={[styles.host, { bottom: insets.bottom + (compact ? 72 : spacing.xl) }]}
+          style={[styles.host, { bottom: insets.bottom + (compact ? 96 : spacing.xl) }]}
         >
           <View
             accessibilityRole="alert"

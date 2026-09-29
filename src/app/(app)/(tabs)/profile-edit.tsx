@@ -57,7 +57,7 @@ export default function ProfileEdit() {
         title="Edit profile"
         left={compact ? <IconButton icon="chevron-back" label="Back" onPress={leave} /> : undefined}
       />
-      <Screen title="Edit profile" scroll padded safeBottom={false}>
+      <Screen title="Edit profile" scroll padded safeBottom={false} clearNav>
         <ProfileForm values={values} onChange={setValues} usernameError={usernameError} />
         {error ? <Text style={{ color: colors.danger }}>{error}</Text> : null}
         <View style={{ gap: spacing.md }}>

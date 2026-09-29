@@ -14,7 +14,7 @@ export const VISIBILITY_META: Record<Visibility, Meta> = {
   followers: {
     label: 'Followers',
     icon: 'people-outline',
-    explain: 'People who keep coming back to you',
+    explain: 'People who follow you or keep coming back',
   },
   friends: {
     label: 'Friends',

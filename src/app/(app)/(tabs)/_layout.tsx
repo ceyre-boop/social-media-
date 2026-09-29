@@ -2,7 +2,7 @@ import { usePathname } from 'expo-router';
 import { TabList, TabSlot, TabTrigger, Tabs } from 'expo-router/ui';
 import { View } from 'react-native';
 
-import { BottomBar } from '@/components/shell/BottomBar';
+import { FloatingNav } from '@/components/shell/FloatingNav';
 import { Rail } from '@/components/shell/Rail';
 import { OfflineBanner } from '@/components/shell/OfflineBanner';
 import { Sidebar } from '@/components/shell/Sidebar';
@@ -64,8 +64,8 @@ export default function TabsLayout() {
           {bp === 'wide' ? <Rail /> : null}
         </View>
 
-        {compact ? <OfflineBanner /> : null}
-        {compact ? <BottomBar pathname={pathname} /> : null}
+        {compact ? <OfflineBanner floating /> : null}
+        {compact ? <FloatingNav pathname={pathname} /> : null}
 
         <TabList style={{ display: 'none' }}>
           <TabTrigger name="index" href="/" />
