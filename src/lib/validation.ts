@@ -28,12 +28,18 @@ export function relativeTime(iso: string): string {
   return new Date(iso).toLocaleDateString();
 }
 
-/** Keeps digits only and inserts dashes as the user types: 19950423 -> 1995-04-23. */
+/** US format as typed: keeps digits only and inserts dashes, 04231995 -> 04-23-1995. */
 export function formatDob(input: string): string {
-  const d = input.replace(/\D/g, '').slice(0, 8);
-  if (d.length <= 4) return d;
-  if (d.length <= 6) return `${d.slice(0, 4)}-${d.slice(4)}`;
-  return `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6)}`;
+  const d = input.replace(/\D/g, "").slice(0, 8);
+  if (d.length <= 2) return d;
+  if (d.length <= 4) return `${d.slice(0, 2)}-${d.slice(2)}`;
+  return `${d.slice(0, 2)}-${d.slice(2, 4)}-${d.slice(4)}`;
+}
+
+/** MM-DD-YYYY (as typed) to ISO YYYY-MM-DD (what the database and auth metadata use). Null if malformed. */
+export function dobToIso(us: string): string | null {
+  const m = /^(\d{2})-(\d{2})-(\d{4})$/.exec(us);
+  return m ? `${m[3]}-${m[1]}-${m[2]}` : null;
 }
 
 export const MIN_AGE = 13;

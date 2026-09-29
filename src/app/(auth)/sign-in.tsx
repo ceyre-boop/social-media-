@@ -6,7 +6,14 @@ import { useAuth } from '@/lib/auth';
 import { toUserError } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/lib/theme';
-import { MIN_AGE, formatDob, isAtLeastAge, isValidEmail, isValidPastDate } from '@/lib/validation';
+import {
+  MIN_AGE,
+  dobToIso,
+  formatDob,
+  isAtLeastAge,
+  isValidEmail,
+  isValidPastDate,
+} from '@/lib/validation';
 
 const RESEND_SECONDS = 30;
 
@@ -17,8 +24,9 @@ const RESEND_SECONDS = 30;
 const draft = { email: '', dob: '', codeSent: false, resendAt: 0 };
 
 function dobProblem(dob: string): string | null {
-  if (!isValidPastDate(dob)) return 'Enter a real date in the past, like 1995-04-23.';
-  if (!isAtLeastAge(dob, MIN_AGE)) return `You must be at least ${MIN_AGE} to use Smiley.`;
+  const iso = dobToIso(dob);
+  if (!iso || !isValidPastDate(iso)) return 'Enter a real date in the past, like 04-23-1995.';
+  if (!isAtLeastAge(iso, MIN_AGE)) return `You must be at least ${MIN_AGE} to use Smiley.`;
   return null;
 }
 
@@ -74,7 +82,7 @@ export default function SignIn() {
     setBusy(true);
     const { error: err } = await supabase.auth.signInWithOtp({
       email: cleanEmail,
-      options: { shouldCreateUser: true, data: { date_of_birth: dob } },
+      options: { shouldCreateUser: true, data: { date_of_birth: dobToIso(dob) } },
     });
     setBusy(false);
     sending.current = false;
@@ -161,10 +169,10 @@ export default function SignIn() {
           />
           <TextField
             label="Date of birth"
-            hint="YYYY-MM-DD. Required."
+            hint="MM-DD-YYYY. Required."
             value={dob}
             onChangeText={(t) => setDob(formatDob(t))}
-            placeholder="1995-04-23"
+            placeholder="04-23-1995"
             keyboardType="number-pad"
             inputMode="numeric"
             autoComplete="birthdate-full"
