@@ -123,7 +123,7 @@ async function fetchPosts(opts: {
   return rows.map((r) => {
     const media = [...r.post_media].sort((a, b) => a.position - b.position)[0]?.media_assets;
     const imagePath = media?.provider_asset_id ?? null;
-    const ratio = media?.width && media?.height ? media.width / media.height : 1;
+    const ratio = media?.width && media?.height ? media.width / media.height : 4 / 5;
     return {
       id: r.id,
       author_id: r.author_id,
@@ -152,4 +152,10 @@ export async function setLike(postId: string, userId: string, liked: boolean) {
     ? await supabase.from('likes').insert({ post_id: postId, user_id: userId })
     : await supabase.from('likes').delete().eq('post_id', postId).eq('user_id', userId);
   if (error) throw error;
+}
+
+/** Re-sign one storage path (e.g. after a signed URL expired). Null if signing failed. */
+export async function signImagePath(path: string): Promise<string | null> {
+  const urls = await signPaths([path]);
+  return urls.get(path) ?? null;
 }
