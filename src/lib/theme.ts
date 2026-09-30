@@ -156,6 +156,35 @@ export const stage = {
 
 export type Stage = typeof stage;
 
+/**
+ * Gift tier palette (theme-independent). Anchored to the brand yellow, cream and near-black;
+ * each tier may use a wider accent range than the one below it: Blips speak only in yellow,
+ * Sunrise uses the whole warm spectrum. `accent` fills the gift tile (ink on it is
+ * `giftInk`); `range` colors confetti, sparks and light in that tier's animation.
+ */
+export const giftInk = brand.onRainbow;
+export const giftCream = '#FFF3D6';
+
+export const giftTier = {
+  blips: { accent: brand.sun, range: [brand.sun] },
+  sparks: { accent: brand.tangerine, range: [brand.sun, brand.tangerine] },
+  glows: { accent: brand.magenta, range: [brand.sun, brand.tangerine, brand.magenta] },
+  bursts: {
+    accent: brand.violet,
+    range: [brand.sun, brand.tangerine, brand.magenta, brand.violet],
+  },
+  showers: {
+    accent: brand.sky,
+    range: [brand.sun, brand.tangerine, brand.magenta, brand.violet, brand.sky],
+  },
+  sunrise: { accent: brand.pink, range: [brand.pink, ...rainbow] },
+} as const;
+
+export type GiftTierName = keyof typeof giftTier;
+
+/** Names of the brand colors, for token-referenced gradients (live thumbnails). */
+export type BrandColorName = Exclude<keyof typeof brand, 'onRainbow'>;
+
 /** Stable rainbow tint from a name (avatars, text-post cards). */
 export function tintFor(name: string): string {
   let h = 0;
