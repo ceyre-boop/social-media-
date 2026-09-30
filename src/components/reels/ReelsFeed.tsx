@@ -251,6 +251,8 @@ function ReelsFeedInner({
   const countRef = useRef(0);
   const firstIdRef = useRef<string | undefined>(undefined);
   const postsRef = useRef<FeedPost[]>([]);
+  /** Pager B: re-pin the scroll offset to an index (assigned once page height is known). */
+  const syncScrollRef = useRef<(i: number) => void>(() => {});
   /** When each post's signed URLs were issued (ms), by post id. */
   const signedAt = useRef(new Map<string, number>());
   const loadRetried = useRef(new Set<string>());
@@ -279,15 +281,13 @@ function ReelsFeedInner({
 
   // A slot failed to load its source (often an expired signed URL): re-sign once and let it retry.
   useEffect(() => {
-    pool.onLoadFailed = (key) => {
+    pool.setOnLoadFailed((key) => {
       if (loadRetried.current.has(key)) return;
       loadRetried.current.add(key);
       const post = postsRef.current.find((p) => p.id === key);
       if (post) void resignPost(post).then((f) => applyResigned([f]));
-    };
-    return () => {
-      pool.onLoadFailed = null;
-    };
+    });
+    return () => pool.setOnLoadFailed(null);
   }, [pool, applyResigned]);
 
   useEffect(() => {
@@ -334,7 +334,7 @@ function ReelsFeedInner({
             const byId = new Map(prev.map((p) => [p.id, p]));
             setPosts(merged.map((p) => byId.get(p.id) ?? p));
             if (REEL_PAGER === 'scrollview') {
-              scrollRef.current?.scrollTo({ y: indexRef.current * pageHRef.current, animated: false });
+              syncScrollRef.current(indexRef.current);
             } else if (indexRef.current === 0) {
               const top = () => listRef.current?.scrollToOffset({ offset: 0, animated: false });
               setTimeout(top, 0);
@@ -597,6 +597,7 @@ function ReelsFeedInner({
   const pageH = Math.round(size.h);
   useEffect(() => {
     pageHRef.current = pageH;
+    syncScrollRef.current = (i) => scrollRef.current?.scrollTo({ y: i * pageH, animated: false });
   }, [pageH]);
 
   // Pager B: scroll position lives on the UI thread; JS hears about it once per settle.

@@ -70,7 +70,11 @@ export class PoolStore {
   private clock = 0;
   readonly settles: SettleRecord[] = [];
   /** Set by the feed: a slot could not load its source (e.g. expired signed URL). */
-  onLoadFailed: ((key: string) => void) | null = null;
+  private onLoadFailed: ((key: string) => void) | null = null;
+
+  setOnLoadFailed(handler: ((key: string) => void) | null): void {
+    this.onLoadFailed = handler;
+  }
 
   attach(players: VideoPlayer[]): void {
     this.players = players;
