@@ -91,7 +91,11 @@ export default function You() {
         ) : loaded && posts.length === 0 ? (
           <EmptyState title="No posts yet" message="Your photos and reels will show up here." />
         ) : (
-          <PostGrid posts={posts} owner="Your" />
+          <PostGrid
+            posts={posts}
+            owner="Your"
+            onOpen={(p) => router.push({ pathname: '/post/[id]', params: { id: p.id } })}
+          />
         )}
       </ScrollView>
     </View>

@@ -146,6 +146,14 @@ Compared with TikTok web: the video is the only bright object and the chrome is 
 7. **The video owns the brightness.** On desktop the feed stage is a pure-black surround with the 9:16 card as the only bright object. Rail icons over or beside it are neutral white/gray on a neutral translucent disc; a liked heart may use `primary` because it is content state.
 8. **Explanations are not chrome.** Persistent explainer cards ("How it works") are not allowed in the shell. Put that copy in an About page or an empty state, once.
 
+## Sharing and post pages
+
+- **Author links.** In feeds and on post pages the avatar, name and @username all open the author's profile (`/u/[username]`, inside the shell; your own name goes to You). The profile shows avatar, name, @username, bio, link, Follow/Following (hidden on yourself) and only the posts RLS lets the viewer see. No counts anywhere.
+- **Share sheet** (the "..." on a post): a uniform grid of neutral outline tiles, no accent. System share sheet, Copy link, "Start at 0:12" (copies `?t=12`), Save video, Embed (web, public reels only) and 13 direct targets (Messages, WhatsApp, Telegram, Messenger, X, Threads, Bluesky, Facebook, Reddit, LinkedIn, Pinterest, Tumblr, Email). URLs come from `src/lib/share.ts` (unit-tested) and the base from `brand.webUrl`. Non-public posts get only the system sheet and Copy link, plus the note "Only people who can already see this post can open the link." Never Embed or public targets.
+- **Save video** is offered for your own posts and public posts. A per-post "allow downloads" creator setting is future work and is not built.
+- **Post pages.** `/p/[id]` is the public link (works signed out for public posts, honors `?t=`); signed-in people are redirected to `/post/[id]`, the same page inside the shell. `/p/[id]/embed` is the chrome-free iframe player (public posts only, one attribution link). Anything RLS hides reads "This post isn't available".
+- **Future, not built:** DM sharing (Messages tab is deferred), stories, QR codes, GIF export, watermarks.
+
 ## Adding a token
 
 1. Add it to `src/lib/theme.ts` only: to `Colors` and both `dark` and `light` for theme colors, or to `stage` / `brand` for fixed ones. Name it by role (`primarySubtle`), not by value (`lightPink`).

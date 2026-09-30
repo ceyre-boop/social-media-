@@ -204,6 +204,27 @@ async function hydrate(rows: PostRow[]): Promise<FeedPost[]> {
   });
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * One post by id, or null when it does not exist or RLS hides it from this viewer (the two are
+ * deliberately indistinguishable). Works signed out: `me` is null, the likes embed is skipped and
+ * anon can only read public posts.
+ */
+export async function fetchPostById(id: string, me: string | null): Promise<FeedPost | null> {
+  if (!UUID_RE.test(id)) return null;
+  const select = me ? POST_SELECT : POST_SELECT.replace(', likes(user_id)', '');
+  let query = supabase.from('posts').select(select).eq('id', id).is('deleted_at', null);
+  if (me) query = query.eq('likes.user_id', me);
+  const { data, error } = await query.maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const row = data as unknown as PostRow;
+  if (row.kind !== 'post' && row.kind !== 'reel') return null;
+  const [post] = await hydrate([{ ...row, likes: row.likes ?? [] }]);
+  return post ?? null;
+}
+
 export function fetchFeedPage(me: string, cursor?: Cursor | null) {
   return fetchPosts({ me, cursor });
 }

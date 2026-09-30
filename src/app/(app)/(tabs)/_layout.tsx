@@ -77,6 +77,7 @@ export default function TabsLayout() {
           <TabTrigger name="you" href="/you" />
           <TabTrigger name="profile-edit" href="/profile-edit" />
           <TabTrigger name="u/[username]" href="/u/[username]" />
+          <TabTrigger name="post/[id]" href="/post/[id]" />
         </TabList>
       </Tabs>
     </View>

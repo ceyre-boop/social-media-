@@ -146,7 +146,11 @@ export default function UserProfile() {
           ) : posts.length === 0 ? (
             <EmptyState title="No posts you can see yet" message="Check back later." />
           ) : (
-            <PostGrid posts={posts} owner="Their" />
+            <PostGrid
+              posts={posts}
+              owner="Their"
+              onOpen={(p) => router.push({ pathname: '/post/[id]', params: { id: p.id } })}
+            />
           )}
         </ScrollView>
       )}
