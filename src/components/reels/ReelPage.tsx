@@ -1,10 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { Animated, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
-import { Avatar, Chip, Text } from '@/components/ui';
+import { ReelVideo } from '@/components/reels/player/ReelVideo';
+import { usePlayerPool } from '@/components/reels/player/PlayerPool';
+import { Avatar, Chip, IconButton, Text } from '@/components/ui';
+import { toggleMuted, useMuted } from '@/lib/mute';
 import { signImagePath, type FeedPost } from '@/lib/posts';
 import { stage as c, tintFor, useReducedMotion } from '@/lib/theme';
 import { relativeTime } from '@/lib/validation';
@@ -13,7 +17,8 @@ import { VISIBILITY_META } from '@/lib/visibility';
 import { MoreSheet } from './MoreSheet';
 
 const RAIL_W = 64;
-const DOUBLE_TAP_MS = 320;
+const DOUBLE_TAP_MS = 280;
+const LONG_PRESS_MS = 450;
 const shadow = {
   textShadowColor: c.textShadow,
   textShadowOffset: { width: 0, height: 1 },
@@ -88,9 +93,16 @@ function RailButton({
   );
 }
 
-/** Action rail: like (no count) and more. Sits over the media on compact, outside the card on desktop. */
-function Rail({ post, onToggleLike }: { post: FeedPost; onToggleLike: () => void }) {
-  const [sheet, setSheet] = useState(false);
+/** Action rail: mute (reels), like (no count) and more. Over the media on compact, beside the card on desktop. */
+function Rail({
+  post,
+  onToggleLike,
+  onMore,
+}: {
+  post: FeedPost;
+  onToggleLike: () => void;
+  onMore: () => void;
+}) {
   const [pop, setPop] = useState(0);
   const prevLiked = useRef(post.likedByMe);
   useEffect(() => {
@@ -99,6 +111,7 @@ function Rail({ post, onToggleLike }: { post: FeedPost; onToggleLike: () => void
   }, [post.likedByMe]);
   return (
     <View style={styles.rail}>
+      {post.kind === 'reel' ? <MuteButton /> : null}
       <RailButton
         icon={post.likedByMe ? 'heart' : 'heart-outline'}
         color={post.likedByMe ? c.primary : c.text}
@@ -106,9 +119,21 @@ function Rail({ post, onToggleLike }: { post: FeedPost; onToggleLike: () => void
         onPress={onToggleLike}
         pop={pop}
       />
-      <RailButton icon="ellipsis-horizontal" label="More" onPress={() => setSheet(true)} />
-      <MoreSheet visible={sheet} visibility={post.visibility} onClose={() => setSheet(false)} />
+      <RailButton icon="ellipsis-horizontal" label="More" onPress={onMore} />
     </View>
+  );
+}
+
+/** Global speaker toggle. Players follow via the mute store, not via this render. */
+function MuteButton() {
+  const muted = useMuted();
+  return (
+    <IconButton
+      icon={muted ? 'volume-mute' : 'volume-high'}
+      label={muted ? 'Unmute' : 'Mute'}
+      onMedia
+      onPress={toggleMuted}
+    />
   );
 }
 
@@ -250,19 +275,22 @@ type Props = {
   variant: 'full' | 'card';
   width: number;
   height: number;
+  /** Within one page of the settled page: images load at high priority. */
   active: boolean;
   /** Bottom space to keep text/rail clear of the floating nav (compact). */
   bottomInset: number;
-  onToggleLike: () => void;
-  /** Double-tap: like only, never unlike. */
-  onDoubleTapLike: () => void;
+  /** Stable callback: the rail heart toggles like/unlike. */
+  onToggleLike: (post: FeedPost) => void;
+  /** Stable callback: double-tap likes only, never unlikes. */
+  onDoubleTapLike: (post: FeedPost) => void;
   /** Follow pill next to the name; hidden on your own posts. State only, never a count. */
   showFollow: boolean;
   following: boolean;
-  onToggleFollow: () => void;
+  /** Stable callback. */
+  onToggleFollow: (authorId: string) => void;
 };
 
-export function ReelPage({
+function ReelPageImpl({
   post,
   variant,
   width,
@@ -276,9 +304,11 @@ export function ReelPage({
   onToggleFollow,
 }: Props) {
   const reduce = useReducedMotion();
+  const pool = usePlayerPool();
   const [burst, setBurst] = useState(0);
-  const lastTap = useRef(0);
+  const [sheet, setSheet] = useState(false);
   const card = variant === 'card';
+  const isReel = post.kind === 'reel';
 
   const cardH = Math.max(320, height - 32);
   const cardW = Math.min(cardH * (9 / 16), width - RAIL_W - 24);
@@ -289,78 +319,96 @@ export function ReelPage({
   const vis = post.visibility !== 'public' ? VISIBILITY_META[post.visibility] : null;
   const pad = card ? 20 : 16;
 
-  function onTap() {
-    const now = Date.now();
-    if (now - lastTap.current < DOUBLE_TAP_MS) {
-      lastTap.current = 0;
+  // Tap = pause/resume (reels), double-tap = like, long-press = options. Exclusive: the single
+  // tap waits for the double-tap to fail, so a like never also pauses.
+  const longPress = Gesture.LongPress()
+    .minDuration(LONG_PRESS_MS)
+    .runOnJS(true)
+    .onStart(() => setSheet(true));
+  const doubleTap = Gesture.Tap()
+    .numberOfTaps(2)
+    .maxDelay(DOUBLE_TAP_MS)
+    .runOnJS(true)
+    .onEnd((_e, success) => {
+      if (!success) return;
       setBurst((n) => n + 1);
-      if (!post.likedByMe) onDoubleTapLike();
-    } else {
-      lastTap.current = now;
-    }
-  }
+      if (!post.likedByMe) onDoubleTapLike(post);
+    });
+  const tap = Gesture.Tap()
+    .runOnJS(true)
+    .onEnd((_e, success) => {
+      if (success && isReel) pool.togglePause(post.id);
+    });
+  const gesture = Gesture.Exclusive(longPress, doubleTap, tap);
 
   const content = (
     <View
       style={[{ width: w, height: h, backgroundColor: c.bg }, card && styles.cardShape]}
       accessible={false}
     >
-      <Pressable
-        accessible={false}
-        onPress={onTap}
-        style={StyleSheet.absoluteFill}
-        // Keep native long-press/drag from selecting the media on web.
-        {...(Platform.OS === 'web' ? { focusable: false } : null)}
-      >
-        <Media post={post} active={active} w={w} />
-        <Scrim position="top" size={120} />
-        <Scrim position="bottom" size={Math.min(h * 0.5, 340)} />
+      <GestureDetector gesture={gesture}>
         <View
-          pointerEvents="box-none"
-          style={[
-            styles.info,
-            {
-              paddingHorizontal: pad,
-              paddingBottom: (card ? 20 : bottomInset) + 4,
-              paddingRight: card ? pad : pad + RAIL_W,
-            },
-          ]}
+          accessible={false}
+          collapsable={false}
+          style={StyleSheet.absoluteFill}
+          // Keep native long-press/drag from selecting the media on web.
+          {...(Platform.OS === 'web' ? ({ dataSet: { reelMedia: '1' } } as object) : null)}
         >
-          {vis ? (
-            <View style={{ alignSelf: 'flex-start', marginBottom: 10 }}>
-              <Chip label={vis.label} icon={vis.icon} />
-            </View>
-          ) : null}
-          {/* Not interactive: no other-user profiles exist yet. */}
-          <View style={styles.author}>
-            <Avatar username={username} displayName={post.author?.display_name} size={40} />
-            <View style={{ flex: 1 }}>
-              <View style={styles.nameRow}>
-                <Text
-                  variant="headline"
-                  tone="onMedia"
-                  numberOfLines={1}
-                  style={[shadow, { flexShrink: 1 }]}
-                >
-                  {name}
-                </Text>
-                {showFollow ? (
-                  <FollowPill username={username} following={following} onPress={onToggleFollow} />
-                ) : null}
-              </View>
-              <Text variant="caption" tone="onMediaMuted" numberOfLines={1} style={shadow}>
-                {post.author ? `@${post.author.username} · ` : ''}
-                {relativeTime(post.created_at)}
-              </Text>
-            </View>
-          </View>
-          {post.caption && post.imagePath ? <Caption text={post.caption} /> : null}
+          {isReel ? <ReelVideo post={post} /> : <Media post={post} active={active} w={w} />}
+          <Scrim position="top" size={120} />
+          <Scrim position="bottom" size={Math.min(h * 0.5, 340)} />
+          <HeartBurst trigger={burst} reduce={reduce} />
         </View>
-        <HeartBurst trigger={burst} reduce={reduce} />
-      </Pressable>
+      </GestureDetector>
+      {/* Overlay: box-none, so taps on empty areas fall through to the media gestures. */}
+      <View
+        pointerEvents="box-none"
+        style={[
+          styles.info,
+          {
+            paddingHorizontal: pad,
+            paddingBottom: (card ? 20 : bottomInset) + 4,
+            paddingRight: card ? pad : pad + RAIL_W,
+          },
+        ]}
+      >
+        {vis ? (
+          <View style={{ alignSelf: 'flex-start', marginBottom: 10 }}>
+            <Chip label={vis.label} icon={vis.icon} />
+          </View>
+        ) : null}
+        {/* Not interactive: no other-user profiles exist yet. */}
+        <View style={styles.author} pointerEvents="box-none">
+          <Avatar username={username} displayName={post.author?.display_name} size={40} />
+          <View style={{ flex: 1 }} pointerEvents="box-none">
+            <View style={styles.nameRow} pointerEvents="box-none">
+              <Text
+                variant="headline"
+                tone="onMedia"
+                numberOfLines={1}
+                style={[shadow, { flexShrink: 1 }]}
+              >
+                {name}
+              </Text>
+              {showFollow ? (
+                <FollowPill
+                  username={username}
+                  following={following}
+                  onPress={() => onToggleFollow(post.author_id)}
+                />
+              ) : null}
+            </View>
+            <Text variant="caption" tone="onMediaMuted" numberOfLines={1} style={shadow}>
+              {post.author ? `@${post.author.username} · ` : ''}
+              {relativeTime(post.created_at)}
+            </Text>
+          </View>
+        </View>
+        {post.caption && (post.imagePath || isReel) ? <Caption text={post.caption} /> : null}
+      </View>
       {card ? null : (
         <View pointerEvents="box-none" style={[styles.railHost, { bottom: bottomInset + 4 }]}>
-          <Rail post={post} onToggleLike={onToggleLike} />
+          <Rail post={post} onToggleLike={() => onToggleLike(post)} onMore={() => setSheet(true)} />
         </View>
       )}
     </View>
@@ -369,7 +417,7 @@ export function ReelPage({
   return (
     <View
       accessibilityRole="summary"
-      accessibilityLabel={`Post by @${username}`}
+      accessibilityLabel={`${isReel ? 'Reel' : 'Post'} by @${username}`}
       {...({ dataSet: { reelPage: '1' } } as object)}
       style={{
         width,
@@ -383,12 +431,16 @@ export function ReelPage({
       {content}
       {card ? (
         <View style={{ height: h, justifyContent: 'flex-end', paddingBottom: 8 }}>
-          <Rail post={post} onToggleLike={onToggleLike} />
+          <Rail post={post} onToggleLike={() => onToggleLike(post)} onMore={() => setSheet(true)} />
         </View>
       ) : null}
+      <MoreSheet visible={sheet} visibility={post.visibility} onClose={() => setSheet(false)} />
     </View>
   );
 }
+
+/** Memoized: a settle re-renders only pages whose props (e.g. `active`) changed. */
+export const ReelPage = memo(ReelPageImpl);
 
 const styles = StyleSheet.create({
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
