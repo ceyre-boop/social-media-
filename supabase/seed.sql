@@ -20,13 +20,7 @@ insert into public.coin_products (sku, coins, price_cents, currency) values
   ('coins_2500', 2500, 2499, 'USD'),
   ('coins_5000', 5000, 4999, 'USD');
 
--- GIFT CATALOG
-insert into public.gift_catalog (name, coins) values
-  ('Rose',        10),
-  ('Coffee',      50),
-  ('Star',       100),
-  ('Rocket',     500),
-  ('Crown',     1000);
+-- GIFT CATALOG: the 60-gift gallery is reference data in migration 008.
 
 -- TEST USERS (auth.users + auth.identities so email/password login works).
 -- on_auth_user_created creates the public.users row (with DOB) only.

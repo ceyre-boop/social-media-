@@ -282,13 +282,13 @@ isOneToOne: false
                   ]
                 },"gift_catalog": {
                   Row: {
-                    "active": boolean,"animation_url": string | null,"coins": number,"id": string,"name": string
+                    "active": boolean,"anchor_fallbacks": (string)[],"anchor_preferred": string | null,"animation_url": string | null,"asset_kind": string,"asset_url": string | null,"bleed_pct": number,"box_fill_pct": number | null,"coins": number,"duration_ms": number,"icon_concept": string | null,"icon_url": string,"id": string,"name": string,"render_mode": string,"tier": string | null
                   }
                   Insert: {
-                    "active"?: boolean,"animation_url"?: string | null,"coins": number,"id"?: string,"name": string
+                    "active"?: boolean,"anchor_fallbacks"?: (string)[],"anchor_preferred"?: string | null,"animation_url"?: string | null,"asset_kind"?: string,"asset_url"?: string | null,"bleed_pct"?: number,"box_fill_pct"?: number | null,"coins": number,"duration_ms"?: number,"icon_concept"?: string | null,"icon_url"?: string,"id"?: string,"name": string,"render_mode"?: string,"tier"?: string | null
                   }
                   Update: {
-                    "active"?: boolean,"animation_url"?: string | null,"coins"?: number,"id"?: string,"name"?: string
+                    "active"?: boolean,"anchor_fallbacks"?: (string)[],"anchor_preferred"?: string | null,"animation_url"?: string | null,"asset_kind"?: string,"asset_url"?: string | null,"bleed_pct"?: number,"box_fill_pct"?: number | null,"coins"?: number,"duration_ms"?: number,"icon_concept"?: string | null,"icon_url"?: string,"id"?: string,"name"?: string,"render_mode"?: string,"tier"?: string | null
                   }
                   Relationships: [
                     
