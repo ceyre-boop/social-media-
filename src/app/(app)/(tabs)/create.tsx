@@ -3,9 +3,17 @@ import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Platform, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 
-import { AppBar, Button, IconButton, Screen, SegmentedControl, TextField } from '@/components/ui';
+import {
+  AppBar,
+  Button,
+  IconButton,
+  Screen,
+  SegmentedControl,
+  Text,
+  TextField,
+} from '@/components/ui';
 import type { Segment } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { ImageProblem, MAX_UPLOAD_BYTES, checkPickedAsset, prepareImage } from '@/lib/image';
@@ -35,7 +43,7 @@ function uniqueId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export default function NewPost() {
+export default function Create() {
   const { colors, radius, spacing } = useTheme();
   const { height: windowHeight } = useWindowDimensions();
   const navClearance = useNavClearance();
@@ -183,8 +191,8 @@ export default function NewPost() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <AppBar title="New post" />
-      <Screen title="New post" scroll padded>
+      <AppBar title="Create" />
+      <Screen title="Create" scroll padded>
         {asset ? (
           <View style={{ gap: spacing.sm }}>
             <View
@@ -208,8 +216,8 @@ export default function NewPost() {
                 icon="close"
                 label="Remove photo"
                 onPress={() => setAsset(null)}
-                color="#FFFFFF"
-                style={[styles.remove, { backgroundColor: colors.overlay }]}
+                onMedia
+                style={styles.remove}
               />
             </View>
             <Button title="Change" variant="secondary" icon="images-outline" onPress={pick} />
@@ -232,7 +240,7 @@ export default function NewPost() {
             }}
           >
             <Ionicons name="image-outline" size={40} color={colors.primary} />
-            <Text style={[styles.dropText, { color: colors.text }]}>Choose a photo</Text>
+            <Text variant="headline">Choose a photo</Text>
           </Pressable>
         )}
 
@@ -246,19 +254,19 @@ export default function NewPost() {
         />
 
         <View style={{ gap: spacing.sm }}>
-          <Text style={[styles.label, { color: colors.text }]}>Who can see this</Text>
+          <Text variant="callout">Who can see this</Text>
           <SegmentedControl
             label="Who can see this"
             segments={SEGMENTS}
             value={visibility}
             onChange={setVisibility}
           />
-          <Text style={{ color: colors.muted, fontSize: 13 }}>
+          <Text variant="caption" tone="muted">
             {VISIBILITY_META[visibility].explain}
           </Text>
         </View>
 
-        {error ? <Text style={{ color: colors.danger }}>{error}</Text> : null}
+        {error ? <Text tone="danger">{error}</Text> : null}
       </Screen>
       <View
         style={[
@@ -292,9 +300,7 @@ const styles = StyleSheet.create({
     gap: 8,
     cursor: 'pointer',
   },
-  dropText: { fontSize: 16, fontWeight: '700' },
   previewBox: { width: '100%', overflow: 'hidden' },
   remove: { position: 'absolute', top: 8, right: 8 },
-  label: { fontSize: 14, fontWeight: '600' },
   footer: { borderTopWidth: StyleSheet.hairlineWidth },
 });

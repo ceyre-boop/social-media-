@@ -69,8 +69,10 @@ export default function TabsLayout() {
 
         <TabList style={{ display: 'none' }}>
           <TabTrigger name="index" href="/" />
-          <TabTrigger name="new" href="/new" />
-          <TabTrigger name="profile" href="/profile" />
+          <TabTrigger name="discover" href="/discover" />
+          <TabTrigger name="create" href="/create" />
+          <TabTrigger name="live" href="/live" />
+          <TabTrigger name="you" href="/you" />
           <TabTrigger name="profile-edit" href="/profile-edit" />
         </TabList>
       </Tabs>

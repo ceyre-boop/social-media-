@@ -1,31 +1,35 @@
 import { Ionicons } from '@expo/vector-icons';
 import { TabTrigger } from 'expo-router/ui';
 import type { TabTriggerSlotProps } from 'expo-router/ui';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
-import { Avatar, Brand, IconButton, LogoMark } from '@/components/ui';
+import { Avatar, Brand, IconButton, LogoMark, Text } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { SIDEBAR_COLLAPSED, SIDEBAR_EXPANDED } from '@/lib/layout';
 import { useTheme } from '@/lib/theme';
 
+import { navState } from './nav';
 import { NavItem } from './NavItem';
 
-function NewPostButton({
+/** Create: the prominent button, not a plain nav row. */
+function CreateButton({
   collapsed,
+  active,
   isFocused: _f,
   ...props
-}: TabTriggerSlotProps & { collapsed: boolean }) {
+}: TabTriggerSlotProps & { collapsed: boolean; active: boolean }) {
   const { colors, radius } = useTheme();
   return (
     <Pressable
       {...props}
       accessibilityRole="link"
-      accessibilityLabel="New post"
+      accessibilityLabel="Create"
+      accessibilityState={{ selected: active }}
       style={(state) => {
         const hovered = (state as { hovered?: boolean }).hovered;
         return [
-          styles.newButton,
-          collapsed && styles.newButtonCollapsed,
+          styles.createButton,
+          collapsed && styles.createButtonCollapsed,
           {
             borderRadius: collapsed ? radius.pill : radius.md,
             backgroundColor: state.pressed || hovered ? colors.primaryPressed : colors.primary,
@@ -35,7 +39,9 @@ function NewPostButton({
     >
       <Ionicons name="add" size={26} color={colors.onPrimary} />
       {collapsed ? null : (
-        <Text style={[styles.newLabel, { color: colors.onPrimary }]}>New post</Text>
+        <Text variant="callout" weight="800" tone="onPrimary" style={{ fontSize: 16 }}>
+          Create
+        </Text>
       )}
     </Pressable>
   );
@@ -45,6 +51,7 @@ export function Sidebar({ expanded, pathname }: { expanded: boolean; pathname: s
   const { colors, spacing } = useTheme();
   const { profile, signOut } = useAuth();
   const mode = expanded ? 'side' : 'side-collapsed';
+  const s = navState(pathname);
 
   return (
     <View
@@ -72,26 +79,38 @@ export function Sidebar({ expanded, pathname }: { expanded: boolean; pathname: s
         }}
       >
         <TabTrigger name="index" asChild>
+          <NavItem label="Home" icon="home-outline" activeIcon="home" active={s.home} mode={mode} />
+        </TabTrigger>
+        <TabTrigger name="discover" asChild>
           <NavItem
-            label="Feed"
-            icon="home-outline"
-            activeIcon="home"
-            active={pathname === '/'}
+            label="Discover"
+            icon="compass-outline"
+            activeIcon="compass"
+            active={s.discover}
             mode={mode}
           />
         </TabTrigger>
-        <TabTrigger name="profile" asChild>
+        <TabTrigger name="live" asChild>
           <NavItem
-            label="Profile"
+            label="Live"
+            icon="radio-outline"
+            activeIcon="radio"
+            active={s.live}
+            mode={mode}
+          />
+        </TabTrigger>
+        <TabTrigger name="you" asChild>
+          <NavItem
+            label="You"
             icon="person-outline"
             activeIcon="person"
-            active={pathname.startsWith('/profile')}
+            active={s.you}
             mode={mode}
           />
         </TabTrigger>
         <View style={{ marginTop: spacing.md }}>
-          <TabTrigger name="new" asChild>
-            <NewPostButton collapsed={!expanded} />
+          <TabTrigger name="create" asChild>
+            <CreateButton collapsed={!expanded} active={s.create} />
           </TabTrigger>
         </View>
       </View>
@@ -102,12 +121,12 @@ export function Sidebar({ expanded, pathname }: { expanded: boolean; pathname: s
         <View
           style={[
             expanded ? styles.userRow : styles.userStack,
-            { borderTopColor: colors.border, paddingTop: spacing.md },
+            { borderTopColor: colors.border, paddingTop: spacing.md, gap: spacing.sm },
           ]}
         >
-          <Avatar username={profile.username} displayName={profile.display_name} size={40} />
+          <Avatar username={profile.username} displayName={profile.display_name} size="md" />
           {expanded ? (
-            <Text numberOfLines={1} style={[styles.username, { color: colors.text }]}>
+            <Text variant="caption" weight="600" numberOfLines={1} style={styles.username}>
               @{profile.username}
             </Text>
           ) : null}
@@ -125,7 +144,7 @@ export function Sidebar({ expanded, pathname }: { expanded: boolean; pathname: s
 
 const styles = StyleSheet.create({
   side: { height: '100%', borderRightWidth: StyleSheet.hairlineWidth },
-  newButton: {
+  createButton: {
     minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
@@ -133,14 +152,12 @@ const styles = StyleSheet.create({
     gap: 8,
     cursor: 'pointer',
   },
-  newButtonCollapsed: { width: 48 },
-  newLabel: { fontSize: 16, fontWeight: '800' },
+  createButtonCollapsed: { width: 48 },
   userRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  userStack: { alignItems: 'center', gap: 4, borderTopWidth: StyleSheet.hairlineWidth },
-  username: { flex: 1, fontSize: 14, fontWeight: '600' },
+  userStack: { alignItems: 'center', borderTopWidth: StyleSheet.hairlineWidth },
+  username: { flex: 1 },
 });

@@ -1,9 +1,9 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 
 import { ProfileForm, type ProfileValues } from '@/components/profile-form';
-import { AppBar, Button, IconButton, Screen } from '@/components/ui';
+import { AppBar, Button, IconButton, Screen, Text } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { useBreakpoint } from '@/lib/layout';
 import { supabase } from '@/lib/supabase';
@@ -24,7 +24,7 @@ export default function ProfileEdit() {
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const leave = () => router.navigate('/profile');
+  const leave = () => router.navigate('/you');
 
   async function save() {
     setError(null);
@@ -59,7 +59,7 @@ export default function ProfileEdit() {
       />
       <Screen title="Edit profile" scroll padded safeBottom={false} clearNav>
         <ProfileForm values={values} onChange={setValues} usernameError={usernameError} />
-        {error ? <Text style={{ color: colors.danger }}>{error}</Text> : null}
+        {error ? <Text tone="danger">{error}</Text> : null}
         <View style={{ gap: spacing.md }}>
           <Button
             title="Save"

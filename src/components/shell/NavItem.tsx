@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { TabTriggerSlotProps } from 'expo-router/ui';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
+import { Text } from '@/components/ui';
 import { useTheme } from '@/lib/theme';
 
 type IconName = keyof typeof Ionicons.glyphMap;
@@ -17,8 +18,8 @@ type Props = TabTriggerSlotProps & {
 
 /** A tab trigger rendered as a sidebar row. Forwards trigger props to Pressable. */
 export function NavItem({ label, icon, activeIcon, active, mode, isFocused: _f, ...props }: Props) {
-  const { colors, radius } = useTheme();
-  const color = active ? colors.primary : colors.muted;
+  const { colors, radius, spacing } = useTheme();
+  const color = active ? colors.primary : colors.textSecondary;
   const glyph = <Ionicons name={active ? activeIcon : icon} size={26} color={color} />;
 
   return (
@@ -33,11 +34,13 @@ export function NavItem({ label, icon, activeIcon, active, mode, isFocused: _f, 
           styles.sideItem,
           mode === 'side-collapsed' && styles.sideItemCollapsed,
           {
+            gap: spacing.lg,
+            paddingHorizontal: mode === 'side-collapsed' ? 0 : spacing.md,
             borderRadius: radius.pill,
             backgroundColor: active
-              ? colors.surface2
+              ? colors.primarySubtle
               : hovered || state.pressed
-                ? colors.surface
+                ? colors.surface2
                 : 'transparent',
           },
         ];
@@ -45,7 +48,10 @@ export function NavItem({ label, icon, activeIcon, active, mode, isFocused: _f, 
     >
       <View style={styles.sideIcon}>{glyph}</View>
       {mode === 'side' ? (
-        <Text style={[styles.sideLabel, { color: active ? colors.primary : colors.text }]}>
+        <Text
+          variant="headline"
+          style={{ fontSize: 17, color: active ? colors.primary : colors.text }}
+        >
           {label}
         </Text>
       ) : null}
@@ -58,11 +64,8 @@ const styles = StyleSheet.create({
     minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
-    paddingHorizontal: 12,
     cursor: 'pointer',
   },
-  sideItemCollapsed: { width: 48, justifyContent: 'center', paddingHorizontal: 0 },
+  sideItemCollapsed: { width: 48, justifyContent: 'center' },
   sideIcon: { width: 26, alignItems: 'center' },
-  sideLabel: { fontSize: 17, fontWeight: '700' },
 });
