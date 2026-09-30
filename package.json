@@ -62,6 +62,7 @@
     "db:types": "supabase gen types typescript --local > src/lib/db/types.ts",
     "db:test": "supabase test db",
     "db:reset": "supabase db reset",
+    "test:push": "bun scripts/test-push.ts",
     "deploy:preview": "bun scripts/deploy-preview.ts"
   },
   "private": true
