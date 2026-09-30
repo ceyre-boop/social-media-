@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { TabTrigger } from 'expo-router/ui';
 import { StyleSheet, View } from 'react-native';
 
@@ -14,6 +15,7 @@ export function Sidebar({ expanded, pathname }: { expanded: boolean; pathname: s
   const { colors, spacing } = useTheme();
   const { profile, signOut } = useAuth();
   const mode = expanded ? 'side' : 'side-collapsed';
+  const router = useRouter();
   const s = navState(pathname);
 
   return (
@@ -31,7 +33,22 @@ export function Sidebar({ expanded, pathname }: { expanded: boolean; pathname: s
       ]}
     >
       <View style={{ paddingHorizontal: expanded ? 8 : 0, paddingVertical: spacing.md }}>
-        {expanded ? <Brand size={32} /> : <LogoMark size={32} />}
+        <View
+          style={{
+            flexDirection: expanded ? 'row' : 'column',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: spacing.sm,
+          }}
+        >
+          {expanded ? <Brand size={32} /> : <LogoMark size={32} />}
+          <IconButton
+            icon="search-outline"
+            label="Search people"
+            onPress={() => router.push('/search')}
+            color={colors.muted}
+          />
+        </View>
       </View>
 
       <View

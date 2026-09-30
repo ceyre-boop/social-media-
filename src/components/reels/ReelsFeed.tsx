@@ -1,5 +1,5 @@
 import { FlashList, type FlashListRef } from '@shopify/flash-list';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { setStatusBarStyle } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -224,6 +224,7 @@ function ReelsFeedInner({
   const { session, handleError } = useAuth();
   const toast = useToast();
   const me = session!.user.id;
+  const router = useRouter();
   const bp = useBreakpoint();
   const compact = bp === 'compact';
   const insets = useSafeAreaInsets();
@@ -785,16 +786,30 @@ function ReelsFeedInner({
       {compact ? (
         <View pointerEvents="box-none" style={[styles.topBar, { paddingTop: top }]}>
           <Brand size={32} />
-          <IconButton
-            icon="refresh"
-            label="Refresh feed"
-            onMedia
-            disabled={refreshing || loading}
-            onPress={() => void refresh(true)}
-          />
+          <View style={styles.topActions}>
+            <IconButton
+              icon="search"
+              label="Search people"
+              onMedia
+              onPress={() => router.push('/search')}
+            />
+            <IconButton
+              icon="refresh"
+              label="Refresh feed"
+              onMedia
+              disabled={refreshing || loading}
+              onPress={() => void refresh(true)}
+            />
+          </View>
         </View>
       ) : (
         <View pointerEvents="box-none" style={[styles.topBar, styles.topBarDesktop]}>
+          <IconButton
+            icon="search"
+            label="Search people"
+            onMedia
+            onPress={() => router.push('/search')}
+          />
           <IconButton
             icon="refresh"
             label="Refresh feed"
@@ -818,6 +833,7 @@ function ReelsFeedInner({
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: c.bg },
+  topActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   page: {
     alignItems: 'center',
     justifyContent: 'center',

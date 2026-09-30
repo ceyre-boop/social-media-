@@ -92,6 +92,16 @@ export function toUserError(e: unknown, scope = 'error'): UserError {
 }
 
 function classify(m: string, c: string, status: number, name: string, raw: string): UserError {
+  if (m.includes('search_rate_limited')) {
+    return make(
+      'rate_limit',
+      'Slow down a little',
+      'You have searched a lot just now. Give it a minute and try again.',
+      true,
+      { retryAfter: 60 },
+    );
+  }
+
   if (m.includes('video_too_long')) {
     return make('too_large', 'That reel is too long', 'Reels can be up to 30 seconds', false);
   }

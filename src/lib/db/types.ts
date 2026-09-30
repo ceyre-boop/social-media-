@@ -1083,6 +1083,11 @@ isOneToOne: true
 "register_push_token":
 { Args: { "p_platform": string,"p_token": string }; Returns: undefined
                            },
+"search_users":
+{ Args: { "lim"?: number,"q": string }; Returns: {
+              "avatar_media_id": string | null,"bio_snippet": string | null,"display_name": string | null,"user_id": string,"username": string
+            }[]
+                           },
 "relationship_state":
 { Args: { "actor": string,"subject": string }; Returns: string
                            },
