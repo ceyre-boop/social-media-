@@ -14,8 +14,6 @@
 export const brand = {
   appName: 'Smiley', // placeholder: product name is changing (trademark)
   tagline: 'A place you come back to because it feels good.',
-  // Working name for the friends-only prompted post (brief-milestone-3 §1).
-  momentsName: 'Moments',
   currency: { singular: 'blip', plural: 'blips', perDollar: 100 }, // placeholder name
   // Working name for the friends-only prompted post (brief M3 §1). Placeholder like the app name.
   moment: { singular: 'Moment', plural: 'Moments' },

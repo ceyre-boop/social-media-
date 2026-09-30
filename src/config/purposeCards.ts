@@ -25,8 +25,8 @@ export const purposeCards: PurposeCard[] = [
   },
   {
     icon: 'camera-outline',
-    headline: `${brand.momentsName}: a look at your real friends`,
-    body: `${brand.momentsName} is a little look at what your real friends are actually up to. Friends only, never public.`,
+    headline: `${brand.moment.plural}: a look at your real friends`,
+    body: `${brand.moment.plural} is a little look at what your real friends are actually up to. Friends only, never public.`,
   },
   {
     icon: 'heart-outline',
