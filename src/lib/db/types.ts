@@ -948,13 +948,13 @@ isOneToOne: false
                   ]
                 },"users": {
                   Row: {
-                    "age_verification_ref": string | null,"age_verified": boolean,"age_verified_at": string | null,"app_role": string,"country_code": string | null,"created_at": string,"date_of_birth": string | null,"deleted_at": string | null,"email": string | null,"id": string,"phone": string | null,"status": Database["public"]['Enums']["account_status"]
+                    "age_verification_ref": string | null,"age_verified": boolean,"age_verified_at": string | null,"app_role": string,"country_code": string | null,"created_at": string,"date_of_birth": string | null,"deleted_at": string | null,"email": string | null,"id": string,"phone": string | null,"status": Database["public"]['Enums']["account_status"],"timezone": string
                   }
                   Insert: {
-                    "age_verification_ref"?: string | null,"age_verified"?: boolean,"age_verified_at"?: string | null,"app_role"?: string,"country_code"?: string | null,"created_at"?: string,"date_of_birth"?: string | null,"deleted_at"?: string | null,"email"?: string | null,"id": string,"phone"?: string | null,"status"?: Database["public"]['Enums']["account_status"]
+                    "age_verification_ref"?: string | null,"age_verified"?: boolean,"age_verified_at"?: string | null,"app_role"?: string,"country_code"?: string | null,"created_at"?: string,"date_of_birth"?: string | null,"deleted_at"?: string | null,"email"?: string | null,"id": string,"phone"?: string | null,"status"?: Database["public"]['Enums']["account_status"],"timezone"?: string
                   }
                   Update: {
-                    "age_verification_ref"?: string | null,"age_verified"?: boolean,"age_verified_at"?: string | null,"app_role"?: string,"country_code"?: string | null,"created_at"?: string,"date_of_birth"?: string | null,"deleted_at"?: string | null,"email"?: string | null,"id"?: string,"phone"?: string | null,"status"?: Database["public"]['Enums']["account_status"]
+                    "age_verification_ref"?: string | null,"age_verified"?: boolean,"age_verified_at"?: string | null,"app_role"?: string,"country_code"?: string | null,"created_at"?: string,"date_of_birth"?: string | null,"deleted_at"?: string | null,"email"?: string | null,"id"?: string,"phone"?: string | null,"status"?: Database["public"]['Enums']["account_status"],"timezone"?: string
                   }
                   Relationships: [
                     
@@ -1049,6 +1049,9 @@ isOneToOne: true
                            },
 "is_mutual":
 { Args: { "a": string,"b": string }; Returns: boolean
+                           },
+"is_valid_timezone":
+{ Args: { "tz": string }; Returns: boolean
                            },
 "relationship_state":
 { Args: { "actor": string,"subject": string }; Returns: string

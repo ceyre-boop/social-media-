@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth';
 import { toUserError } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/lib/theme';
+import { deviceTimezone } from '@/lib/timezone';
 import {
   MIN_AGE,
   dobToIso,
@@ -84,7 +85,10 @@ export default function SignIn() {
     setBusy(true);
     const { error: err } = await supabase.auth.signInWithOtp({
       email: cleanEmail,
-      options: { shouldCreateUser: true, data: { date_of_birth: dobToIso(dob) } },
+      options: {
+        shouldCreateUser: true,
+        data: { date_of_birth: dobToIso(dob), timezone: deviceTimezone() },
+      },
     });
     setBusy(false);
     sending.current = false;
