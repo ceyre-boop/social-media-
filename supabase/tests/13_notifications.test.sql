@@ -137,19 +137,19 @@ reset role;
 -- ------------------------------------------------------------------ notify(): inbox + push outbox, idempotent
 select ops.notify('11111111-1111-4111-8111-111111111111'::uuid, 'comment', 'comment:1', '{"actor_name":"Bob"}');
 select ops.notify('11111111-1111-4111-8111-111111111111'::uuid, 'comment', 'comment:1', '{"actor_name":"Bob"}');
-select is((select count(*)::int from ops.job_queue where kind = 'push'
+select is((select count(*)::int from ops.job_queue where kind = 'push' and payload->>'type' = 'comment'
              and payload->>'user_id' = '11111111-1111-4111-8111-111111111111'), 1,
           'notifying twice for the same (user, type, ref) enqueues one push');
 select is((select count(*)::int from public.notifications where user_id = '11111111-1111-4111-8111-111111111111'::uuid and kind = 'comment'), 1,
           'and writes one in-app notification');
 select ops.notify('11111111-1111-4111-8111-111111111111'::uuid, 'comment', 'comment:2', '{}');
-select is((select count(*)::int from ops.job_queue where kind = 'push'
+select is((select count(*)::int from ops.job_queue where kind = 'push' and payload->>'type' = 'comment'
              and payload->>'user_id' = '11111111-1111-4111-8111-111111111111'), 2,
           'a different ref is a different push');
 
 select pg_temp.act_as('11111111-1111-4111-8111-111111111111'::uuid);
 set local role authenticated;
-select is(pg_temp.probe($$update public.notifications set read_at = now() where user_id = '11111111-1111-4111-8111-111111111111'$$),
+select is(pg_temp.probe($$update public.notifications set read_at = now() where user_id = '11111111-1111-4111-8111-111111111111' and kind = 'comment'$$),
           'ok:2', 'a user can mark their notifications read');
 select is(pg_temp.probe($$update public.notifications set kind = 'like'$$), '42501',
           'clients cannot rewrite a notification');

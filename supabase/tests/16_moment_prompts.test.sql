@@ -22,6 +22,11 @@ create function pg_temp.bad_times(uid uuid) returns int language sql as $$
           or ops.in_quiet_hours(uid, j.run_at));
 $$;
 
+-- The local stack's own pg_cron sweep may already have scheduled real prompts; start clean
+-- (rolled back with the test).
+delete from ops.job_queue where kind = 'moment_prompt';
+delete from ops.moment_prompt_days;
+
 update public.users set timezone = 'America/New_York', moment_prompts_per_day = 2,
        quiet_start = '12:00', quiet_end = '14:00'        -- a midday quiet window, to prove it is avoided
  where id = '11111111-1111-4111-8111-111111111111';
@@ -93,9 +98,10 @@ select ops.enqueue('moment_prompt', '{"user_id":"55555555-5555-4555-8555-5555555
 select is(ops.dispatch_moment_prompts(), 1, 'the due prompt is sent');
 select is((select count(*)::int from public.notifications
             where user_id = '55555555-5555-4555-8555-555555555555' and kind = 'moment_prompt'
+              and dedupe_key like '%:moment_prompt:2027-01-16:1'
               and (data->>'line')::int between 0 and 6), 1, 'through ops.notify: an inbox row with a copy line');
 select is((select count(*)::int from ops.job_queue where kind = 'push'
-            and payload->>'user_id' = '55555555-5555-4555-8555-555555555555' and payload->>'type' = 'moment_prompt'),
+            and payload->>'user_id' = '55555555-5555-4555-8555-555555555555' and payload->>'ref' = 'moment_prompt:2027-01-16:1'),
           1, 'and a push job');
 select is((select status::text from ops.job_queue where idempotency_key = 'test:dave:1'), 'done', 'the prompt job is done');
 
