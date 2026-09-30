@@ -15,7 +15,7 @@ Brief: `docs/brief-milestone-3.md`. Standing invariants unchanged.
    (`eas init`, free, Colin's login). Android push doesn't work in Expo Go since
    SDK 53, so Android needs a dev build. iOS Expo Go works. Web gets the in-app
    banner, not push.
-4. **camera_effects needs one dependency:** `@shopify/react-native-skia` (ships
+4. **camera_effects: DECIDED (Colin): add Skia.** Needs one dependency: `@shopify/react-native-skia` (ships
    in Expo Go) for colour and grain presets baked into the photo. Alternative:
    store the preset id and apply it at display time only (no dependency, but the
    file itself stays unedited).
