@@ -1,0 +1,1386 @@
+{
+ "policy_version": "v0.1",
+ "review_status": "DRAFT — needs Colin review",
+ "examples": [
+  {
+   "id": "s001",
+   "text": "I can't stop crying today",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s002",
+   "text": "my grandma passed this morning",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s003",
+   "text": "I feel empty all the time",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s004",
+   "text": "I'm so lonely it hurts",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s005",
+   "text": "I hate everything about my life right now",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s006",
+   "text": "I'm a mess and I know it",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s007",
+   "text": "I'm such a screwup",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s008",
+   "text": "why am I like this, I ruin everything",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s009",
+   "text": "I'm so angry at how my family treated me",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s010",
+   "text": "I'm pissed off and exhausted",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s011",
+   "text": "this has been the worst year of my life",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s012",
+   "text": "I got fired today and I feel like garbage",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s013",
+   "text": "I'm grieving and nobody gets it",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s014",
+   "text": "my best friend moved away and I feel abandoned",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s015",
+   "text": "I had a panic attack on the train",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s016",
+   "text": "I've been depressed for months",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s017",
+   "text": "I feel like a burden to everyone",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s018",
+   "text": "I hate how I look",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s019",
+   "text": "I failed my driving test again, I'm useless",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s020",
+   "text": "my heart is broken",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s021",
+   "text": "I'm furious, the hospital lost my mom's records",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s022",
+   "text": "fuck my life honestly",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s023",
+   "text": "shit, I missed the bus again",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s024",
+   "text": "everything hurts and I'm tired",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s025",
+   "text": "I just want someone to talk to",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s026",
+   "text": "I'm scared about the biopsy results",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s027",
+   "text": "rest in peace to my uncle, gone too soon",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s028",
+   "text": "I hate being sick all the time",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s029",
+   "text": "I'm so done with this semester",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s030",
+   "text": "I cried in the parking lot for an hour",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s031",
+   "text": "I'm angry and I have every right to be",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s032",
+   "text": "my ex cheated and I feel so stupid",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s033",
+   "text": "I'm a terrible cook lol, burned the pasta",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s034",
+   "text": "I feel invisible at school",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s035",
+   "text": "damn this depression",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s036",
+   "text": "the anniversary of her death is next week",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s037",
+   "text": "I lost everything in the fire",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s038",
+   "text": "some days I don't want to wake up",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s039",
+   "text": "I'm exhausted from caring for my dad with dementia",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s040",
+   "text": "I'm so bitter about how that ended",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s041",
+   "text": "worst day ever, my car got towed",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s042",
+   "text": "I'm sober 30 days and it's brutal",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s043",
+   "text": "I hate this city, it's so expensive",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s044",
+   "text": "I miss my brother every single day",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s045",
+   "text": "I'm ashamed of what I did",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s046",
+   "text": "he left and I keep blaming myself",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s047",
+   "text": "they laid off my whole team today and I am wrecked",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "s048",
+   "text": "she was my whole world and now she is gone",
+   "tier": "GREEN",
+   "policy_ref": "green.own_feelings",
+   "set": "sentiment"
+  },
+  {
+   "id": "g001",
+   "text": "the new policy from the school board is a disaster",
+   "tier": "GREEN",
+   "policy_ref": "green.criticism"
+  },
+  {
+   "id": "g002",
+   "text": "this company's customer service is a joke",
+   "tier": "GREEN",
+   "policy_ref": "green.criticism"
+  },
+  {
+   "id": "g003",
+   "text": "the senator's vote on this bill was shameful",
+   "tier": "GREEN",
+   "policy_ref": "green.criticism"
+  },
+  {
+   "id": "g004",
+   "text": "congress has failed renters for decades",
+   "tier": "GREEN",
+   "policy_ref": "green.criticism"
+  },
+  {
+   "id": "g005",
+   "text": "I think capitalism is broken",
+   "tier": "GREEN",
+   "policy_ref": "green.criticism"
+  },
+  {
+   "id": "g006",
+   "text": "the ending of that show was lazy writing",
+   "tier": "GREEN",
+   "policy_ref": "green.criticism"
+  },
+  {
+   "id": "g007",
+   "text": "this game's microtransactions are predatory",
+   "tier": "GREEN",
+   "policy_ref": "green.criticism"
+  },
+  {
+   "id": "g008",
+   "text": "the mayor's plan makes no sense",
+   "tier": "GREEN",
+   "policy_ref": "green.criticism"
+  },
+  {
+   "id": "g009",
+   "text": "the ref made a terrible call",
+   "tier": "GREEN",
+   "policy_ref": "green.criticism"
+  },
+  {
+   "id": "g010",
+   "text": "billionaires shouldn't exist",
+   "tier": "GREEN",
+   "policy_ref": "green.criticism"
+  },
+  {
+   "id": "g011",
+   "text": "the police response was unacceptable",
+   "tier": "GREEN",
+   "policy_ref": "green.criticism"
+  },
+  {
+   "id": "g012",
+   "text": "the CEO's statement was tone deaf",
+   "tier": "GREEN",
+   "policy_ref": "green.criticism"
+  },
+  {
+   "id": "g013",
+   "text": "this platform needs better moderation, honestly",
+   "tier": "GREEN",
+   "policy_ref": "green.criticism"
+  },
+  {
+   "id": "g014",
+   "text": "I disagree, the data says otherwise",
+   "tier": "GREEN",
+   "policy_ref": "green.disagreement"
+  },
+  {
+   "id": "g015",
+   "text": "that's a bad take and here's why",
+   "tier": "GREEN",
+   "policy_ref": "green.disagreement"
+  },
+  {
+   "id": "g016",
+   "text": "you're wrong about this, the study was retracted",
+   "tier": "GREEN",
+   "policy_ref": "green.disagreement"
+  },
+  {
+   "id": "g017",
+   "text": "I don't think that's true at all",
+   "tier": "GREEN",
+   "policy_ref": "green.disagreement"
+  },
+  {
+   "id": "g018",
+   "text": "strongly disagree, the first album is better",
+   "tier": "GREEN",
+   "policy_ref": "green.disagreement"
+  },
+  {
+   "id": "g019",
+   "text": "your point ignores the cost of housing",
+   "tier": "GREEN",
+   "policy_ref": "green.disagreement"
+  },
+  {
+   "id": "g020",
+   "text": "no way, pineapple on pizza is elite",
+   "tier": "GREEN",
+   "policy_ref": "green.disagreement"
+  },
+  {
+   "id": "g021",
+   "text": "that argument doesn't hold up",
+   "tier": "GREEN",
+   "policy_ref": "green.disagreement"
+  },
+  {
+   "id": "g022",
+   "text": "you have no idea what you are talking about on this one, read the report",
+   "tier": "GREEN",
+   "policy_ref": "green.disagreement"
+  },
+  {
+   "id": "g023",
+   "text": "my father was an alcoholic and it shaped everything",
+   "tier": "GREEN",
+   "policy_ref": "green.hard_subjects"
+  },
+  {
+   "id": "g024",
+   "text": "let's talk about suicide prevention resources",
+   "tier": "GREEN",
+   "policy_ref": "green.hard_subjects"
+  },
+  {
+   "id": "g025",
+   "text": "my sister overdosed last year",
+   "tier": "GREEN",
+   "policy_ref": "green.hard_subjects"
+  },
+  {
+   "id": "g026",
+   "text": "surviving abuse doesn't make you broken",
+   "tier": "GREEN",
+   "policy_ref": "green.hard_subjects"
+  },
+  {
+   "id": "g027",
+   "text": "living with HIV for ten years now",
+   "tier": "GREEN",
+   "policy_ref": "green.hard_subjects"
+  },
+  {
+   "id": "g028",
+   "text": "I'm homeless and posting from the library",
+   "tier": "GREEN",
+   "policy_ref": "green.hard_subjects"
+  },
+  {
+   "id": "g029",
+   "text": "the war footage is horrifying",
+   "tier": "GREEN",
+   "policy_ref": "green.hard_subjects"
+  },
+  {
+   "id": "g030",
+   "text": "domestic violence hotlines saved my life",
+   "tier": "GREEN",
+   "policy_ref": "green.hard_subjects"
+  },
+  {
+   "id": "g031",
+   "text": "my friend is in the hospital after a suicide attempt",
+   "tier": "GREEN",
+   "policy_ref": "green.hard_subjects"
+  },
+  {
+   "id": "g032",
+   "text": "holy shit this song slaps",
+   "tier": "GREEN",
+   "policy_ref": "green.profanity_untargeted"
+  },
+  {
+   "id": "g033",
+   "text": "fucking finally, the update is out",
+   "tier": "GREEN",
+   "policy_ref": "green.profanity_untargeted"
+  },
+  {
+   "id": "g034",
+   "text": "damn that was a good goal",
+   "tier": "GREEN",
+   "policy_ref": "green.profanity_untargeted"
+  },
+  {
+   "id": "g035",
+   "text": "this is some bullshit weather",
+   "tier": "GREEN",
+   "policy_ref": "green.profanity_untargeted"
+  },
+  {
+   "id": "g036",
+   "text": "what the fuck just happened in that episode",
+   "tier": "GREEN",
+   "policy_ref": "green.profanity_untargeted"
+  },
+  {
+   "id": "g037",
+   "text": "hell yes, we won",
+   "tier": "GREEN",
+   "policy_ref": "green.profanity_untargeted"
+  },
+  {
+   "id": "g038",
+   "text": "my bank account is in hospice",
+   "tier": "GREEN",
+   "policy_ref": "green.dark_humor"
+  },
+  {
+   "id": "g039",
+   "text": "I've died and this is my ghost posting",
+   "tier": "GREEN",
+   "policy_ref": "green.dark_humor"
+  },
+  {
+   "id": "g040",
+   "text": "the group project killed me and I'm writing from the afterlife",
+   "tier": "GREEN",
+   "policy_ref": "green.dark_humor"
+  },
+  {
+   "id": "g041",
+   "text": "I'd rather be buried alive than do taxes",
+   "tier": "GREEN",
+   "policy_ref": "green.dark_humor"
+  },
+  {
+   "id": "g042",
+   "text": "my sleep schedule is a crime scene",
+   "tier": "GREEN",
+   "policy_ref": "green.dark_humor"
+  },
+  {
+   "id": "g043",
+   "text": "this spreadsheet is going to be my cause of death",
+   "tier": "GREEN",
+   "policy_ref": "green.dark_humor"
+  },
+  {
+   "id": "g044",
+   "text": "I laughed so hard I died",
+   "tier": "GREEN",
+   "policy_ref": "green.dark_humor"
+  },
+  {
+   "id": "g045",
+   "text": "my houseplants have filed for divorce",
+   "tier": "GREEN",
+   "policy_ref": "green.dark_humor"
+  },
+  {
+   "id": "g046",
+   "text": "great stream tonight",
+   "tier": "GREEN",
+   "policy_ref": "green.everyday"
+  },
+  {
+   "id": "g047",
+   "text": "what song is this?",
+   "tier": "GREEN",
+   "policy_ref": "green.everyday"
+  },
+  {
+   "id": "g048",
+   "text": "you're so talented",
+   "tier": "GREEN",
+   "policy_ref": "green.everyday"
+  },
+  {
+   "id": "g049",
+   "text": "love this",
+   "tier": "GREEN",
+   "policy_ref": "green.everyday"
+  },
+  {
+   "id": "g050",
+   "text": "hi from Brazil!",
+   "tier": "GREEN",
+   "policy_ref": "green.everyday"
+  },
+  {
+   "id": "g051",
+   "text": "you look happy today",
+   "tier": "GREEN",
+   "policy_ref": "green.everyday"
+  },
+  {
+   "id": "g052",
+   "text": "thank you for the advice",
+   "tier": "GREEN",
+   "policy_ref": "green.everyday"
+  },
+  {
+   "id": "g053",
+   "text": "you're right, my bad",
+   "tier": "GREEN",
+   "policy_ref": "green.everyday"
+  },
+  {
+   "id": "g054",
+   "text": "can you play the old song?",
+   "tier": "GREEN",
+   "policy_ref": "green.everyday"
+  },
+  {
+   "id": "g055",
+   "text": "your dog is adorable",
+   "tier": "GREEN",
+   "policy_ref": "green.everyday"
+  },
+  {
+   "id": "g056",
+   "text": "good luck on your exam!",
+   "tier": "GREEN",
+   "policy_ref": "green.everyday"
+  },
+  {
+   "id": "g057",
+   "text": "happy birthday!!",
+   "tier": "GREEN",
+   "policy_ref": "green.everyday"
+  },
+  {
+   "id": "g058",
+   "text": "this is so cozy",
+   "tier": "GREEN",
+   "policy_ref": "green.everyday"
+  },
+  {
+   "id": "g059",
+   "text": "you killed it",
+   "tier": "GREEN",
+   "policy_ref": "green.everyday"
+  },
+  {
+   "id": "g060",
+   "text": "you're a legend",
+   "tier": "GREEN",
+   "policy_ref": "green.everyday"
+  },
+  {
+   "id": "g061",
+   "text": "I'm so sorry for your loss, I'm here if you need anything",
+   "tier": "GREEN",
+   "policy_ref": "green.everyday"
+  },
+  {
+   "id": "g062",
+   "text": "you are not alone, reach out any time",
+   "tier": "GREEN",
+   "policy_ref": "green.everyday"
+  },
+  {
+   "id": "g063",
+   "text": "he is the kindest person I know",
+   "tier": "GREEN",
+   "policy_ref": "green.everyday"
+  },
+  {
+   "id": "g064",
+   "text": "she absolutely crushed that performance",
+   "tier": "GREEN",
+   "policy_ref": "green.everyday"
+  },
+  {
+   "id": "y001",
+   "text": "you're an idiot",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.insult"
+  },
+  {
+   "id": "y002",
+   "text": "you are so stupid",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.insult"
+  },
+  {
+   "id": "y003",
+   "text": "what a loser you are",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.insult"
+  },
+  {
+   "id": "y004",
+   "text": "shut up, nobody asked you",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.insult"
+  },
+  {
+   "id": "y005",
+   "text": "you're pathetic",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.insult"
+  },
+  {
+   "id": "y006",
+   "text": "you're a clown",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.insult"
+  },
+  {
+   "id": "y007",
+   "text": "honestly you're trash at this",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.insult"
+  },
+  {
+   "id": "y008",
+   "text": "you're a joke and everyone knows it",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.insult"
+  },
+  {
+   "id": "y009",
+   "text": "you're useless",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.insult"
+  },
+  {
+   "id": "y010",
+   "text": "you're dumb as a rock",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.insult"
+  },
+  {
+   "id": "y011",
+   "text": "listen here you moron",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.insult"
+  },
+  {
+   "id": "y012",
+   "text": "you're so annoying, nobody likes you",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.insult"
+  },
+  {
+   "id": "y013",
+   "text": "you're a fraud",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.insult"
+  },
+  {
+   "id": "y014",
+   "text": "fuck you",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.insult"
+  },
+  {
+   "id": "y015",
+   "text": "go fuck yourself",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.insult"
+  },
+  {
+   "id": "y016",
+   "text": "you're a complete waste of time",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.insult"
+  },
+  {
+   "id": "y017",
+   "text": "@kay is a clown",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.insult"
+  },
+  {
+   "id": "y018",
+   "text": "stfu no one cares",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.insult"
+  },
+  {
+   "id": "y019",
+   "text": "you're so cringe it hurts to watch",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.insult"
+  },
+  {
+   "id": "y020",
+   "text": "you have the brain of a goldfish",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.insult"
+  },
+  {
+   "id": "y021",
+   "text": "nobody wants you here",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.insult"
+  },
+  {
+   "id": "y022",
+   "text": "you people are the worst",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.insult"
+  },
+  {
+   "id": "y023",
+   "text": "keep crying about it, loser",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.insult"
+  },
+  {
+   "id": "y024",
+   "text": "you fell off hard, embarrassing",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.insult"
+  },
+  {
+   "id": "y025",
+   "text": "your voice is so annoying lol",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.mockery"
+  },
+  {
+   "id": "y026",
+   "text": "you look like a thumb",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.mockery"
+  },
+  {
+   "id": "y027",
+   "text": "your teeth are so ugly",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.mockery"
+  },
+  {
+   "id": "y028",
+   "text": "nice lisp lmao",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.mockery"
+  },
+  {
+   "id": "y029",
+   "text": "you walk like a penguin",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.mockery"
+  },
+  {
+   "id": "y030",
+   "text": "did you get dressed in the dark?",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.mockery"
+  },
+  {
+   "id": "y031",
+   "text": "your accent is hilarious, talk normal",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.mockery"
+  },
+  {
+   "id": "y032",
+   "text": "you're so fat lol",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.mockery"
+  },
+  {
+   "id": "y033",
+   "text": "you look like you haven't showered in a week",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.mockery"
+  },
+  {
+   "id": "y034",
+   "text": "big forehead energy",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.mockery"
+  },
+  {
+   "id": "y035",
+   "text": "your stutter is painful to listen to",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.mockery"
+  },
+  {
+   "id": "y036",
+   "text": "your nose is huge lol",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.mockery"
+  },
+  {
+   "id": "y037",
+   "text": "imagine looking like that on camera",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.mockery"
+  },
+  {
+   "id": "y038",
+   "text": "you're so hot, can I see more",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.sexualized_adult"
+  },
+  {
+   "id": "y039",
+   "text": "you'd look better in a bikini",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.sexualized_adult"
+  },
+  {
+   "id": "y040",
+   "text": "take your shirt off",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.sexualized_adult"
+  },
+  {
+   "id": "y041",
+   "text": "sexy legs girl",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.sexualized_adult"
+  },
+  {
+   "id": "y042",
+   "text": "damn I'd hit that",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.sexualized_adult"
+  },
+  {
+   "id": "y043",
+   "text": "you should show more skin",
+   "tier": "YELLOW",
+   "policy_ref": "yellow.sexualized_adult"
+  },
+  {
+   "id": "o001",
+   "text": "I'm going to keep messaging you until you answer",
+   "tier": "ORANGE",
+   "policy_ref": "orange.targeted_harassment"
+  },
+  {
+   "id": "o002",
+   "text": "I'll make your life hell",
+   "tier": "ORANGE",
+   "policy_ref": "orange.targeted_harassment"
+  },
+  {
+   "id": "o003",
+   "text": "you'll regret this",
+   "tier": "ORANGE",
+   "policy_ref": "orange.targeted_harassment"
+  },
+  {
+   "id": "o004",
+   "text": "I hope you get cancer",
+   "tier": "ORANGE",
+   "policy_ref": "orange.targeted_harassment"
+  },
+  {
+   "id": "o005",
+   "text": "the world would be better without you",
+   "tier": "ORANGE",
+   "policy_ref": "orange.targeted_harassment"
+  },
+  {
+   "id": "o006",
+   "text": "you don't deserve to live",
+   "tier": "ORANGE",
+   "policy_ref": "orange.targeted_harassment"
+  },
+  {
+   "id": "o007",
+   "text": "I'll follow you to every stream",
+   "tier": "ORANGE",
+   "policy_ref": "orange.targeted_harassment"
+  },
+  {
+   "id": "o008",
+   "text": "you should die",
+   "tier": "ORANGE",
+   "policy_ref": "orange.targeted_harassment"
+  },
+  {
+   "id": "o009",
+   "text": "everyone hates you and you should leave the internet",
+   "tier": "ORANGE",
+   "policy_ref": "orange.targeted_harassment"
+  },
+  {
+   "id": "o010",
+   "text": "you'll never be safe here",
+   "tier": "ORANGE",
+   "policy_ref": "orange.targeted_harassment"
+  },
+  {
+   "id": "o011",
+   "text": "I'm not going to stop until you delete your account",
+   "tier": "ORANGE",
+   "policy_ref": "orange.targeted_harassment"
+  },
+  {
+   "id": "o012",
+   "text": "go back to your own country",
+   "tier": "ORANGE",
+   "policy_ref": "orange.identity_attack"
+  },
+  {
+   "id": "o013",
+   "text": "people like you shouldn't be allowed to exist",
+   "tier": "ORANGE",
+   "policy_ref": "orange.identity_attack"
+  },
+  {
+   "id": "o014",
+   "text": "your kind ruins everything",
+   "tier": "ORANGE",
+   "policy_ref": "orange.identity_attack"
+  },
+  {
+   "id": "o015",
+   "text": "gay people are disgusting and so are you",
+   "tier": "ORANGE",
+   "policy_ref": "orange.identity_attack"
+  },
+  {
+   "id": "o016",
+   "text": "you're only here because of diversity quotas",
+   "tier": "ORANGE",
+   "policy_ref": "orange.identity_attack"
+  },
+  {
+   "id": "o017",
+   "text": "women like you belong in the kitchen",
+   "tier": "ORANGE",
+   "policy_ref": "orange.identity_attack"
+  },
+  {
+   "id": "o018",
+   "text": "you're too dark to be pretty",
+   "tier": "ORANGE",
+   "policy_ref": "orange.identity_attack"
+  },
+  {
+   "id": "o019",
+   "text": "trans people like you are mentally ill",
+   "tier": "ORANGE",
+   "policy_ref": "orange.identity_attack"
+  },
+  {
+   "id": "o020",
+   "text": "disabled people like you shouldn't be on camera",
+   "tier": "ORANGE",
+   "policy_ref": "orange.identity_attack"
+  },
+  {
+   "id": "o021",
+   "text": "you people are animals",
+   "tier": "ORANGE",
+   "policy_ref": "orange.identity_attack"
+  },
+  {
+   "id": "o022",
+   "text": "I want to fuck you",
+   "tier": "ORANGE",
+   "policy_ref": "orange.sexual_directed"
+  },
+  {
+   "id": "o023",
+   "text": "send me nudes",
+   "tier": "ORANGE",
+   "policy_ref": "orange.sexual_directed"
+  },
+  {
+   "id": "o024",
+   "text": "show me your tits",
+   "tier": "ORANGE",
+   "policy_ref": "orange.sexual_directed"
+  },
+  {
+   "id": "o025",
+   "text": "I'd bend you over",
+   "tier": "ORANGE",
+   "policy_ref": "orange.sexual_directed"
+  },
+  {
+   "id": "o026",
+   "text": "I want to see you naked",
+   "tier": "ORANGE",
+   "policy_ref": "orange.sexual_directed"
+  },
+  {
+   "id": "o027",
+   "text": "let me touch you",
+   "tier": "ORANGE",
+   "policy_ref": "orange.sexual_directed"
+  },
+  {
+   "id": "o028",
+   "text": "everyone go spam her comments",
+   "tier": "ORANGE",
+   "policy_ref": "orange.pile_on_invite"
+  },
+  {
+   "id": "o029",
+   "text": "let's all report his account",
+   "tier": "ORANGE",
+   "policy_ref": "orange.pile_on_invite"
+  },
+  {
+   "id": "o030",
+   "text": "raid @jen's stream after this",
+   "tier": "ORANGE",
+   "policy_ref": "orange.pile_on_invite"
+  },
+  {
+   "id": "o031",
+   "text": "someone find out where she works",
+   "tier": "ORANGE",
+   "policy_ref": "orange.pile_on_invite"
+  },
+  {
+   "id": "o032",
+   "text": "go flood his DMs",
+   "tier": "ORANGE",
+   "policy_ref": "orange.pile_on_invite"
+  },
+  {
+   "id": "o033",
+   "text": "let's make her quit streaming",
+   "tier": "ORANGE",
+   "policy_ref": "orange.pile_on_invite"
+  },
+  {
+   "id": "o034",
+   "text": "his real name is Mark Lee and he works at Target",
+   "tier": "ORANGE",
+   "policy_ref": "orange.doxxing"
+  },
+  {
+   "id": "o035",
+   "text": "she goes to Lincoln High, third period is in room 12",
+   "tier": "ORANGE",
+   "policy_ref": "orange.doxxing"
+  },
+  {
+   "id": "o036",
+   "text": "her address is 14 Pine St",
+   "tier": "ORANGE",
+   "policy_ref": "orange.doxxing"
+  },
+  {
+   "id": "o037",
+   "text": "I found her mom's facebook",
+   "tier": "ORANGE",
+   "policy_ref": "orange.doxxing"
+  },
+  {
+   "id": "o038",
+   "text": "he lives on Maple Ave, the blue house",
+   "tier": "ORANGE",
+   "policy_ref": "orange.doxxing"
+  },
+  {
+   "id": "o039",
+   "text": "here's her phone number 555-222-1234",
+   "tier": "ORANGE",
+   "policy_ref": "orange.doxxing"
+  },
+  {
+   "id": "o040",
+   "text": "I know his workplace, want it?",
+   "tier": "ORANGE",
+   "policy_ref": "orange.doxxing"
+  },
+  {
+   "id": "o041",
+   "text": "her dad's name is Tom Reyes, look him up",
+   "tier": "ORANGE",
+   "policy_ref": "orange.doxxing"
+  },
+  {
+   "id": "r001",
+   "text": "I'm going to find you and hurt you",
+   "tier": "RED",
+   "policy_ref": "red.threat"
+  },
+  {
+   "id": "r002",
+   "text": "I know where you live",
+   "tier": "RED",
+   "policy_ref": "red.threat"
+  },
+  {
+   "id": "r003",
+   "text": "I'll be waiting outside your house tonight",
+   "tier": "RED",
+   "policy_ref": "red.threat"
+  },
+  {
+   "id": "r004",
+   "text": "I'm bringing a gun to your school",
+   "tier": "RED",
+   "policy_ref": "red.threat"
+  },
+  {
+   "id": "r005",
+   "text": "you're dead when I see you tomorrow",
+   "tier": "RED",
+   "policy_ref": "red.threat"
+  },
+  {
+   "id": "r006",
+   "text": "I will stab you",
+   "tier": "RED",
+   "policy_ref": "red.threat"
+  },
+  {
+   "id": "r007",
+   "text": "I'm going to kill you and your family",
+   "tier": "RED",
+   "policy_ref": "red.threat"
+  },
+  {
+   "id": "r008",
+   "text": "watch your back, I'm coming for you",
+   "tier": "RED",
+   "policy_ref": "red.threat"
+  },
+  {
+   "id": "r009",
+   "text": "I'll shoot up the stream meetup",
+   "tier": "RED",
+   "policy_ref": "red.threat"
+  },
+  {
+   "id": "r010",
+   "text": "better lock your doors tonight",
+   "tier": "RED",
+   "policy_ref": "red.threat"
+  },
+  {
+   "id": "r011",
+   "text": "kill yourself",
+   "tier": "RED",
+   "policy_ref": "red.self_harm_encouragement"
+  },
+  {
+   "id": "r012",
+   "text": "kys loser",
+   "tier": "RED",
+   "policy_ref": "red.self_harm_encouragement"
+  },
+  {
+   "id": "r013",
+   "text": "you should hang yourself",
+   "tier": "RED",
+   "policy_ref": "red.self_harm_encouragement"
+  },
+  {
+   "id": "r014",
+   "text": "nobody would care if you killed yourself, do it",
+   "tier": "RED",
+   "policy_ref": "red.self_harm_encouragement"
+  },
+  {
+   "id": "r015",
+   "text": "go jump off a bridge",
+   "tier": "RED",
+   "policy_ref": "red.self_harm_encouragement"
+  },
+  {
+   "id": "r016",
+   "text": "just end it already, no one wants you here",
+   "tier": "RED",
+   "policy_ref": "red.self_harm_encouragement"
+  },
+  {
+   "id": "r017",
+   "text": "cut deeper next time",
+   "tier": "RED",
+   "policy_ref": "red.self_harm_encouragement"
+  },
+  {
+   "id": "r018",
+   "text": "do everyone a favor and unalive yourself",
+   "tier": "RED",
+   "policy_ref": "red.self_harm_encouragement"
+  },
+  {
+   "id": "r019",
+   "text": "add me on snap, don't tell your parents",
+   "tier": "RED",
+   "policy_ref": "red.minor_off_platform"
+  },
+  {
+   "id": "r020",
+   "text": "let's talk on telegram instead, it's more private",
+   "tier": "RED",
+   "policy_ref": "red.minor_off_platform"
+  },
+  {
+   "id": "r021",
+   "text": "what's your number? delete these messages after",
+   "tier": "RED",
+   "policy_ref": "red.minor_off_platform"
+  },
+  {
+   "id": "r022",
+   "text": "you're so mature for your age, let's meet up",
+   "tier": "RED",
+   "policy_ref": "red.minor_off_platform"
+  },
+  {
+   "id": "r023",
+   "text": "are you home alone right now?",
+   "tier": "RED",
+   "policy_ref": "red.minor_off_platform"
+  },
+  {
+   "id": "r024",
+   "text": "we've got 50 accounts ready, everyone hit her at 9pm",
+   "tier": "RED",
+   "policy_ref": "red.coordinated_harassment"
+  },
+  {
+   "id": "r025",
+   "text": "coordinate in the discord, we mass report @sara tonight",
+   "tier": "RED",
+   "policy_ref": "red.coordinated_harassment"
+  },
+  {
+   "id": "r026",
+   "text": "everyone make new accounts and keep going after him",
+   "tier": "RED",
+   "policy_ref": "red.coordinated_harassment"
+  }
+ ]
+}

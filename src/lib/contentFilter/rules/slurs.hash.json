@@ -1,0 +1,9 @@
+{
+  "algorithm": "sha256(foldTerm(term)) — see scripts/content-filter-hash-slurs.ts",
+  "status": "placeholder: test sentinels only; real list pending moderation review",
+  "count": 2,
+  "hashes": [
+    "2de1ebae978ed37f4690a8fa5bb14138b9a948f46989cab84c4e3cc349709793",
+    "62982172d09e834be1a9cec3c76c1860419b875656049e1abdb2ae29ed2a9e26"
+  ]
+}
