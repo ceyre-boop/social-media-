@@ -131,3 +131,6 @@ Colin's Milestone 2 brief is front-end only: the visible surface first, backend 
 5. **Device (Colin, dev build):** the brief's §5 checklist.
    - The build shows a dev-only perf overlay (JS and UI fps) to judge "no stutter".
    - I'll say plainly which items only Colin can confirm: 60fps on a real phone, no audio pops, recording, and the native trim editor.
+
+## Deferred by Colin (2026-09-29)
+- **Messages tab** (6th tab): inbox + Requests section (sender and time only until accepted), live conversation view, new message by username, Accept/Decline (opaque to the sender), Block from a conversation menu, no read receipts; minor threads hide attachments and explain the no-links rule. Build on top of migration 010. No reporting and no media.
