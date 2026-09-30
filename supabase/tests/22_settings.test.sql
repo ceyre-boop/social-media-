@@ -91,21 +91,21 @@ select is(pg_temp.try($$select public.request_friend('44444444-4444-4444-8444-44
           'ok:friends', 'asking back someone who already asked you accepts, whatever your setting');
 reset role;
 
--- ------------------------------------------------------------------ default chat strictness
-select is((select default_chat_strictness::text from public.users where id = :alice), 'standard', 'default strictness is standard');
+-- ------------------------------------------------------------------ default room level (was default chat strictness; 024)
+select is((select default_room_level::text from public.users where id = :alice), 'standard', 'default room level is standard');
 set local role authenticated;
 select pg_temp.act_as(:alice);
-select is(pg_temp.probe($$update public.users set default_chat_strictness = 'protected' where id = '11111111-1111-4111-8111-111111111111'$$),
-          'ok:1', 'alice can set her default strictness');
-update public.users set default_chat_strictness = 'protected' where id = :alice;
+select is(pg_temp.probe($$update public.users set default_room_level = 'family' where id = '11111111-1111-4111-8111-111111111111'$$),
+          'ok:1', 'alice can set her default room level');
+update public.users set default_room_level = 'family' where id = :alice;
 reset role;
 insert into public.live_streams (id, host_id, status, provider)
 values ('cf000000-0000-4000-8000-0000000000bb', :alice, 'scheduled', 'test');
-select is((select chat_strictness::text from public.live_streams where id = 'cf000000-0000-4000-8000-0000000000bb'),
-          'protected', 'a new stream starts at the host''s default');
-insert into public.live_streams (id, host_id, status, provider, chat_strictness)
+select is((select room_level::text from public.live_streams where id = 'cf000000-0000-4000-8000-0000000000bb'),
+          'family', 'a new stream starts at the host''s default');
+insert into public.live_streams (id, host_id, status, provider, room_level)
 values ('cf000000-0000-4000-8000-0000000000bc', :alice, 'scheduled', 'test', 'open');
-select is((select chat_strictness::text from public.live_streams where id = 'cf000000-0000-4000-8000-0000000000bc'),
+select is((select room_level::text from public.live_streams where id = 'cf000000-0000-4000-8000-0000000000bc'),
           'open', 'an explicit non-default choice on the stream wins');
 
 -- ------------------------------------------------------------------ data export

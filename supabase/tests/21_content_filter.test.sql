@@ -30,7 +30,7 @@ end $f$;
 -- ------------------------------------------------------------------ schema
 select has_table('ops', 'content_filter_events', 'ops.content_filter_events exists');
 select has_table('ops', 'content_filter_review_queue', 'ops.content_filter_review_queue exists');
-select has_column('public', 'live_streams', 'chat_strictness', 'live_streams.chat_strictness exists');
+select has_column('public', 'live_streams', 'room_level', 'live_streams.room_level exists');
 select has_table('public', 'trusted_circle_members', 'public.trusted_circle_members exists');
 select ok(exists(select 1 from cron.job where jobname = 'content-filter-purge'), 'retention purge is scheduled');
 
@@ -99,18 +99,18 @@ select is((select count(*)::int from ops.content_filter_events where id = 'cf000
 
 -- ------------------------------------------------------------------ chat strictness
 insert into public.live_streams (id, host_id, provider) values ('cf000000-0000-4000-8000-0000000000aa', :alice, 'test');
-select is((select chat_strictness::text from public.live_streams where id = 'cf000000-0000-4000-8000-0000000000aa'), 'standard',
+select is((select room_level::text from public.live_streams where id = 'cf000000-0000-4000-8000-0000000000aa'), 'standard',
           'streams default to standard strictness');
 set local role authenticated;
 select pg_temp.act_as(:alice);
-update public.live_streams set chat_strictness = 'protected' where id = 'cf000000-0000-4000-8000-0000000000aa';
-select is((select chat_strictness::text from public.live_streams where id = 'cf000000-0000-4000-8000-0000000000aa'), 'protected',
+update public.live_streams set room_level = 'family' where id = 'cf000000-0000-4000-8000-0000000000aa';
+select is((select room_level::text from public.live_streams where id = 'cf000000-0000-4000-8000-0000000000aa'), 'family',
           'the host can set their stream''s strictness');
 select pg_temp.act_as(:bob);
-select is(pg_temp.probe($$update public.live_streams set chat_strictness = 'open' where id = 'cf000000-0000-4000-8000-0000000000aa'$$),
+select is(pg_temp.probe($$update public.live_streams set room_level = 'open' where id = 'cf000000-0000-4000-8000-0000000000aa'$$),
           'ok:0', 'another user cannot change it');
 reset role;
-select is((select chat_strictness::text from public.live_streams where id = 'cf000000-0000-4000-8000-0000000000aa'), 'protected',
+select is((select room_level::text from public.live_streams where id = 'cf000000-0000-4000-8000-0000000000aa'), 'family',
           'strictness is what the host set');
 
 -- ------------------------------------------------------------------ Trusted Circles

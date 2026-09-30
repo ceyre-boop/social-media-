@@ -1,20 +1,34 @@
 /**
- * content-filter — the pre-publish gate for live chat, DMs and comments (brief M3 §5).
+ * content-filter — the pre-publish gate for live chat, DMs and comments (brief M3 §5, policy v0.2
+ * speech dial).
  *
- *   POST { text, context: { surface: 'live_chat'|'dm'|'comment', stream_id?, sender_id?, recipient_id? } }
- *     -> { tier, raw_tier, action, reasons, hold, event_id, latency_ms, timings }
+ *   POST { text, context: { surface: 'live_chat'|'dm'|'comment', stream_id?, post_id?,
+ *                           parent_comment_id?, recipient_id?, sender_id? } }
+ *     -> { tier, action, grade, required_level, ceiling, room_level, relationship, message,
+ *          reasons, event_id, latency_ms, timings }
  *   POST { mode: 'override', event_id }   the sender chose "Send as is" on a YELLOW (30-day signal)
  *   POST { mode: 'embed', texts: [...] }  service role only: gte-small vectors (precompute script)
  *
  * Runs the shared pipeline (src/lib/contentFilter): stage A rules, then stage B k-NN with
- * Supabase's built-in gte-small, then creator strictness / Trusted Circle. The sender is the JWT
- * subject (the gateway verifies the JWT); a body sender_id is only honoured for the service role.
+ * Supabase's built-in gte-small, then room level / relationship / harassment counter. The sender is
+ * the JWT subject (the gateway verifies the JWT); a body sender_id is only honoured for the service
+ * role.
+ *
+ * The room level is the creator's (live_streams.room_level, posts.room_level); for a DM, or a reply
+ * to a comment, it is also capped by what the recipient accepts (users.speech_level). The person
+ * addressed ("target") is the DM recipient, the replied-to comment's author, the post's author, or
+ * the stream's host. Hostile messages to the same target bump ops.content_filter_pair_counts; the
+ * count inside the window makes repeated targeting ORANGE (harassing).
+ *
  * GREEN is never logged. RED is logged with its body and queued for human review (awaited);
  * YELLOW / ORANGE are logged without the body after the response (EdgeRuntime.waitUntil).
+ * The client stores `required_level` on the row it writes, so viewers can hide / mask above
+ * their own level.
  */
 import postgres from 'npm:postgres@3.4.7';
 
-import { evaluate, type StageBDeps } from '../../../src/lib/contentFilter/pipeline.ts';
+import { senderMessage } from '../../../src/lib/contentFilter/copy.ts';
+import { evaluate, HARASSMENT_WINDOW_MINUTES, type StageBDeps } from '../../../src/lib/contentFilter/pipeline.ts';
 import embeddingsDoc from '../../../src/lib/contentFilter/rules/examples.embeddings.json' with { type: 'json' };
 import examplesDoc from '../../../src/lib/contentFilter/rules/examples.json' with { type: 'json' };
 import {
@@ -24,7 +38,7 @@ import {
   type LabelledExample,
   STAGE_B_CONFIG,
 } from '../../../src/lib/contentFilter/stageB.ts';
-import type { EvalContext, Surface } from '../../../src/lib/contentFilter/types.ts';
+import type { EvalContext, Relationship, SpeechLevel, Surface } from '../../../src/lib/contentFilter/types.ts';
 import { isServiceRole } from '../_shared/job.ts';
 
 type AiSession = { run(input: string, opts: { mean_pool: boolean; normalize: boolean }): Promise<unknown> };
@@ -75,26 +89,70 @@ function jwtSub(req: Request): string | null {
 }
 
 type Lookup = {
-  strictness: 'open' | 'standard' | 'protected' | null;
+  room_level: SpeechLevel | null;
+  target_id: string | null;
   trusted: boolean;
-  age_days: number | null;
+  relationship: Relationship;
+  prior: number;
   sender_adult: boolean | null;
-  recipient_minor: boolean | null;
+  target_minor: boolean | null;
 };
 
-async function lookup(sender: string, stream: string | null, recipient: string | null): Promise<Lookup> {
+const uuidOrNull = (v: unknown) => (typeof v === 'string' && UUID.test(v) ? v : null);
+
+async function lookup(
+  sender: string,
+  surface: Surface,
+  ids: { stream: string | null; post: string | null; parent: string | null; recipient: string | null },
+): Promise<Lookup> {
   const [row] = await sql()`
+    with t as (
+      select case
+        when ${surface} = 'dm' then ${ids.recipient}::uuid
+        when ${surface} = 'comment' then coalesce(
+          (select c.author_id from public.comments c where c.id = ${ids.parent}::uuid),
+          (select p.author_id from public.posts p where p.id = ${ids.post}::uuid))
+        else (select s.host_id from public.live_streams s where s.id = ${ids.stream}::uuid)
+      end as target_id
+    ),
+    room as (
+      select case
+        when ${surface} = 'live_chat' then (select s.room_level from public.live_streams s where s.id = ${ids.stream}::uuid)
+        when ${surface} = 'comment' then (select p.room_level from public.posts p where p.id = ${ids.post}::uuid)
+        else null
+      end as creator_level
+    )
     select
-      (select chat_strictness::text from public.live_streams where id = ${stream}::uuid) as strictness,
-      exists (select 1 from public.trusted_circle_members t
-                join public.live_streams s on s.host_id = t.creator_id
-               where s.id = ${stream}::uuid and t.member_id = ${sender}::uuid) as trusted,
-      (select extract(epoch from now() - created_at) / 86400 from public.users where id = ${sender}::uuid)::float8 as age_days,
+      -- the creator's room, capped by what the person addressed accepts (DMs and replies)
+      (select case
+         when ${surface} = 'dm' then (select u.speech_level from public.users u where u.id = t.target_id)
+         when ${surface} = 'comment' and ${ids.parent}::uuid is not null then
+           least(room.creator_level, (select u.speech_level from public.users u where u.id = t.target_id))
+         else room.creator_level
+       end)::text as room_level,
+      t.target_id,
+      exists (select 1 from public.trusted_circle_members m
+                join public.live_streams s on s.host_id = m.creator_id
+               where s.id = ${ids.stream}::uuid and m.member_id = ${sender}::uuid) as trusted,
+      case
+        when t.target_id is null then 'strangers'
+        when exists (select 1 from public.friendships f
+                      where f.user_a_id = least(${sender}::uuid, t.target_id)
+                        and f.user_b_id = greatest(${sender}::uuid, t.target_id)
+                        and f.state = 'accepted') then 'friends'
+        when exists (select 1 from public.follows a where a.follower_id = ${sender}::uuid and a.followee_id = t.target_id)
+         and exists (select 1 from public.follows b where b.follower_id = t.target_id and b.followee_id = ${sender}::uuid) then 'mutual'
+        else 'strangers'
+      end as relationship,
+      coalesce((select pc.hits from ops.content_filter_pair_counts pc
+                 where pc.sender_id = ${sender}::uuid and pc.target_id = t.target_id
+                   and pc.window_start > now() - make_interval(mins => ${HARASSMENT_WINDOW_MINUTES})), 0)::int as prior,
       (select date_of_birth <= current_date - interval '18 years' from public.users where id = ${sender}::uuid) as sender_adult,
-      -- Unknown recipient age counts as a minor (the safer side).
-      case when ${recipient}::uuid is null then null
+      -- Unknown recipient age counts as a minor (the safer side); only for DMs.
+      case when ${surface} <> 'dm' or t.target_id is null then null
            else coalesce((select date_of_birth > current_date - interval '18 years'
-                            from public.users where id = ${recipient}::uuid), true) end as recipient_minor`;
+                            from public.users where id = t.target_id), true) end as target_minor
+    from t, room`;
   return row as unknown as Lookup;
 }
 
@@ -134,41 +192,59 @@ Deno.serve(async (req) => {
   const surface = ctxIn.surface as Surface;
   if (!text || text.length > MAX_LEN) return Response.json({ error: 'invalid_text' }, { status: 400 });
   if (!SURFACES.includes(surface)) return Response.json({ error: 'invalid_surface' }, { status: 400 });
-  const stream = typeof ctxIn.stream_id === 'string' && UUID.test(ctxIn.stream_id) ? ctxIn.stream_id : null;
-  const recipient = typeof ctxIn.recipient_id === 'string' && UUID.test(ctxIn.recipient_id) ? ctxIn.recipient_id : null;
+  const ids = {
+    stream: uuidOrNull(ctxIn.stream_id),
+    post: uuidOrNull(ctxIn.post_id),
+    parent: uuidOrNull(ctxIn.parent_comment_id),
+    recipient: uuidOrNull(ctxIn.recipient_id),
+  };
 
-  const facts = await lookup(sender, stream, recipient);
+  const facts = await lookup(sender, surface, ids);
   const ctx: EvalContext = {
     surface,
-    strictness: facts.strictness ?? undefined,
+    roomLevel: facts.room_level ?? undefined,
+    relationship: facts.relationship,
     senderTrusted: facts.trusted,
-    senderAccountAgeDays: facts.age_days ?? undefined,
+    priorTargetedCount: facts.prior,
     senderIsAdult: facts.sender_adult ?? undefined,
-    recipientIsMinor: facts.recipient_minor ?? undefined,
+    recipientIsMinor: facts.target_minor ?? undefined,
   };
   const verdict = await evaluate(text, ctx, stageB);
   const latency = Math.round(performance.now() - t0);
+
+  // Count hostile messages per sender -> target (window resets after HARASSMENT_WINDOW_MINUTES).
+  if (verdict.hostileTargeted && facts.target_id && facts.target_id !== sender) {
+    EdgeRuntime.waitUntil(
+      sql()`select ops.content_filter_bump_pair(${sender}::uuid, ${facts.target_id}::uuid, ${HARASSMENT_WINDOW_MINUTES})`.catch(
+        (e: unknown) => console.error('content-filter counter failed', e),
+      ),
+    );
+  }
 
   let eventId: string | null = null;
   if (verdict.tier !== 'GREEN') {
     eventId = crypto.randomUUID();
     const write = sql()`
       insert into ops.content_filter_events
-        (id, surface, sender_id, stream_id, tier, raw_tier, reason_codes, policy_refs, latency_ms, body)
-      values (${eventId}::uuid, ${surface}, ${sender}::uuid, ${stream}::uuid,
-              ${verdict.tier}::ops.content_filter_tier, ${verdict.rawTier}::ops.content_filter_tier,
+        (id, surface, sender_id, stream_id, tier, raw_tier, reason_codes, policy_refs, latency_ms, body, required_level)
+      values (${eventId}::uuid, ${surface}, ${sender}::uuid, ${ids.stream}::uuid,
+              ${verdict.tier}::ops.content_filter_tier, ${verdict.ceiling ?? verdict.tier}::ops.content_filter_tier,
               ${verdict.reasons.map((r) => r.code)}, ${verdict.reasons.map((r) => r.policyRef)},
-              ${latency}, ${verdict.tier === 'RED' ? text : null})`;
+              ${latency}, ${verdict.tier === 'RED' ? text : null}, ${verdict.requiredLevel}::public.speech_level)`;
     if (verdict.tier === 'RED') await write;
     else EdgeRuntime.waitUntil(write.catch((e: unknown) => console.error('content-filter log failed', e)));
   }
 
   return Response.json({
     tier: verdict.tier,
-    raw_tier: verdict.rawTier,
     action: verdict.action,
+    grade: verdict.grade,
+    required_level: verdict.requiredLevel,
+    ceiling: verdict.ceiling,
+    room_level: verdict.room.level,
+    relationship: facts.relationship,
+    message: senderMessage(verdict),
     reasons: verdict.reasons,
-    hold: verdict.hold,
     event_id: eventId,
     latency_ms: latency,
     timings: verdict.timings,
