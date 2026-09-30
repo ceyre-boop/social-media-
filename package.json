@@ -68,5 +68,8 @@
     "test:push": "bun scripts/test-push.ts",
     "deploy:preview": "bun scripts/deploy-preview.ts"
   },
-  "private": true
+  "private": true,
+  "trustedDependencies": [
+    "@shopify/react-native-skia"
+  ]
 }
