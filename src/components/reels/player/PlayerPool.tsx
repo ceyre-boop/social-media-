@@ -112,6 +112,13 @@ export class PoolStore {
     return this.players[slot] ?? null;
   }
 
+  /** Playback position (seconds) of the reel holding `key`, or null if it holds no player. */
+  currentTimeOf(key: string): number | null {
+    const slot = this.slots.findIndex((s) => s.key === key);
+    const p = slot < 0 ? null : this.players[slot];
+    return p ? p.currentTime : null;
+  }
+
   /** Assign slots for the settled page. `current` may be null (image/text/end page). */
   settle(current: ReelSource | null, neighbours: ReelSource[]): void {
     if (this.players.length < POOL_SIZE) return;

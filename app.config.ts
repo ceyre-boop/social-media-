@@ -15,7 +15,7 @@ const config: ExpoConfig = {
   icon: './assets/images/icon.png',
   scheme: 'socialapp',
   userInterfaceStyle: 'automatic',
-  backgroundColor: '#0E0B10',
+  backgroundColor: '#050506',
   android: {
     adaptiveIcon: {
       backgroundColor: '#FCFBF0',
@@ -26,15 +26,15 @@ const config: ExpoConfig = {
   web: {
     output: 'static',
     favicon: './assets/images/favicon.png',
-    backgroundColor: '#0E0B10',
-    themeColor: '#0E0B10',
+    backgroundColor: '#050506',
+    themeColor: '#050506',
   },
   plugins: [
     'expo-router',
     [
       'expo-splash-screen',
       {
-        backgroundColor: '#0E0B10',
+        backgroundColor: '#050506',
         image: './assets/images/logo.png',
         imageWidth: 200,
       },
@@ -48,6 +48,14 @@ const config: ExpoConfig = {
         cameraPermission: `${brand.appName} uses the camera so you can record reels.`,
         microphonePermission: `${brand.appName} uses the microphone to record sound with your reels.`,
         recordAudioAndroid: true,
+      },
+    ],
+    [
+      'expo-media-library',
+      {
+        // Save-only: the app adds videos to the library but never reads it.
+        savePhotosPermission: `${brand.appName} saves videos you choose to your photo library.`,
+        photosPermission: false,
       },
     ],
     [

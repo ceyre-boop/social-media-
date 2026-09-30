@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
@@ -310,6 +310,8 @@ function ReelPageImpl({
   const pool = usePlayerPool();
   const [burst, setBurst] = useState(0);
   const [sheet, setSheet] = useState(false);
+  const postId = post.id;
+  const getCurrentTime = useCallback(() => pool.currentTimeOf(postId), [pool, postId]);
   const card = variant === 'card';
   const isReel = post.kind === 'reel';
 
@@ -458,7 +460,12 @@ function ReelPageImpl({
           <Rail post={post} onToggleLike={() => onToggleLike(post)} onMore={() => setSheet(true)} />
         </View>
       ) : null}
-      <MoreSheet visible={sheet} visibility={post.visibility} onClose={() => setSheet(false)} />
+      <MoreSheet
+        visible={sheet}
+        post={post}
+        getCurrentTime={getCurrentTime}
+        onClose={() => setSheet(false)}
+      />
     </View>
   );
 }

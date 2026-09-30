@@ -85,7 +85,7 @@ export default function UserProfile() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <PageTitle title={person ? name : "Profile"} />
+      <PageTitle title={person ? name : 'Profile'} />
       <AppBar
         title={person ? `@${person.username}` : 'Profile'}
         left={<IconButton icon="chevron-back" label="Back" onPress={back} />}

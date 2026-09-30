@@ -10,14 +10,17 @@
     "@supabase/supabase-js": "^2.117.2",
     "expo": "~57.0.26",
     "expo-camera": "~57.0.6",
+    "expo-clipboard": "~57.0.2",
     "expo-constants": "~57.0.20",
     "expo-device": "~57.0.2",
+    "expo-file-system": "~57.0.7",
     "expo-font": "~57.0.4",
     "expo-image": "~57.0.5",
     "expo-image-manipulator": "~57.0.20",
     "expo-image-picker": "~57.0.20",
     "expo-linear-gradient": "~57.0.2",
     "expo-linking": "~57.0.11",
+    "expo-media-library": "~57.0.5",
     "expo-router": "~57.0.24",
     "expo-splash-screen": "~57.0.9",
     "expo-sqlite": "~57.0.3",
@@ -58,7 +61,8 @@
     "format": "prettier --write .",
     "db:types": "supabase gen types typescript --local > src/lib/db/types.ts",
     "db:test": "supabase test db",
-    "db:reset": "supabase db reset"
+    "db:reset": "supabase db reset",
+    "deploy:preview": "bun scripts/deploy-preview.ts"
   },
   "private": true
 }

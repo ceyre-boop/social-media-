@@ -15,6 +15,8 @@ export const brand = {
   appName: 'Smiley', // placeholder: product name is changing (trademark)
   tagline: 'A place you come back to because it feels good.',
   currency: { singular: 'blip', plural: 'blips', perDollar: 100 }, // placeholder name
+  // Base URL for shared links (/p/<id>, /p/<id>/embed). Placeholder: the real domain lands with the rename.
+  webUrl: 'https://example.app',
   storagePrefix: 'app',
   // Pre-rename persisted-key prefix, read once and migrated to storagePrefix. Never change it.
   legacyStoragePrefix: 'smiley',
