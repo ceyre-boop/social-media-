@@ -37,12 +37,19 @@
  *   minnie, carol, dave.)
  *
  * `bunx supabase db reset` wipes storage metadata and rows; run this again after.
+ *
+ * Real content: `bun scripts/seed-reels.ts --from ~/path/to/videos`
+ *   Uses up to 20 real videos from the folder (mp4/mov/m4v/webm/mkv, sorted by
+ *   name) in place of the generated patterns: scaled/cropped to 720x1280, first
+ *   30 s, ~1.5 Mbps. Captions come from the file names. Missing slots fall back
+ *   to generated clips. Reels already seeded are skipped, so to swap generated
+ *   reels for real ones run `bunx supabase db reset` first.
  */
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, extname, join } from 'node:path';
 
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
@@ -286,12 +293,77 @@ function probe(file: string): Probe {
   return { durationMs: Math.round(duration * 1000), width, height, bytes: statSync(file).size };
 }
 
-type Clip = Probe & { n: number; clipFile: string; posterFile: string; sha256: string };
+type Clip = Probe & { n: number; clipFile: string; posterFile: string; sha256: string; caption: string };
 
-function buildClips(outDir: string): Clip[] {
+const VIDEO_EXT = /\.(mp4|mov|m4v|webm|mkv)$/i;
+
+/** Real source videos from `--from <dir>`, sorted by name, at most REEL_COUNT. */
+function realSources(fromDir: string | undefined): string[] {
+  if (!fromDir) return [];
+  if (!existsSync(fromDir)) fail(`--from folder not found: ${fromDir}`);
+  const files = readdirSync(fromDir)
+    .filter((f) => VIDEO_EXT.test(f) && !f.startsWith('.'))
+    .sort()
+    .slice(0, REEL_COUNT)
+    .map((f) => join(fromDir, f));
+  if (files.length === 0) fail(`--from folder has no videos (mp4/mov/m4v/webm/mkv): ${fromDir}`);
+  return files;
+}
+
+/**
+ * Normalise a real clip to the app's upload target: portrait 720x1280 (scale to
+ * fill, center-crop), first 30 s at most, H.264 main ~1.5 Mbps, AAC, faststart.
+ * Clips without audio get a silent track so every reel has the same shape.
+ */
+function transcodeReal(src: string, file: string): void {
+  run(
+    'ffmpeg',
+    [
+      '-y', '-loglevel', 'error', '-i', src,
+      '-f', 'lavfi', '-i', 'anullsrc=channel_layout=stereo:sample_rate=44100',
+      '-t', '30',
+      '-map', '0:v:0', '-map', '0:a:0?', '-map', '1:a:0',
+      '-vf', `scale=${WIDTH}:${HEIGHT}:force_original_aspect_ratio=increase,crop=${WIDTH}:${HEIGHT},fps=${FPS}`,
+      '-c:v', 'libx264', '-profile:v', 'main', '-pix_fmt', 'yuv420p', '-b:v', '1500k', '-maxrate', '1800k', '-bufsize', '3000k',
+      '-c:a', 'aac', '-b:a', '128k', '-shortest', '-movflags', '+faststart',
+      file,
+    ],
+    `transcoding ${basename(src)}`,
+  );
+}
+
+/** "IMG_0423 beach walk.MOV" → "Beach walk". Falls back to the stock caption. */
+function captionFromFile(src: string, fallback: string): string {
+  const words = basename(src, extname(src))
+    .replace(/^(img|vid|mov|pxl|dsc)[_-]?\d+/i, '')
+    .replace(/[_-]+/g, ' ')
+    .trim();
+  return words ? words[0].toUpperCase() + words.slice(1) : fallback;
+}
+
+function buildClips(outDir: string, fromDir?: string): Clip[] {
   mkdirSync(outDir, { recursive: true });
+  const real = realSources(fromDir);
   const clips: Clip[] = [];
   for (let n = 1; n <= REEL_COUNT; n++) {
+    const src = real[n - 1];
+    if (src) {
+      // Cache per source file so re-runs don't re-encode.
+      const key = createHash('sha1').update(`${src}:${statSync(src).mtimeMs}`).digest('hex').slice(0, 10);
+      const clipFile = join(outDir, `real-${key}.mp4`);
+      const posterFile = join(outDir, `real-${key}-poster.jpg`);
+      if (!existsSync(clipFile)) {
+        process.stdout.write(`  transcoding ${basename(src)} → reel ${n}… `);
+        transcodeReal(src, clipFile);
+        console.log('ok');
+      }
+      if (!existsSync(posterFile)) makePoster(clipFile, posterFile);
+      const meta = probe(clipFile);
+      if (meta.durationMs > 30_000) fail(`reel ${n} (${basename(src)}) is ${meta.durationMs} ms, over the 30 s cap`);
+      const sha256 = createHash('sha256').update(readFileSync(clipFile)).digest('hex');
+      clips.push({ n, clipFile, posterFile, sha256, caption: captionFromFile(src, CAPTIONS[n - 1]), ...meta });
+      continue;
+    }
     const clipFile = join(outDir, `reel-${n}.mp4`);
     const posterFile = join(outDir, `reel-${n}-poster.jpg`);
     const labelFile = join(outDir, `label-${n}.png`);
@@ -305,7 +377,7 @@ function buildClips(outDir: string): Clip[] {
     const meta = probe(clipFile);
     if (meta.durationMs > 30_000) fail(`reel ${n} is ${meta.durationMs} ms, over the 30 s cap`);
     const sha256 = createHash('sha256').update(readFileSync(clipFile)).digest('hex');
-    clips.push({ n, clipFile, posterFile, sha256, ...meta });
+    clips.push({ n, clipFile, posterFile, sha256, caption: CAPTIONS[n - 1], ...meta });
   }
   return clips;
 }
@@ -368,7 +440,7 @@ async function seedReel(db: SupabaseClient<Database>, clip: Clip, now: number): 
     id: pid,
     author_id: authorId,
     kind: 'reel',
-    caption: CAPTIONS[clip.n - 1],
+    caption: clip.caption,
     visibility: 'public',
     created_at: createdAt,
   });
@@ -388,8 +460,10 @@ async function main(): Promise<void> {
   if (appUrl) assertLocal(appUrl, 'EXPO_PUBLIC_SUPABASE_URL');
 
   const outDir = process.env.SEED_REELS_OUT ?? join(tmpdir(), 'seed-reels');
-  console.log(`seed-reels: clips in ${outDir}`);
-  const clips = buildClips(outDir);
+  const fromIdx = process.argv.indexOf('--from');
+  const fromDir = fromIdx > -1 ? process.argv[fromIdx + 1] : undefined;
+  console.log(`seed-reels: clips in ${outDir}${fromDir ? ` (real videos from ${fromDir})` : ''}`);
+  const clips = buildClips(outDir, fromDir);
 
   const db = createClient<Database>(stack.apiUrl, stack.serviceRoleKey, {
     auth: { persistSession: false, autoRefreshToken: false },
