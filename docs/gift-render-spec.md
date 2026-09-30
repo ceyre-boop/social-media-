@@ -194,13 +194,18 @@ In a 4-way layout a stacked tile may be under 180pt tall. Below that threshold:
 - Tile Burst caps at 60% fill
 - Tile Rail shows 1 card
 
-### Unresolved
+### Scoring (decided 2026-09-29)
 
-Battle scoring is **not decided** — the open question is whether battles score by
-gift value or by distinct gifters (see `milestone-2-brief.md` §4). That decision
-changes what the score bar displays and whether a single large gift should get a
-visually dominant treatment at all. **Build battle rendering only after scoring is
-settled.**
+Battles score by **gift value** (the industry standard). The score bar shows each
+tile's running value.
+
+**No score blur, ever.** The score is visible to every participant and every viewer,
+continuously, for the full duration of the battle, including the final seconds.
+No hiding, blurring, dimming, "mystery" totals or delayed reveals. Hidden scores
+exist to manufacture last-second panic spending, which is exactly what Smiley is
+built not to do.
+
+Battles are unblocked for a future milestone. They are not built in Milestone 2.
 
 ---
 
@@ -320,4 +325,4 @@ Producing against this contract now avoids reworking assets later.
 
 - Sound: whether gifts carry audio, and how it ducks against the creator's mic
 - Haptics for the sender on send
-- Battle scoring model — blocks battle render implementation
+- ~~Battle scoring model~~ — decided: gift value, score always visible (see Battle mode → Scoring)
