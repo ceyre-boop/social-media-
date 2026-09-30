@@ -6,6 +6,10 @@
  * ships), points the build at the hosted preview Supabase project, and deploys the
  * static export to the Vercel project `social-app-preview`.
  *
+ * The Vercel project must NOT be connected to GitHub: a git-triggered build has no
+ * config and replaces the preview with an empty site (fixed 2026-09-29 with
+ * `vercel git disconnect`).
+ *
  * Needs: `bunx supabase login` + the repo linked to the preview project, and
  * `vercel login`. The anon key is public by design; the service-role key is never used.
  */
@@ -23,7 +27,8 @@ function run(cmd: string, args: string[], cwd = repo): string {
     console.error(`${cmd} ${args.join(' ')} failed:\n${(r.stderr || r.stdout).trim().split('\n').slice(-12).join('\n')}`);
     process.exit(1);
   }
-  return r.stdout;
+  // Vercel prints its progress (including the alias) to stderr.
+  return `${r.stdout}\n${r.stderr}`;
 }
 
 const refFile = join(repo, 'supabase', '.temp', 'project-ref');
