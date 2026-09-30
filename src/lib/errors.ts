@@ -86,6 +86,10 @@ export function toUserError(e: unknown, scope = 'error'): UserError {
 }
 
 function classify(m: string, c: string, status: number, name: string, raw: string): UserError {
+  if (m.includes('video_too_long')) {
+    return make('too_large', 'That reel is too long', 'Reels can be up to 30 seconds', false);
+  }
+
   // Age rules enforced by the database at signup (migration 004).
   if (m.includes('under_minimum_age')) {
     return make('age', 'Too young', 'You must be at least 13 to use Smiley.', false);

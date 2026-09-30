@@ -2,8 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
+
+import { ReelPreview } from '@/components/create/ReelPreview';
+import { ReelRecorder, type RecordedReel } from '@/components/create/ReelRecorder';
+import { UploadProgress } from '@/components/create/UploadProgress';
 
 import {
   AppBar,
@@ -13,6 +17,7 @@ import {
   SegmentedControl,
   Text,
   TextField,
+  useToast,
 } from '@/components/ui';
 import type { Segment } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -22,12 +27,35 @@ import { supabase } from '@/lib/supabase';
 import { useNavClearance } from '@/lib/layout';
 import { useTheme } from '@/lib/theme';
 import { VISIBILITY_META, VISIBILITY_ORDER } from '@/lib/visibility';
+import { UploadAbortedError } from '@/lib/storage';
+import {
+  REEL_MAX_BYTES,
+  ReelClipProblem,
+  prepareReelDraft,
+  type ReelSource,
+} from '@/lib/upload/clip';
+import {
+  createReelJob,
+  runReelJob,
+  type ReelDraft,
+  type ReelJob,
+  type ReelProgress,
+} from '@/lib/upload/reel';
 
 const SEGMENTS: Segment<Visibility>[] = VISIBILITY_ORDER.map((value) => ({
   value,
   label: VISIBILITY_META[value].label,
   icon: VISIBILITY_META[value].icon,
 }));
+
+type CreateMode = 'photo' | 'reel';
+/** idle: nothing sent yet · uploading · failed: Retry resumes · cancelled: Post resumes. */
+type ReelState = 'idle' | 'uploading' | 'failed' | 'cancelled';
+
+const MODES: Segment<CreateMode>[] = [
+  { value: 'photo', label: 'Photo', icon: 'image-outline' },
+  { value: 'reel', label: 'Reel', icon: 'videocam-outline' },
+];
 
 const MIME_EXT: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -55,16 +83,162 @@ export default function Create() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const toast = useToast();
+  const [mode, setMode] = useState<CreateMode>('photo');
+  const [draft, setDraft] = useState<ReelDraft | null>(null);
+  const [preparing, setPreparing] = useState(false);
+  const [recorderOpen, setRecorderOpen] = useState(false);
+  const [reelState, setReelState] = useState<ReelState>('idle');
+  const [progress, setProgress] = useState<ReelProgress | null>(null);
+  const jobRef = useRef<ReelJob | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  // Synchronous guard: a second tap can land before React re-renders the disabled button.
+  const submittingRef = useRef(false);
+  const mountedRef = useRef(true);
+  const uploading = reelState === 'uploading';
+  const inFlight = busy || uploading;
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      abortRef.current?.abort();
+    };
+  }, []);
+
   // Web: warn before closing the tab while an upload is in flight.
   useEffect(() => {
-    if (!busy || Platform.OS !== 'web') return;
+    if (!inFlight || Platform.OS !== 'web') return;
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault();
       e.returnValue = '';
     };
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
-  }, [busy]);
+  }, [inFlight]);
+
+  const acceptClip = useCallback(
+    async (source: ReelSource) => {
+      setError(null);
+      setPreparing(true);
+      try {
+        const next = await prepareReelDraft(source);
+        if (!mountedRef.current) return;
+        // A new clip means a new file: never resume a previous clip's upload into it.
+        jobRef.current = null;
+        setReelState('idle');
+        setProgress(null);
+        setDraft(next);
+      } catch (e) {
+        if (!mountedRef.current) return;
+        if (e instanceof ReelClipProblem) setError(e.message);
+        else setError(handleError(e, 'reel prepare').message);
+      } finally {
+        if (mountedRef.current) setPreparing(false);
+      }
+    },
+    [handleError],
+  );
+
+  async function chooseVideo() {
+    setError(null);
+    try {
+      if (Platform.OS !== 'web') {
+        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!perm.granted) return setError('Allow photo library access to pick a video.');
+      }
+      const result = await ImagePicker.launchImageLibraryAsync(
+        Platform.OS === 'ios'
+          ? {
+              mediaTypes: ['videos'],
+              // Apple's own trimmer caps the clip at 30 s and re-encodes it at 720p.
+              allowsEditing: true,
+              videoMaxDuration: 30,
+              videoExportPreset: ImagePicker.VideoExportPreset.H264_1280x720,
+            }
+          : { mediaTypes: ['videos'] },
+      );
+      if (result.canceled) return;
+      const picked = result.assets[0];
+      if (!picked) return;
+      if (picked.fileSize && picked.fileSize > REEL_MAX_BYTES) {
+        return setError('That video is over 60 MB. Try a shorter clip.');
+      }
+      await acceptClip({
+        uri: picked.uri,
+        durationMs: picked.duration ?? null,
+        width: picked.width,
+        height: picked.height,
+        bytes: picked.fileSize ?? null,
+        mimeType: picked.mimeType ?? null,
+        fileName: picked.fileName ?? null,
+        file: picked.file ?? null,
+      });
+    } catch (e) {
+      setError(handleError(e, 'pick video').message);
+    }
+  }
+
+  function onRecorded(clip: RecordedReel) {
+    void acceptClip({ uri: clip.uri, durationMs: clip.durationMs });
+  }
+
+  function removeClip() {
+    jobRef.current = null;
+    setDraft(null);
+    setProgress(null);
+    setReelState('idle');
+    setError(null);
+  }
+
+  async function publishReel() {
+    if (!session || !draft || submittingRef.current) return;
+    submittingRef.current = true;
+    setError(null);
+    const job = jobRef.current ?? createReelJob(session.user.id, draft);
+    jobRef.current = job;
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setReelState('uploading');
+    setProgress({ phase: 'video', sent: 0, total: draft.bytes, resuming: job.videoMadeProgress });
+    try {
+      await runReelJob(job, {
+        caption,
+        visibility,
+        signal: controller.signal,
+        onProgress: (p) => {
+          if (mountedRef.current) setProgress(p);
+        },
+      });
+      if (!mountedRef.current) return;
+      jobRef.current = null;
+      setDraft(null);
+      setCaption('');
+      setVisibility('public');
+      setProgress(null);
+      setReelState('idle');
+      // Home refetches on focus, so the new reel is there when it appears.
+      router.navigate('/');
+      toast.show({ message: 'Your reel is up', tone: 'success' });
+    } catch (e) {
+      if (!mountedRef.current) return;
+      if (e instanceof UploadAbortedError || controller.signal.aborted) {
+        // Form and job are kept; posting again resumes the upload where it stopped.
+        setReelState('cancelled');
+      } else {
+        const ue = handleError(e, 'publish reel');
+        setError(__DEV__ && ue.detail ? `${ue.message} (${ue.detail})` : ue.message);
+        setReelState('failed');
+      }
+    } finally {
+      if (abortRef.current === controller) abortRef.current = null;
+      submittingRef.current = false;
+    }
+  }
+
+  function cancelReel() {
+    abortRef.current?.abort();
+  }
 
   async function pick() {
     setError(null);
@@ -187,13 +361,81 @@ export default function Create() {
     }
   }
 
+  const reelArea = draft ? (
+    <ReelPreview
+      draft={draft}
+      disabled={uploading || preparing}
+      onChange={removeClip}
+      onRemove={removeClip}
+    />
+  ) : (
+    <View style={{ gap: spacing.md }}>
+      <View
+        style={[
+          styles.dropzone,
+          {
+            borderColor: colors.border,
+            borderRadius: radius.lg,
+            backgroundColor: colors.surface,
+            padding: spacing.lg,
+          },
+        ]}
+      >
+        <Ionicons name="videocam-outline" size={40} color={colors.primary} />
+        <Text variant="headline">Share a reel</Text>
+        <Text variant="caption" tone="muted">
+          Up to 30 seconds
+        </Text>
+      </View>
+      {Platform.OS === 'web' ? (
+        <Text variant="caption" tone="muted">
+          Recording works in the app
+        </Text>
+      ) : (
+        <Button
+          title="Record"
+          icon="radio-button-on"
+          onPress={() => setRecorderOpen(true)}
+          disabled={preparing}
+        />
+      )}
+      <Button
+        title={preparing ? 'Getting it ready…' : 'Choose video'}
+        variant="secondary"
+        icon="film-outline"
+        onPress={() => void chooseVideo()}
+        disabled={preparing}
+      />
+    </View>
+  );
+
   const previewRatio = asset ? Math.min(Math.max(asset.width / asset.height, 0.5), 2) : 1;
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <AppBar title="Create" />
+      {recorderOpen ? (
+        <ReelRecorder
+          visible
+          onClose={() => setRecorderOpen(false)}
+          onRecorded={onRecorded}
+          onError={(message) => setError(message)}
+        />
+      ) : null}
       <Screen title="Create" scroll padded>
-        {asset ? (
+        <SegmentedControl
+          label="What are you posting"
+          segments={MODES}
+          value={mode}
+          onChange={(next) => {
+            if (inFlight || preparing) return;
+            setError(null);
+            setMode(next);
+          }}
+        />
+        {mode === 'reel' ? (
+          reelArea
+        ) : asset ? (
           <View style={{ gap: spacing.sm }}>
             <View
               style={[
@@ -267,6 +509,12 @@ export default function Create() {
         </View>
 
         {error ? <Text tone="danger">{error}</Text> : null}
+        {mode === 'reel' && reelState === 'cancelled' && !error ? (
+          <Text tone="muted">Upload cancelled. Post again to pick up where it stopped.</Text>
+        ) : null}
+        {mode === 'reel' && uploading && progress ? (
+          <UploadProgress progress={progress} onCancel={cancelReel} />
+        ) : null}
       </Screen>
       <View
         style={[
@@ -279,12 +527,21 @@ export default function Create() {
           },
         ]}
       >
-        <Button
-          title={busy ? 'Posting…' : 'Post'}
-          onPress={publish}
-          disabled={!asset || busy}
-          icon={busy ? undefined : 'send'}
-        />
+        {mode === 'reel' ? (
+          <Button
+            title={uploading ? 'Posting…' : reelState === 'failed' ? 'Retry' : 'Post'}
+            onPress={() => void publishReel()}
+            disabled={!draft || uploading || preparing}
+            icon={uploading ? undefined : reelState === 'failed' ? 'refresh' : 'send'}
+          />
+        ) : (
+          <Button
+            title={busy ? 'Posting…' : 'Post'}
+            onPress={publish}
+            disabled={!asset || busy}
+            icon={busy ? undefined : 'send'}
+          />
+        )}
       </View>
     </View>
   );
