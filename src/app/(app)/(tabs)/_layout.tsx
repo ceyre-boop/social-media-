@@ -81,6 +81,7 @@ export default function TabsLayout() {
           <TabTrigger name="post/[id]" href="/post/[id]" />
           <TabTrigger name="moments" href="/moments" />
           <TabTrigger name="friends" href="/friends" />
+          <TabTrigger name="settings" href="/settings" />
         </TabList>
       </Tabs>
     </View>

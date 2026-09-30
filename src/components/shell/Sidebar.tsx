@@ -96,6 +96,12 @@ export function Sidebar({ expanded, pathname }: { expanded: boolean; pathname: s
             </Text>
           ) : null}
           <IconButton
+            icon="settings-outline"
+            label="Settings"
+            onPress={() => router.push('/settings')}
+            color={colors.muted}
+          />
+          <IconButton
             icon="log-out-outline"
             label="Sign out"
             onPress={signOut}

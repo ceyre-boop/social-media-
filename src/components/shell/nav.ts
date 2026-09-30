@@ -5,6 +5,9 @@ export function navState(pathname: string) {
     discover: pathname.startsWith('/discover'),
     create: pathname.startsWith('/create'),
     live: pathname.startsWith('/live'),
-    you: pathname.startsWith('/you') || pathname.startsWith('/profile-edit'),
+    you:
+      pathname.startsWith('/you') ||
+      pathname.startsWith('/profile-edit') ||
+      pathname.startsWith('/settings'),
   };
 }

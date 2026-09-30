@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { PostGrid } from '@/components/posts/PostGrid';
-import { AppBar, Avatar, Button, EmptyState, PageTitle, Text } from '@/components/ui';
+import { AppBar, Avatar, Button, EmptyState, IconButton, PageTitle, Text } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import type { UserError } from '@/lib/errors';
 import { useRevalidate } from '@/lib/network';
@@ -45,7 +45,16 @@ export default function You() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <PageTitle title="You" />
-      <AppBar title="You" />
+      <AppBar
+        title="You"
+        right={
+          <IconButton
+            icon="settings-outline"
+            label="Settings"
+            onPress={() => router.push('/settings')}
+          />
+        }
+      />
       <ScrollView contentContainerStyle={{ paddingBottom: navClearance }}>
         <View style={{ padding: spacing.lg, gap: spacing.lg }}>
           <View style={[styles.top, { gap: spacing.lg }]}>
