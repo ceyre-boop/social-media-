@@ -544,13 +544,13 @@ isOneToOne: false
                   ]
                 },"media_assets": {
                   Row: {
-                    "bytes": number | null,"content_hash": string | null,"created_at": string,"deleted_at": string | null,"duration_ms": number | null,"height": number | null,"id": string,"kind": Database["public"]['Enums']["media_kind"],"owner_id": string,"playback_url": string | null,"provider": string,"provider_asset_id": string | null,"status": Database["public"]['Enums']["media_status"],"thumbnail_url": string | null,"width": number | null
+                    "bytes": number | null,"content_hash": string | null,"created_at": string,"deleted_at": string | null,"duration_ms": number | null,"height": number | null,"id": string,"kind": Database["public"]['Enums']["media_kind"],"owner_id": string,"playback_url": string | null,"poster_path": string | null,"provider": string,"provider_asset_id": string | null,"status": Database["public"]['Enums']["media_status"],"thumbnail_url": string | null,"width": number | null
                   }
                   Insert: {
-                    "bytes"?: number | null,"content_hash"?: string | null,"created_at"?: string,"deleted_at"?: string | null,"duration_ms"?: number | null,"height"?: number | null,"id"?: string,"kind": Database["public"]['Enums']["media_kind"],"owner_id": string,"playback_url"?: string | null,"provider": string,"provider_asset_id"?: string | null,"status"?: Database["public"]['Enums']["media_status"],"thumbnail_url"?: string | null,"width"?: number | null
+                    "bytes"?: number | null,"content_hash"?: string | null,"created_at"?: string,"deleted_at"?: string | null,"duration_ms"?: number | null,"height"?: number | null,"id"?: string,"kind": Database["public"]['Enums']["media_kind"],"owner_id": string,"playback_url"?: string | null,"poster_path"?: string | null,"provider": string,"provider_asset_id"?: string | null,"status"?: Database["public"]['Enums']["media_status"],"thumbnail_url"?: string | null,"width"?: number | null
                   }
                   Update: {
-                    "bytes"?: number | null,"content_hash"?: string | null,"created_at"?: string,"deleted_at"?: string | null,"duration_ms"?: number | null,"height"?: number | null,"id"?: string,"kind"?: Database["public"]['Enums']["media_kind"],"owner_id"?: string,"playback_url"?: string | null,"provider"?: string,"provider_asset_id"?: string | null,"status"?: Database["public"]['Enums']["media_status"],"thumbnail_url"?: string | null,"width"?: number | null
+                    "bytes"?: number | null,"content_hash"?: string | null,"created_at"?: string,"deleted_at"?: string | null,"duration_ms"?: number | null,"height"?: number | null,"id"?: string,"kind"?: Database["public"]['Enums']["media_kind"],"owner_id"?: string,"playback_url"?: string | null,"poster_path"?: string | null,"provider"?: string,"provider_asset_id"?: string | null,"status"?: Database["public"]['Enums']["media_status"],"thumbnail_url"?: string | null,"width"?: number | null
                   }
                   Relationships: [
                     {
