@@ -3,31 +3,32 @@
  * (rules/examples.json). Catches semantic variants stage A's rules miss.
  *
  * Contract:
- *   - Stage B only ESCALATES. It never lowers a stage-A tier.
+ *   - Stage B only ESCALATES. It never lowers a stage-A grade. Labels are grades (types.ts):
+ *     family / standard / open / max, then the ceiling (orange, red).
  *   - It runs only when stage A found a target (a person addressed, mentioned, or referred to),
- *     and only when stage A left the tier below ORANGE. See pipeline.ts.
- *   - A RED neighbourhood yields ORANGE, unless all k neighbours are RED at very high similarity
+ *     and only when stage A left the grade below the ceiling. See pipeline.ts.
+ *   - A red neighbourhood yields orange, unless all k neighbours are red at very high similarity
  *     (the "high-confidence B with a policy code" case). Everything else RED comes from stage A.
- *   - Uncertainty resolves GREEN: low similarity or a split vote is GREEN.
+ *   - Uncertainty resolves to no escalation: low similarity or a split vote changes nothing.
  *
  * The production embedder is Supabase's built-in gte-small (384-dim, unit length), run inside the
  * `content-filter` Edge Function. Example vectors are precomputed into
  * rules/examples.embeddings.json by scripts/content-filter-embed.ts.
  */
 import { sha256Hex } from './sha256.ts';
-import type { PolicyRef, Tier } from './types.ts';
+import { type Grade, GRADES, type PolicyRef } from './types.ts';
 
 export type LabelledExample = {
   id: string;
   text: string;
-  tier: Tier;
+  grade: Grade;
   policy_ref: PolicyRef;
   set?: 'sentiment';
 };
 
 export type ExampleIndex = {
   ids: string[];
-  tiers: Tier[];
+  grades: Grade[];
   refs: PolicyRef[];
   dim: number;
   vectors: Float32Array; // n * dim, row-major, unit length
@@ -35,9 +36,9 @@ export type ExampleIndex = {
 
 export type StageBConfig = {
   k: number;
-  /** Nearest winning-tier neighbour must be at least this similar to escalate. */
+  /** Nearest winning-grade neighbour must be at least this similar to escalate. */
   minSimilarity: number;
-  /** Winning tier's share of the similarity-weighted vote. */
+  /** Winning grade's share of the similarity-weighted vote. */
   minShare: number;
   /** All k neighbours RED and nearest at least this similar -> RED. */
   redSimilarity: number;
@@ -54,12 +55,12 @@ export const STAGE_B_CONFIG: Record<EmbedderName, StageBConfig> = {
   'fallback-hashed-ngrams': { k: 5, minSimilarity: 0.55, minShare: 0.6, redSimilarity: 0.9 },
 };
 
-export type Neighbour = { id: string; tier: Tier; policyRef: PolicyRef; similarity: number };
+export type Neighbour = { id: string; grade: Grade; policyRef: PolicyRef; similarity: number };
 
 export type StageBResult = {
-  tier: Tier;
+  grade: Grade;
   policyRef: PolicyRef | null;
-  /** Winning tier's share of the weighted vote, 0..1. */
+  /** Winning grade's share of the weighted vote, 0..1. */
   confidence: number;
   topSimilarity: number;
   neighbours: Neighbour[];
@@ -73,7 +74,7 @@ export function buildIndex(
   const dim = first.length;
   const vectors = new Float32Array(examples.length * dim);
   const ids: string[] = [];
-  const tiers: Tier[] = [];
+  const grades: Grade[] = [];
   const refs: PolicyRef[] = [];
   examples.forEach((e, row) => {
     const v = row === 0 ? first : vectorOf(e);
@@ -83,10 +84,10 @@ export function buildIndex(
     norm = Math.sqrt(norm) || 1;
     for (let i = 0; i < dim; i++) vectors[row * dim + i] = v[i] / norm;
     ids.push(e.id);
-    tiers.push(e.tier);
+    grades.push(e.grade);
     refs.push(e.policy_ref);
   });
-  return { ids, tiers, refs, dim, vectors };
+  return { ids, grades, refs, dim, vectors };
 }
 
 export function classifyB(
@@ -109,7 +110,7 @@ export function classifyB(
     for (let i = 0; i < dim; i++) dot += query[i] * vectors[off + i];
     const sim = dot / qn;
     if (top.length < cfg.k || sim > top[top.length - 1].similarity) {
-      const n: Neighbour = { id: index.ids[row], tier: index.tiers[row], policyRef: index.refs[row], similarity: sim };
+      const n: Neighbour = { id: index.ids[row], grade: index.grades[row], policyRef: index.refs[row], similarity: sim };
       let at = top.length;
       while (at > 0 && top[at - 1].similarity < sim) at--;
       top.splice(at, 0, n);
@@ -117,30 +118,30 @@ export function classifyB(
     }
   }
 
-  const green: StageBResult = { tier: 'GREEN', policyRef: null, confidence: 0, topSimilarity: top[0]?.similarity ?? 0, neighbours: top };
-  if (top.length === 0) return green;
+  const none: StageBResult = { grade: 'family', policyRef: null, confidence: 0, topSimilarity: top[0]?.similarity ?? 0, neighbours: top };
+  if (top.length === 0) return none;
 
-  const weight: Record<Tier, number> = { GREEN: 0, YELLOW: 0, ORANGE: 0, RED: 0 };
+  const weight: Record<Grade, number> = { family: 0, standard: 0, open: 0, max: 0, orange: 0, red: 0 };
   let total = 0;
   for (const n of top) {
     const w = Math.max(0, n.similarity);
-    weight[n.tier] += w;
+    weight[n.grade] += w;
     total += w;
   }
-  let winner: Tier = 'GREEN';
-  for (const t of ['YELLOW', 'ORANGE', 'RED'] as const) if (weight[t] > weight[winner]) winner = t;
+  let winner: Grade = 'family';
+  for (const g of GRADES) if (weight[g] > weight[winner]) winner = g;
   const share = total > 0 ? weight[winner] / total : 0;
-  if (winner === 'GREEN') return { ...green, confidence: share };
+  if (winner === 'family') return { ...none, confidence: share };
 
-  const nearest = top.find((n) => n.tier === winner)!;
-  if (nearest.similarity < cfg.minSimilarity || share < cfg.minShare) return { ...green, confidence: share };
+  const nearest = top.find((n) => n.grade === winner)!;
+  if (nearest.similarity < cfg.minSimilarity || share < cfg.minShare) return { ...none, confidence: share };
 
-  let tier: Tier = winner;
-  if (winner === 'RED') {
-    const allRed = top.length === cfg.k && top.every((n) => n.tier === 'RED');
-    tier = allRed && nearest.similarity >= cfg.redSimilarity ? 'RED' : 'ORANGE';
+  let grade: Grade = winner;
+  if (winner === 'red') {
+    const allRed = top.length === cfg.k && top.every((n) => n.grade === 'red');
+    grade = allRed && nearest.similarity >= cfg.redSimilarity ? 'red' : 'orange';
   }
-  return { tier, policyRef: nearest.policyRef, confidence: share, topSimilarity: nearest.similarity, neighbours: top };
+  return { grade, policyRef: nearest.policyRef, confidence: share, topSimilarity: nearest.similarity, neighbours: top };
 }
 
 // ------------------------------------------------------------------ vector file encoding

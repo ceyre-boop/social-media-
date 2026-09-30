@@ -12,7 +12,7 @@ import {
   type LabelledExample,
   STAGE_B_CONFIG,
 } from './stageB.ts';
-import type { Tier } from './types.ts';
+import type { Grade } from './types.ts';
 
 const examples = examplesDoc.examples as LabelledExample[];
 
@@ -52,39 +52,39 @@ describe('fallback embedder (tests only — gte-small is the production embedder
 });
 
 describe('classifyB — k-NN semantics on a synthetic index', () => {
-  // Axis-aligned toy vectors: dimension 0 = GREEN-ish, 1 = YELLOW-ish, 2 = ORANGE-ish, 3 = RED-ish.
-  const ex = (id: string, tier: Tier, axis: number, jitter: number): LabelledExample & { v: number[] } => {
+  // Axis-aligned toy vectors: dimension 0 = family, 1 = open, 2 = orange, 3 = red.
+  const ex = (id: string, grade: Grade, axis: number, jitter: number): LabelledExample & { v: number[] } => {
     const v = [0, 0, 0, 0];
     v[axis] = 1;
     v[(axis + 1) % 4] = jitter;
-    return { id, text: id, tier, policy_ref: tier === 'GREEN' ? 'green.everyday' : tier === 'YELLOW' ? 'yellow.insult' : tier === 'ORANGE' ? 'orange.targeted_harassment' : 'red.threat', v: unit(v) };
+    return { id, text: id, grade, policy_ref: grade === 'family' ? 'family.everyday' : grade === 'open' ? 'open.roast' : grade === 'orange' ? 'orange.harassing' : 'red.threat', v: unit(v) };
   };
   const toy = [
-    ex('g1', 'GREEN', 0, 0.1), ex('g2', 'GREEN', 0, 0.2), ex('g3', 'GREEN', 0, 0.05),
-    ex('y1', 'YELLOW', 1, 0.1), ex('y2', 'YELLOW', 1, 0.2), ex('y3', 'YELLOW', 1, 0.05),
-    ex('o1', 'ORANGE', 2, 0.1), ex('o2', 'ORANGE', 2, 0.2), ex('o3', 'ORANGE', 2, 0.05),
-    ex('r1', 'RED', 3, 0.1), ex('r2', 'RED', 3, 0.2), ex('r3', 'RED', 3, 0.05),
+    ex('g1', 'family', 0, 0.1), ex('g2', 'family', 0, 0.2), ex('g3', 'family', 0, 0.05),
+    ex('y1', 'open', 1, 0.1), ex('y2', 'open', 1, 0.2), ex('y3', 'open', 1, 0.05),
+    ex('o1', 'orange', 2, 0.1), ex('o2', 'orange', 2, 0.2), ex('o3', 'orange', 2, 0.05),
+    ex('r1', 'red', 3, 0.1), ex('r2', 'red', 3, 0.2), ex('r3', 'red', 3, 0.05),
   ];
   const index = buildIndex(toy, (e) => (e as (typeof toy)[number]).v);
   const cfg = { k: 3, minSimilarity: 0.9, minShare: 0.6, redSimilarity: 0.97 };
 
-  test('near YELLOW examples -> YELLOW with the neighbour policy ref', () => {
+  test('near open examples -> open with the neighbour policy ref', () => {
     const r = classifyB(unit([0, 1, 0.1, 0]), index, cfg);
-    expect(r.tier).toBe('YELLOW');
-    expect(r.policyRef).toBe('yellow.insult');
+    expect(r.grade).toBe('open');
+    expect(r.policyRef).toBe('open.roast');
   });
 
-  test('near GREEN examples -> GREEN', () => {
-    expect(classifyB(unit([1, 0.1, 0, 0]), index, cfg).tier).toBe('GREEN');
+  test('near family examples -> family', () => {
+    expect(classifyB(unit([1, 0.1, 0, 0]), index, cfg).grade).toBe('family');
   });
 
-  test('far from everything -> GREEN (uncertainty resolves GREEN)', () => {
-    expect(classifyB(unit([1, 1, 1, 1]), index, cfg).tier).toBe('GREEN');
+  test('far from everything -> family (uncertainty never escalates)', () => {
+    expect(classifyB(unit([1, 1, 1, 1]), index, cfg).grade).toBe('family');
   });
 
-  test('RED neighbours give ORANGE unless every neighbour is RED at very high similarity', () => {
-    expect(classifyB(unit([0, 0, 0, 1]), index, cfg).tier).toBe('RED');
-    expect(classifyB(unit([0, 0, 0.35, 1]), index, { ...cfg, redSimilarity: 0.999 }).tier).toBe('ORANGE');
+  test('red neighbours give orange unless every neighbour is red at very high similarity', () => {
+    expect(classifyB(unit([0, 0, 0, 1]), index, cfg).grade).toBe('red');
+    expect(classifyB(unit([0, 0, 0.35, 1]), index, { ...cfg, redSimilarity: 0.999 }).grade).toBe('orange');
   });
 
   test('exclude drops an example from the neighbour set (leave-one-out)', () => {
@@ -94,20 +94,20 @@ describe('classifyB — k-NN semantics on a synthetic index', () => {
 });
 
 describe('rules/examples.json', () => {
-  test('policy refs agree with tiers, ids are unique, sentiment set is GREEN and >= 40', () => {
+  test('policy refs agree with grades, ids are unique, sentiment set is Family (Standard only for a swear) and >= 40', () => {
     const ids = new Set<string>();
     let sentiment = 0;
     for (const e of examples) {
       expect(ids.has(e.id)).toBe(false);
       ids.add(e.id);
-      expect(e.policy_ref.split('.')[0].toUpperCase()).toBe(e.tier);
+      expect(e.policy_ref.split('.')[0]).toBe(e.grade);
       if (e.set === 'sentiment') {
         sentiment++;
-        expect(e.tier).toBe('GREEN');
+        expect(['family.own_feelings', 'standard.profanity']).toContain(e.policy_ref);
       }
     }
     expect(examples.length).toBeGreaterThanOrEqual(150);
-    expect(examples.length).toBeLessThanOrEqual(250);
+    expect(examples.length).toBeLessThanOrEqual(350);
     expect(sentiment).toBeGreaterThanOrEqual(40);
   });
 
