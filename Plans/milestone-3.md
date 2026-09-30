@@ -3,10 +3,11 @@
 Brief: `docs/brief-milestone-3.md`. Standing invariants unchanged.
 
 ## Flags before building (Colin decides)
-1. **Friends vs "Friends" visibility.** Today a post marked "Friends" means "you are
-   both regulars of each other" (behaviour-derived). The brief adds explicit, mutual
-   friendships for Moments. Recommendation: "Friends" visibility on posts also
-   switches to explicit friendships, so there's one meaning of friend.
+1. **Friends vs "Friends" visibility. DECIDED (Colin): keep both.** Posts marked
+   "Friends" keep meaning "you're both regulars of each other" (behaviour-derived).
+   Only Moments use the new explicit friendships. UI copy must keep these distinct
+   (for example, visibility label "Regulars" or an explanation line), so users
+   aren't confused by two meanings of "friend".
 2. **Creator live assistance billing** is ledger money plus live streaming, and
    both are out of scope this milestone. Recommend deferring it: build Tier 0, 1
    and 2 for everyone now, and live-assist billing with payments.
