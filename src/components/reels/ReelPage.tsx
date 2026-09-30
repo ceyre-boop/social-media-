@@ -9,6 +9,7 @@ import { ReelVideo } from '@/components/reels/player/ReelVideo';
 import { usePlayerPool } from '@/components/reels/player/PlayerPool';
 import { Avatar, Chip, Text } from '@/components/ui';
 import { toggleMuted, useMuted } from '@/lib/mute';
+import { useOpenProfile } from '@/lib/profileLink';
 import { signImagePath, type FeedPost } from '@/lib/posts';
 import { stage as c, tintFor, useReducedMotion } from '@/lib/theme';
 import { relativeTime } from '@/lib/validation';
@@ -305,6 +306,7 @@ function ReelPageImpl({
   onToggleFollow,
 }: Props) {
   const reduce = useReducedMotion();
+  const openProfile = useOpenProfile();
   const pool = usePlayerPool();
   const [burst, setBurst] = useState(0);
   const [sheet, setSheet] = useState(false);
@@ -378,16 +380,26 @@ function ReelPageImpl({
             <Chip label={vis.label} icon={vis.icon} />
           </View>
         ) : null}
-        {/* Not interactive: no other-user profiles exist yet. */}
+        {/* Avatar, name and @username all open the author's profile (your own goes to You). */}
         <View style={styles.author} pointerEvents="box-none">
-          <Avatar username={username} displayName={post.author?.display_name} size={40} />
+          <Pressable
+            accessibilityRole="link"
+            accessibilityLabel={`${name}'s profile`}
+            disabled={!post.author}
+            onPress={() => openProfile(post.author?.username)}
+            style={styles.profileHit}
+          >
+            <Avatar username={username} displayName={post.author?.display_name} size={40} />
+          </Pressable>
           <View style={{ flex: 1 }} pointerEvents="box-none">
             <View style={styles.nameRow} pointerEvents="box-none">
               <Text
                 variant="headline"
                 tone="onMedia"
                 numberOfLines={1}
-                style={[shadow, { flexShrink: 1 }]}
+                style={[shadow, styles.profileHit, { flexShrink: 1 }]}
+                accessibilityRole={post.author ? 'link' : undefined}
+                onPress={post.author ? () => openProfile(post.author?.username) : undefined}
               >
                 {name}
               </Text>
@@ -400,7 +412,18 @@ function ReelPageImpl({
               ) : null}
             </View>
             <Text variant="caption" tone="onMediaMuted" numberOfLines={1} style={shadow}>
-              {post.author ? `@${post.author.username} · ` : ''}
+              {post.author ? (
+                <Text
+                  variant="caption"
+                  tone="onMediaMuted"
+                  style={[shadow, styles.profileHit]}
+                  accessibilityRole="link"
+                  onPress={() => openProfile(post.author?.username)}
+                >
+                  @{post.author.username}
+                </Text>
+              ) : null}
+              {post.author ? ' · ' : ''}
               {relativeTime(post.created_at)}
             </Text>
           </View>
@@ -444,6 +467,7 @@ function ReelPageImpl({
 export const ReelPage = memo(ReelPageImpl);
 
 const styles = StyleSheet.create({
+  profileHit: { cursor: 'pointer' },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   pill: {
     paddingHorizontal: 12,
