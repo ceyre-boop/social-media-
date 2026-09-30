@@ -11,7 +11,7 @@ import { useAuth } from '@/lib/auth';
 import { askForMomentPrompts, postMoment, prepareCapture, type CapturedPhoto } from '@/lib/moments';
 import { bakeEffect } from '@/lib/moments/bake';
 import { CAMERA_EFFECTS, effectById, type CameraEffectId } from '@/lib/moments/effects';
-import { stage as c } from '@/lib/theme';
+import { stage as c, useTheme } from '@/lib/theme';
 
 /**
  * Share a Moment: in-app camera ONLY (no library import; the point is the actual current moment).
@@ -20,6 +20,7 @@ import { stage as c } from '@/lib/theme';
  */
 export default function NewMoment() {
   const router = useRouter();
+  const { colors } = useTheme();
   const toast = useToast();
   const insets = useSafeAreaInsets();
   const { session, handleError } = useAuth();
@@ -185,7 +186,7 @@ export default function NewMoment() {
             Effects aren&apos;t available here right now. Your photo will be shared as it is.
           </Text>
         ) : null}
-        <View style={styles.field}>
+        <View style={[styles.field, { backgroundColor: colors.surface }]}>
           <TextField
             label="Caption (optional)"
             value={caption}
@@ -298,7 +299,7 @@ const styles = StyleSheet.create({
     borderColor: c.border,
   },
   effectOn: { backgroundColor: c.glassActive, borderColor: c.pillBorder },
-  field: { backgroundColor: c.surface, borderRadius: 14, padding: 12 },
+  field: { borderRadius: 14, padding: 12 },
   actions: { flexDirection: 'row', gap: 12 },
   error: { position: 'absolute', left: 16, right: 16 },
 });
