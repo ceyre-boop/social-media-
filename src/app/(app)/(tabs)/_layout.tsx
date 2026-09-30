@@ -3,7 +3,6 @@ import { TabList, TabSlot, TabTrigger, Tabs } from 'expo-router/ui';
 import { View } from 'react-native';
 
 import { FloatingNav } from '@/components/shell/FloatingNav';
-import { Rail } from '@/components/shell/Rail';
 import { OfflineBanner } from '@/components/shell/OfflineBanner';
 import { Sidebar } from '@/components/shell/Sidebar';
 import { COLUMN_MAX_WIDTH, SHELL_MAX_WIDTH, useBreakpoint } from '@/lib/layout';
@@ -14,8 +13,8 @@ import { useTheme } from '@/lib/theme';
  * <TabSlot /> depends on the breakpoint:
  *   compact: content + bottom tab bar
  *   medium:  icon-only sidebar (72) + centered 600px column
- *   wide:    full sidebar (240) + centered 600px column + right rail (320)
- * The live viewer (/live/[id]) is immersive: no floating nav, sidebar or rail, and the stage gets
+ *   wide:    full sidebar (240) + centered 600px column (no persistent right rail)
+ * The live viewer (/live/[id]) is immersive: no floating nav, sidebar, and the stage gets
  * the full window (it has its own back/close, and the gift takeover may not be covered).
  * The hidden <TabList> registers the routes; visible triggers are plain <TabTrigger name> elsewhere.
  */
@@ -34,7 +33,7 @@ export default function TabsLayout() {
           flex: 1,
           flexDirection: compact ? 'column' : 'row',
           backgroundColor: colors.bg,
-          // Sidebar + column (+ rail) sit together as one centered group instead of the sidebar
+          // Sidebar + column sit together as one centered group instead of the sidebar
           // hugging the window edge with dead space before the column.
           ...(compact || immersive
             ? null
@@ -65,7 +64,6 @@ export default function TabsLayout() {
               <TabSlot style={{ flexShrink: 1, minHeight: 0 }} />
             </View>
           </View>
-          {bp === 'wide' && !immersive ? <Rail /> : null}
         </View>
 
         {compact && !immersive ? <OfflineBanner floating /> : null}

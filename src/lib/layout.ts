@@ -6,7 +6,6 @@ export type Breakpoint = 'compact' | 'medium' | 'wide';
 export const COLUMN_MAX_WIDTH = 600;
 export const SIDEBAR_COLLAPSED = 72;
 export const SIDEBAR_EXPANDED = 240;
-export const RAIL_WIDTH = 320;
 
 export function breakpointFor(width: number): Breakpoint {
   if (width < 768) return 'compact';
@@ -20,10 +19,10 @@ export function useBreakpoint(): Breakpoint {
   return breakpointFor(width);
 }
 
-/** Max width of the whole shell (sidebar + column + rail) so it centers as one group. */
+/** Max width of the whole shell (sidebar + column) so it centers as one group. */
 export const SHELL_MAX_WIDTH: Record<Exclude<Breakpoint, 'compact'>, number> = {
   medium: SIDEBAR_COLLAPSED + COLUMN_MAX_WIDTH,
-  wide: SIDEBAR_EXPANDED + COLUMN_MAX_WIDTH + RAIL_WIDTH,
+  wide: SIDEBAR_EXPANDED + COLUMN_MAX_WIDTH,
 };
 
 export const NAV_HEIGHT = 64;

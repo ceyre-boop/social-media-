@@ -42,15 +42,15 @@ export type Colors = {
 };
 
 const dark: Colors = {
-  bg: '#0E0B10',
-  surface: '#17131A',
-  surface2: '#211B25',
-  surface3: '#2C2431',
-  border: '#342B3A',
-  borderStrong: '#4A3D52',
-  text: '#FBF6F9',
-  textSecondary: '#C9BFCC',
-  muted: '#978C9C',
+  bg: '#050506',
+  surface: '#0F0F11',
+  surface2: '#171719',
+  surface3: '#222225',
+  border: '#26262A',
+  borderStrong: '#3B3B40',
+  text: '#F4F4F5',
+  textSecondary: '#BDBDC2',
+  muted: '#93939A',
   primary: '#FF6FB5',
   primaryPressed: '#F0529F',
   onPrimary: '#24040F',
@@ -61,23 +61,23 @@ const dark: Colors = {
   danger: '#FF6B6B',
   info: '#5CC8FF',
   live: '#FF4FA3',
-  scrim: 'rgba(8,6,10,0.72)',
-  overlay: 'rgba(14,11,16,0.55)',
+  scrim: 'rgba(0,0,0,0.75)',
+  overlay: 'rgba(5,5,6,0.55)',
 };
 
 // AA adjustments vs the brief (see DESIGN.md "Contrast"): primary, primaryPressed, success,
 // warning, danger, info and live were darkened so that each passes 4.5:1 as text on
 // bg/surface/surface2/primarySubtle and, for primary, as a fill under white text.
 const light: Colors = {
-  bg: '#FFF9F6',
+  bg: '#FAFAFA',
   surface: '#FFFFFF',
-  surface2: '#FBF1F4',
-  surface3: '#F5E6EC',
-  border: '#EEDFE6',
-  borderStrong: '#DCC6D1',
-  text: '#1C1220',
-  textSecondary: '#4E4054',
-  muted: '#6F6175',
+  surface2: '#F2F2F3',
+  surface3: '#E8E8EA',
+  border: '#E4E4E7',
+  borderStrong: '#CFCFD4',
+  text: '#111113',
+  textSecondary: '#46464C',
+  muted: '#62626A',
   primary: '#BA3273',
   primaryPressed: '#9E2A62',
   onPrimary: '#FFFFFF',
@@ -88,8 +88,8 @@ const light: Colors = {
   danger: '#BA3C3C',
   info: '#176EA6',
   live: '#BA3273',
-  scrim: 'rgba(28,18,32,0.55)',
-  overlay: 'rgba(255,249,246,0.7)',
+  scrim: 'rgba(0,0,0,0.5)',
+  overlay: 'rgba(250,250,250,0.7)',
 };
 
 export const palettes: Record<ColorScheme, Colors> = { dark, light };
@@ -124,11 +124,11 @@ export const rainbow = [
  */
 export const stage = {
   bg: '#000000',
-  surface: '#17131A',
-  surface2: '#211B25',
+  surface: '#0F0F11',
+  surface2: '#171719',
   text: '#FFFFFF',
   textSecondary: 'rgba(255,255,255,0.82)',
-  muted: '#B5ABBA',
+  muted: '#B0B0B6',
   primary: '#FF6FB5',
   onPrimary: '#24040F',
   border: 'rgba(255,255,255,0.18)',
@@ -136,7 +136,7 @@ export const stage = {
   control: 'rgba(0,0,0,0.35)',
   controlHover: 'rgba(0,0,0,0.55)',
   /** Translucent dark glass: the floating nav pill. */
-  glass: 'rgba(20,18,24,0.72)',
+  glass: 'rgba(16,16,18,0.72)',
   glassActive: 'rgba(255,255,255,0.16)',
   scrimTop: 'rgba(0,0,0,0.5)',
   scrimBottom: 'rgba(0,0,0,0.78)',
@@ -147,7 +147,7 @@ export const stage = {
   pillFill: 'rgba(255,255,255,0.22)',
   /** Warm end-of-feed backdrop. */
   warmTop: '#3A1A2B',
-  warmBottom: '#0E0B10',
+  warmBottom: '#050506',
   textShadow: 'rgba(0,0,0,0.6)',
   /** Text-post card overlay. */
   cardTop: 'rgba(0,0,0,0.05)',
