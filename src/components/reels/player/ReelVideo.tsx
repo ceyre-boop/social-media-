@@ -7,7 +7,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { VideoView } from 'expo-video';
-import { memo, useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
@@ -23,15 +23,14 @@ const FIRST_FRAME_FALLBACK_MS = 250;
 
 function ReelVideoImpl({ post }: Props) {
   const pool = usePlayerPool();
-  const { player, current, paused, loaded } = usePooledPlayer(post.id);
+  const { player, current, paused, loaded, drawn } = usePooledPlayer(post.id);
   const reduce = useReducedMotion();
   const portrait = post.aspectRatio <= 0.8;
   const fit = portrait ? 'cover' : 'contain';
 
-  // Opacity of the video layer. Starts visible only if this key already drew a frame.
+  // Opacity of the video layer. Visible only once THIS key drew a frame (tracked per key in the
+  // pool), so a recycled player never shows the previous reel's last frame.
   const shown = useSharedValue(0);
-  const [drawnFor, setDrawnFor] = useState<unknown>(null);
-  const drawn = player !== null && drawnFor === player;
 
   // A surface attached to a player: re-assert the pool's play/pause for it.
   useEffect(() => {
@@ -40,8 +39,7 @@ function ReelVideoImpl({ post }: Props) {
 
   const onFirstFrame = useCallback(() => {
     pool.markFirstFrame(post.id);
-    setDrawnFor(player);
-  }, [pool, post.id, player]);
+  }, [pool, post.id]);
 
   // Fallback: some surfaces (web video elements attached to an already-loaded player) never
   // emit a fresh first-frame event. Once the source is loaded a frame exists; show it shortly after.
