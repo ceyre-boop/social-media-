@@ -11,6 +11,7 @@ import { brand } from '@/config/brand';
 import { toUserError } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/lib/theme';
+import { deviceTimezone } from '@/lib/timezone';
 import {
   MIN_AGE,
   MIN_PASSWORD_LENGTH,
@@ -36,15 +37,6 @@ function dobProblem(dob: string): string | null {
   if (!isAtLeastAge(iso, MIN_AGE))
     return `You must be at least ${MIN_AGE} to use ${brand.appName}.`;
   return null;
-}
-
-/** Captured silently and sent as signup metadata. */
-function deviceTimezone(): string | undefined {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
-  } catch {
-    return undefined;
-  }
 }
 
 export default function SignUp() {
