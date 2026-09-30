@@ -13,6 +13,10 @@ export type ErrorKind =
   | 'conflict'
   | 'rate_limit'
   | 'code'
+  | 'credentials'
+  | 'password'
+  | 'unconfirmed'
+  | 'exists'
   | 'too_large'
   | 'age'
   | 'server'
@@ -136,7 +140,49 @@ function classify(m: string, c: string, status: number, name: string, raw: strin
     );
   }
 
-  if (c === 'otp_expired' || c === 'invalid_credentials' || /token has expired or is invalid|otp.*(expired|invalid)|invalid.*otp|invalid token|token.*expired/.test(m)) {
+  // Password login. One generic message whether the email exists or not.
+  if (c === 'invalid_credentials' || /invalid login credentials/.test(m)) {
+    return make(
+      'credentials',
+      "That didn't work",
+      "That email and password don't match.",
+      false,
+    );
+  }
+  if (c === 'email_not_confirmed' || /email not confirmed/.test(m)) {
+    return make(
+      'unconfirmed',
+      'Confirm your email first',
+      'Finish creating your account with the code we emailed you, or sign up again to get a new one.',
+      false,
+    );
+  }
+  if (c === 'weak_password' || /password should be at least|weak password|password is too (short|weak)/.test(m)) {
+    return make(
+      'password',
+      'Choose a longer password',
+      'Use at least 8 characters.',
+      false,
+    );
+  }
+  if (c === 'same_password' || /different from the old password/.test(m)) {
+    return make(
+      'password',
+      'Pick a new password',
+      "Choose a password you haven't used before.",
+      false,
+    );
+  }
+  if (c === 'email_exists' || c === 'user_already_exists' || /already (registered|been registered)/.test(m)) {
+    return make(
+      'exists',
+      'Try logging in',
+      "We couldn't create that account. If it's yours, log in instead.",
+      false,
+    );
+  }
+
+  if (c === 'otp_expired' || /token has expired or is invalid|otp.*(expired|invalid)|invalid.*otp|invalid token|token.*expired/.test(m)) {
     return make(
       'code',
       'That code did not work',

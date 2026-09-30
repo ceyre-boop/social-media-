@@ -53,3 +53,14 @@ export function isAtLeastAge(dob: string, years: number, now = new Date()): bool
   if (now.getUTCMonth() + 1 < mo || (now.getUTCMonth() + 1 === mo && now.getUTCDate() < d)) age -= 1;
   return age >= years;
 }
+
+export const MIN_PASSWORD_LENGTH = 8;
+
+/** A gentle hint, never a blocker beyond the minimum length. Null when the password is fine. */
+export function passwordHint(pw: string): string | null {
+  if (pw.length === 0) return null;
+  if (pw.length < MIN_PASSWORD_LENGTH) return `${MIN_PASSWORD_LENGTH - pw.length} more character${MIN_PASSWORD_LENGTH - pw.length === 1 ? "" : "s"} to go.`;
+  const variety = [/[a-z]/, /[A-Z]/, /\d/, /[^A-Za-z0-9]/].filter((r) => r.test(pw)).length;
+  if (pw.length < 12 && variety < 2) return "Good enough. A longer password or a mix of characters is stronger.";
+  return "Looks good.";
+}

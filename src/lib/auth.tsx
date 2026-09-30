@@ -27,6 +27,9 @@ type AuthState = {
   /** One-time message for the sign-in screen (e.g. the session ended). */
   notice: string | null;
   clearNotice: () => void;
+  /** True while someone is resetting their password: the recovery code signs them in, but they stay on the auth screens until the new password is set. */
+  recovering: boolean;
+  setRecovering: (on: boolean) => void;
   /** Maps an error for display; if it means "session over", ends the session with a notice. */
   handleError: (e: unknown, scope?: string) => UserError;
 };
@@ -63,6 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // The user id whose profile has been fetched (null = signed out / nothing fetched yet).
   const [profileFor, setProfileFor] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [recovering, setRecovering] = useState(false);
   const sessionRef = useRef<Session | null>(null);
   const userInitiatedSignOut = useRef(false);
 
@@ -171,6 +175,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signOut,
       notice,
       clearNotice,
+      recovering,
+      setRecovering,
       handleError,
     }),
     [
@@ -183,6 +189,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signOut,
       notice,
       clearNotice,
+      recovering,
       handleError,
     ],
   );

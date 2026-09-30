@@ -28,7 +28,8 @@ void SplashScreen.preventAutoHideAsync().catch(() => {});
 type ServerState = 'checking' | 'ok' | 'down';
 
 function RootStack() {
-  const { loading, session, profile, profileError, refreshProfile, signOut } = useAuth();
+  const { loading, session, profile, profileError, refreshProfile, signOut, recovering } =
+    useAuth();
   const { colors } = useTheme();
   const [server, setServer] = useState<ServerState>(configMissing ? 'ok' : 'checking');
 
@@ -96,10 +97,10 @@ function RootStack() {
 
   return (
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.bg } }}>
-      <Stack.Protected guard={!session}>
+      <Stack.Protected guard={!session || recovering}>
         <Stack.Screen name="(auth)" />
       </Stack.Protected>
-      <Stack.Protected guard={!!session}>
+      <Stack.Protected guard={!!session && !recovering}>
         <Stack.Screen name="(app)" />
       </Stack.Protected>
     </Stack>

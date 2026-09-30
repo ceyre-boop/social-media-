@@ -40,7 +40,7 @@ export default function PublicPost() {
           title="Sign in"
           variant="secondary"
           size="sm"
-          onPress={() => router.navigate('/sign-in')}
+          onPress={() => router.navigate('/welcome')}
         />
       </View>
       {post.status === 'ready' ? (
@@ -75,7 +75,7 @@ export default function PublicPost() {
                 title="This post isn't available"
                 message="It may have been removed, or it isn't shared with you."
                 actionLabel="Sign in"
-                onAction={() => router.navigate('/sign-in')}
+                onAction={() => router.navigate('/welcome')}
               />
             )}
           </View>

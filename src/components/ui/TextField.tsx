@@ -12,10 +12,12 @@ type Props = TextInputProps & {
   error?: string | null;
   /** Shown bottom-right, e.g. "12/500". */
   counter?: string;
+  /** Element pinned inside the right edge of the input (e.g. a show/hide toggle). */
+  right?: React.ReactNode;
 };
 
 export const TextField = forwardRef<TextInput, Props>(function TextField(
-  { label, hint, error, counter, style, onFocus, onBlur, ...props },
+  { label, hint, error, counter, right, style, onFocus, onBlur, ...props },
   ref,
 ) {
   const { colors, radius, spacing, type } = useTheme();
@@ -25,35 +27,39 @@ export const TextField = forwardRef<TextInput, Props>(function TextField(
   return (
     <View style={{ gap: spacing.xs }}>
       <Text variant="callout">{label}</Text>
-      <TextInput
-        ref={ref}
-        accessibilityLabel={label}
-        placeholderTextColor={colors.muted}
-        {...props}
-        onFocus={(e) => {
-          setFocused(true);
-          onFocus?.(e);
-        }}
-        onBlur={(e) => {
-          setFocused(false);
-          onBlur?.(e);
-        }}
-        style={[
-          styles.input,
-          {
-            borderColor,
-            borderWidth: focused ? 2 : 1,
-            borderRadius: radius.md,
-            backgroundColor: colors.surface,
-            color: colors.text,
-            paddingHorizontal: spacing.lg - (focused ? 1 : 0),
-            fontFamily: fontFamilyFor('400'),
-            fontSize: type.body.fontSize,
-          },
-          props.multiline && styles.multiline,
-          style,
-        ]}
-      />
+      <View>
+        <TextInput
+          ref={ref}
+          accessibilityLabel={label}
+          placeholderTextColor={colors.muted}
+          {...props}
+          onFocus={(e) => {
+            setFocused(true);
+            onFocus?.(e);
+          }}
+          onBlur={(e) => {
+            setFocused(false);
+            onBlur?.(e);
+          }}
+          style={[
+            styles.input,
+            {
+              borderColor,
+              borderWidth: focused ? 2 : 1,
+              borderRadius: radius.md,
+              backgroundColor: colors.surface,
+              color: colors.text,
+              paddingHorizontal: spacing.lg - (focused ? 1 : 0),
+              fontFamily: fontFamilyFor('400'),
+              fontSize: type.body.fontSize,
+            },
+            props.multiline && styles.multiline,
+            right ? { paddingRight: 72 } : null,
+            style,
+          ]}
+        />
+        {right ? <View style={styles.right}>{right}</View> : null}
+      </View>
       <View style={styles.meta}>
         <Text
           variant="caption"
@@ -80,6 +86,7 @@ const styles = StyleSheet.create({
     // Web: the focused border above replaces the browser default outline.
     outlineWidth: 0,
   },
+  right: { position: 'absolute', right: 4, top: 0, bottom: 0, justifyContent: 'center' },
   multiline: { minHeight: 104, textAlignVertical: 'top' },
   meta: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
   metaText: { flexShrink: 1 },
