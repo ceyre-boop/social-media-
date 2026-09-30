@@ -2,7 +2,7 @@ import { FlashList, type FlashListRef } from '@shopify/flash-list';
 import { useFocusEffect } from 'expo-router';
 import { setStatusBarStyle } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Platform,
@@ -12,9 +12,17 @@ import {
   useWindowDimensions,
   type LayoutChangeEvent,
 } from 'react-native';
+import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { scheduleOnRN } from 'react-native-worklets';
 
 import { ReelPage } from '@/components/reels/ReelPage';
+import { PerfOverlay } from '@/components/reels/player/PerfOverlay';
+import {
+  PlayerPoolProvider,
+  usePlayerPool,
+  type ReelSource,
+} from '@/components/reels/player/PlayerPool';
 import {
   Button,
   Brand,
@@ -52,6 +60,27 @@ type Props = {
   /** Replaces the default "all caught up" page at the end of the feed. */
   endPage?: (ctx: FeedPageContext) => React.ReactNode;
 };
+
+/**
+ * Pager implementation (dev toggle, measured on device; see DESIGN.md "Reel player").
+ *   flashlist  — A: FlashList, pagingEnabled + snapToInterval (default).
+ *   scrollview — B: Reanimated Animated.ScrollView, pagingEnabled + snapToInterval, windowed pages.
+ * In both, the swipe never touches React state: the live index is a shared value and the settled
+ * index is committed to JS once per settle, which then reassigns the player slots.
+ */
+export const REEL_PAGER: 'flashlist' | 'scrollview' =
+  process.env.EXPO_PUBLIC_REEL_PAGER === 'scrollview' ? 'scrollview' : 'flashlist';
+/** Pager B mounts real pages only within this distance of the settled page. */
+const SCROLLVIEW_WINDOW = 2;
+/** Web has no momentum-end event: commit after scrolling has been idle this long. */
+const WEB_SETTLE_IDLE_MS = 120;
+const VIEWABILITY = { itemVisiblePercentThreshold: 80 };
+
+function reelSourceOf(row: Row | undefined): ReelSource | null {
+  if (!row || row.kind !== 'post') return null;
+  const p = row.post;
+  return p.kind === 'reel' && p.videoUrl ? { key: p.id, uri: p.videoUrl } : null;
+}
 
 // Web: marks a snap target for the scroll-snap CSS in +html.tsx (ignored on native).
 const pageMark = { dataSet: { reelPage: '1' } } as object;
@@ -128,7 +157,16 @@ function LoadingPage({ height, width }: { height: number; width: number }) {
   );
 }
 
-export function ReelsFeed({
+/** Full-screen reels feed with a pooled video player (see player/PlayerPool.tsx). */
+export function ReelsFeed(props: Props) {
+  return (
+    <PlayerPoolProvider>
+      <ReelsFeedInner {...props} />
+    </PlayerPoolProvider>
+  );
+}
+
+function ReelsFeedInner({
   title: pageTitle,
   loadPage,
   pageSize = PAGE_SIZE,
@@ -159,7 +197,11 @@ export function ReelsFeed({
   const [following, setFollowing] = useState<Set<string>>(() => new Set());
   const followInFlight = useRef(new Set<string>());
   const [size, setSize] = useState({ w: win.width, h: win.height });
-  const [index, setIndex] = useState(0);
+  // The settled page. Changes once per settle, never during a swipe.
+  const [settled, setSettled] = useState(0);
+  const pool = usePlayerPool();
+  /** Live page index during a swipe (UI thread for pager B). Read by worklets only. */
+  const liveIndex = useSharedValue(0);
   const loadingMoreRef = useRef(false);
   const inFlight = useRef(new Set<string>());
   const hasPosts = useRef(false);
@@ -228,8 +270,12 @@ export function ReelsFeed({
     useCallback(() => {
       refresh();
       setStatusBarStyle('light');
-      return () => setStatusBarStyle(scheme === 'light' ? 'dark' : 'light');
-    }, [refresh, scheme]),
+      pool.setSuspended('blur', false);
+      return () => {
+        pool.setSuspended('blur', true);
+        setStatusBarStyle(scheme === 'light' ? 'dark' : 'light');
+      };
+    }, [refresh, scheme, pool]),
   );
 
   // ...and when the connection comes back or the app returns to the foreground.
@@ -314,15 +360,78 @@ export function ReelsFeed({
     }
   }
 
-  const rows: Row[] = posts.map((post) => ({ kind: 'post', key: post.id, post }));
-  if (posts.length > 0) {
-    if (moreError) rows.push({ kind: 'more-error', key: 'more-error' });
-    else if (loadingMore) rows.push({ kind: 'more-loading', key: 'more-loading' });
-    else if (!hasMore) rows.push({ kind: 'end', key: 'end' });
-  }
+  // Stable callbacks so memoized pages skip re-rendering on settle.
+  const actions = useRef({ toggleLike, toggleFollow, loadMore });
+  useEffect(() => {
+    actions.current = { toggleLike, toggleFollow, loadMore };
+  });
+  const onToggleLike = useCallback((p: FeedPost) => void actions.current.toggleLike(p), []);
+  const onDoubleTapLike = useCallback(
+    (p: FeedPost) => void actions.current.toggleLike(p, 'like'),
+    [],
+  );
+  const onToggleFollow = useCallback(
+    (authorId: string) => void actions.current.toggleFollow(authorId),
+    [],
+  );
+
+  const rows: Row[] = useMemo(() => {
+    const r: Row[] = posts.map((post) => ({ kind: 'post', key: post.id, post }));
+    if (posts.length > 0) {
+      if (moreError) r.push({ kind: 'more-error', key: 'more-error' });
+      else if (loadingMore) r.push({ kind: 'more-loading', key: 'more-loading' });
+      else if (!hasMore) r.push({ kind: 'end', key: 'end' });
+    }
+    return r;
+  }, [posts, moreError, loadingMore, hasMore]);
+  const rowsRef = useRef(rows);
   useEffect(() => {
     countRef.current = rows.length;
-  });
+    rowsRef.current = rows;
+  }, [rows]);
+
+  /** Commit a settled page: one state update, then reassign player slots (current ± 1). */
+  const commit = useCallback(
+    (raw: number) => {
+      const i = Math.max(0, Math.min(rowsRef.current.length - 1, raw));
+      indexRef.current = i;
+      setSettled(i);
+      const r = rowsRef.current;
+      pool.settle(
+        reelSourceOf(r[i]),
+        [reelSourceOf(r[i + 1]), reelSourceOf(r[i - 1])].filter((x): x is ReelSource => !!x),
+      );
+    },
+    [pool],
+  );
+
+  // Data changed (first load, refresh, next page, like): re-settle on the same page.
+  useEffect(() => {
+    if (rows.length > 0) commit(indexRef.current);
+  }, [rows, commit]);
+
+  // Pager B has no onEndReached: ask for the next page when settling near the end.
+  useEffect(() => {
+    if (REEL_PAGER === 'scrollview' && rows.length > 0 && settled >= rows.length - 3) {
+      void actions.current.loadMore();
+    }
+  }, [settled, rows.length]);
+
+  // Web fallback: no momentum-end events, so commit once scrolling goes idle.
+  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const settleWhenIdle = useCallback(
+    (y: number, h: number) => {
+      if (idleTimer.current) clearTimeout(idleTimer.current);
+      idleTimer.current = setTimeout(() => commit(Math.round(y / h)), WEB_SETTLE_IDLE_MS);
+    },
+    [commit],
+  );
+  useEffect(
+    () => () => {
+      if (idleTimer.current) clearTimeout(idleTimer.current);
+    },
+    [],
+  );
 
   // Web: scroll-snap can latch onto page 2 while the first cell is still unmeasured; pin to the top once.
   const pinned = useRef(false);
@@ -337,10 +446,16 @@ export function ReelsFeed({
     return () => t.forEach(clearTimeout);
   }, [ready]);
 
+  const scrollRef = useRef<Animated.ScrollView>(null);
+  const pageHRef = useRef(0);
   const goTo = useCallback((i: number) => {
     const next = Math.max(0, Math.min(countRef.current - 1, i));
     indexRef.current = next;
-    listRef.current?.scrollToIndex({ index: next, animated: true });
+    if (REEL_PAGER === 'scrollview') {
+      scrollRef.current?.scrollTo({ y: next * pageHRef.current, animated: true });
+    } else {
+      listRef.current?.scrollToIndex({ index: next, animated: true });
+    }
   }, []);
 
   // Desktop keyboard: ArrowDown/J next, ArrowUp/K previous. Never while typing in a field.
@@ -370,6 +485,73 @@ export function ReelsFeed({
   };
 
   const pageH = Math.round(size.h);
+  useEffect(() => {
+    pageHRef.current = pageH;
+  }, [pageH]);
+
+  // Pager B: scroll position lives on the UI thread; JS hears about it once per settle.
+  const isWeb = Platform.OS === 'web';
+  const scrollHandler = useAnimatedScrollHandler(
+    {
+      onScroll: (e) => {
+        liveIndex.value = Math.round(e.contentOffset.y / pageH);
+        if (isWeb) scheduleOnRN(settleWhenIdle, e.contentOffset.y, pageH);
+      },
+      onMomentumEnd: (e) => {
+        scheduleOnRN(commit, Math.round(e.contentOffset.y / pageH));
+      },
+    },
+    [pageH, isWeb, settleWhenIdle, commit],
+  );
+
+  const renderRow = (item: Row, i: number) => {
+    if (item.kind === 'post') {
+      return (
+        <ReelPage
+          post={item.post}
+          variant={compact ? 'full' : 'card'}
+          width={size.w}
+          height={pageH}
+          active={Math.abs(i - settled) <= 1}
+          bottomInset={bottomInset}
+          onToggleLike={onToggleLike}
+          onDoubleTapLike={onDoubleTapLike}
+          showFollow={item.post.author_id !== me && !!item.post.author}
+          following={following.has(item.post.author_id)}
+          onToggleFollow={onToggleFollow}
+        />
+      );
+    }
+    if (item.kind === 'end') {
+      if (endPage) return <>{endPage({ height: pageH, width: size.w, bottomInset })}</>;
+      return (
+        <Page
+          height={pageH}
+          bottomInset={bottomInset}
+          title="You're all caught up."
+          message="That's everyone for now. Come back later."
+        />
+      );
+    }
+    if (item.kind === 'more-error') {
+      return (
+        <Page
+          height={pageH}
+          bottomInset={bottomInset}
+          title="Couldn't load more"
+          message="Check your connection and try again."
+          action={{
+            label: 'Retry',
+            onPress: () => {
+              setMoreError(false);
+              void loadMore();
+            },
+          }}
+        />
+      );
+    }
+    return <Page height={pageH} bottomInset={bottomInset} spinner />;
+  };
   const bottomInset = compact ? navClearance : 0;
   const top = insets.top + spacing.sm;
 
@@ -403,12 +585,35 @@ export function ReelsFeed({
         message="Post something or come back later."
       />
     );
+  } else if (REEL_PAGER === 'scrollview') {
+    body = (
+      <Animated.ScrollView
+        ref={scrollRef}
+        showsVerticalScrollIndicator={false}
+        pagingEnabled
+        snapToInterval={pageH}
+        snapToAlignment="start"
+        decelerationRate="fast"
+        disableIntervalMomentum
+        scrollEventThrottle={16}
+        onScroll={scrollHandler}
+        {...({ dataSet: { reels: '1' } } as object)}
+      >
+        {rows.map((item, i) =>
+          Math.abs(i - settled) <= SCROLLVIEW_WINDOW ? (
+            <View key={item.key}>{renderRow(item, i)}</View>
+          ) : (
+            <View key={item.key} style={{ height: pageH }} {...pageMark} />
+          ),
+        )}
+      </Animated.ScrollView>
+    );
   } else {
     body = (
       <FlashList<Row>
         ref={listRef}
         data={rows}
-        extraData={{ index, pageH, w: size.w, compact, following }}
+        extraData={{ settled, pageH, w: size.w, compact, following }}
         keyExtractor={(r) => r.key}
         getItemType={(r) => r.kind}
         showsVerticalScrollIndicator={false}
@@ -418,65 +623,23 @@ export function ReelsFeed({
         decelerationRate="fast"
         disableIntervalMomentum
         scrollEventThrottle={16}
+        // No React state here: a shared-value write only (JS thread for FlashList).
         onScroll={(e) => {
-          const i = Math.round(e.nativeEvent.contentOffset.y / pageH);
-          if (i !== indexRef.current) {
-            indexRef.current = i;
-            setIndex(i);
-          }
+          const y = e.nativeEvent.contentOffset.y;
+          liveIndex.value = Math.round(y / pageH);
+          if (isWeb) settleWhenIdle(y, pageH);
+        }}
+        onMomentumScrollEnd={(e) => commit(Math.round(e.nativeEvent.contentOffset.y / pageH))}
+        viewabilityConfig={VIEWABILITY}
+        onViewableItemsChanged={({ viewableItems }) => {
+          const first = viewableItems[0]?.index;
+          if (typeof first === 'number' && first !== indexRef.current) commit(first);
         }}
         onEndReached={loadMore}
         onEndReachedThreshold={0.5}
         // Web: our +html.tsx CSS adds scroll-snap to the list's direct children.
         {...({ dataSet: { reels: '1' } } as object)}
-        renderItem={({ item, index: i }) => {
-          if (item.kind === 'post') {
-            return (
-              <ReelPage
-                post={item.post}
-                variant={compact ? 'full' : 'card'}
-                width={size.w}
-                height={pageH}
-                active={Math.abs(i - index) <= 1}
-                bottomInset={bottomInset}
-                onToggleLike={() => toggleLike(item.post)}
-                onDoubleTapLike={() => toggleLike(item.post, 'like')}
-                showFollow={item.post.author_id !== me && !!item.post.author}
-                following={following.has(item.post.author_id)}
-                onToggleFollow={() => toggleFollow(item.post.author_id)}
-              />
-            );
-          }
-          if (item.kind === 'end') {
-            if (endPage) return <>{endPage({ height: pageH, width: size.w, bottomInset })}</>;
-            return (
-              <Page
-                height={pageH}
-                bottomInset={bottomInset}
-                title="You're all caught up."
-                message="That's everyone for now. Come back later."
-              />
-            );
-          }
-          if (item.kind === 'more-error') {
-            return (
-              <Page
-                height={pageH}
-                bottomInset={bottomInset}
-                title="Couldn't load more"
-                message="Check your connection and try again."
-                action={{
-                  label: 'Retry',
-                  onPress: () => {
-                    setMoreError(false);
-                    void loadMore();
-                  },
-                }}
-              />
-            );
-          }
-          return <Page height={pageH} bottomInset={bottomInset} spinner />;
-        }}
+        renderItem={({ item, index: i }) => renderRow(item, i)}
       />
     );
   }
@@ -507,6 +670,7 @@ export function ReelsFeed({
           />
         </View>
       )}
+      <PerfOverlay />
       {compact ? (
         <LinearGradient
           pointerEvents="none"
