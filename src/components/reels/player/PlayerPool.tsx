@@ -17,7 +17,7 @@ import { useVideoPlayer, type VideoPlayer } from 'expo-video';
 import { createContext, useContext, useEffect, useState, useSyncExternalStore } from 'react';
 import { AppState, Platform } from 'react-native';
 
-import { getMuted, subscribeMuted } from '@/lib/mute';
+import { autoplayBlocked, getMuted, subscribeMuted } from '@/lib/mute';
 
 export const POOL_SIZE = 4;
 
@@ -310,6 +310,21 @@ export function PlayerPoolProvider({ children }: { children: React.ReactNode }) 
     const onVis = () => store.setSuspended('hidden', document.visibilityState === 'hidden');
     document.addEventListener('visibilitychange', onVis);
     return () => document.removeEventListener('visibilitychange', onVis);
+  }, [store]);
+
+  // Web: the browser refused an unmuted play() (no user gesture yet). expo-video does not surface
+  // the rejected promise, so catch it globally: fall back to muted and retry.
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const onRejection = (e: PromiseRejectionEvent) => {
+      if ((e.reason as { name?: string } | null)?.name !== 'NotAllowedError') return;
+      e.preventDefault();
+      autoplayBlocked();
+      store.setMuted(true);
+      store.reapply();
+    };
+    window.addEventListener('unhandledrejection', onRejection);
+    return () => window.removeEventListener('unhandledrejection', onRejection);
   }, [store]);
 
   // Dev: expose the pool for the automated web walk.
