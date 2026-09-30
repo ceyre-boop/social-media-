@@ -69,6 +69,8 @@ export class PoolStore {
   private listeners = new Set<() => void>();
   private clock = 0;
   readonly settles: SettleRecord[] = [];
+  /** Set by the feed: a slot could not load its source (e.g. expired signed URL). */
+  onLoadFailed: ((key: string) => void) | null = null;
 
   attach(players: VideoPlayer[]): void {
     this.players = players;
@@ -92,13 +94,14 @@ export class PoolStore {
     for (const l of this.listeners) l();
   }
 
-  /** Primitive snapshot for one key: "slot|current|paused|loaded". */
+  /** Primitive snapshot for one key: "slot|current|paused|loaded|drawn". */
   snapshot(key: string): string {
     const slot = this.slots.findIndex((s) => s.key === key);
-    if (slot < 0) return '-1|0|0|0';
+    if (slot < 0) return '-1|0|0|0|0';
     const current = key === this.currentKey;
     const loaded = this.slots[slot].loadedKey === key;
-    return `${slot}|${current ? 1 : 0}|${current && this.userPaused ? 1 : 0}|${loaded ? 1 : 0}`;
+    const drawn = this.slots[slot].firstFrameKey === key;
+    return `${slot}|${current ? 1 : 0}|${current && this.userPaused ? 1 : 0}|${loaded ? 1 : 0}|${drawn ? 1 : 0}`;
   }
 
   player(slot: number): VideoPlayer | null {
@@ -120,7 +123,8 @@ export class PoolStore {
 
     for (const src of wanted) {
       const i = this.slots.findIndex((s) => s.key === src.key);
-      if (i >= 0 && this.slots[i].uri === src.uri) {
+      // Identity is the post key alone: a re-signed URL for the same reel never reloads its slot.
+      if (i >= 0) {
         this.slots[i].lastUsed = ++this.clock;
         continue;
       }
@@ -184,6 +188,7 @@ export class PoolStore {
         slot.key = null;
         slot.uri = null;
         this.emit();
+        this.onLoadFailed?.(src.key);
       });
   }
 
@@ -223,6 +228,7 @@ export class PoolStore {
     if (!slot || slot.firstFrameKey === key) return;
     slot.firstFrameKey = key;
     this.applyPlayback();
+    this.emit();
     if (__DEV__) {
       const rec = [...this.settles].reverse().find((r) => r.key === key);
       if (rec && rec.firstFrameMs === null) rec.firstFrameMs = Date.now() - rec.at;
@@ -331,6 +337,8 @@ export type PooledPlayer = {
   paused: boolean;
   /** The source finished loading in the lent player. */
   loaded: boolean;
+  /** This key's own first frame has been drawn (never true for a recycled player's old frame). */
+  drawn: boolean;
 };
 
 /** The player lent to `key`, if any. Re-renders only when this key's slot state changes. */
@@ -341,11 +349,12 @@ export function usePooledPlayer(key: string): PooledPlayer {
     () => store.snapshot(key),
     () => store.snapshot(key),
   );
-  const [slot, current, paused, loaded] = snap.split('|').map(Number);
+  const [slot, current, paused, loaded, drawn] = snap.split('|').map(Number);
   return {
     player: slot >= 0 ? store.player(slot) : null,
     current: current === 1,
     paused: paused === 1,
     loaded: loaded === 1,
+    drawn: drawn === 1,
   };
 }

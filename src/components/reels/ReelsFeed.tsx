@@ -38,7 +38,8 @@ import type { UserError } from '@/lib/errors';
 import { useBreakpoint, useNavClearance } from '@/lib/layout';
 import { fetchFollowing, setFollow } from '@/lib/follows';
 import { useRevalidate } from '@/lib/network';
-import { PAGE_SIZE, cursorOf, setLike, type FeedPost } from '@/lib/posts';
+import { refreshHomeAuthors } from '@/lib/feeds';
+import { PAGE_SIZE, cursorOf, setLike, signMediaPath, type FeedPost } from '@/lib/posts';
 import { stage as c, useTheme } from '@/lib/theme';
 
 export type PageCursor = ReturnType<typeof cursorOf>;
@@ -75,6 +76,23 @@ const SCROLLVIEW_WINDOW = 2;
 /** Web has no momentum-end event: commit after scrolling has been idle this long. */
 const WEB_SETTLE_IDLE_MS = 120;
 const VIEWABILITY = { itemVisiblePercentThreshold: 80 };
+/** Signed URLs last an hour; re-sign a little before that. */
+const URL_MAX_AGE_MS = 50 * 60 * 1000;
+
+/** Re-sign one post's media URLs (best effort: a failed path keeps its old URL). */
+async function resignPost(post: FeedPost): Promise<FeedPost> {
+  const [videoUrl, posterUrl, imageUrl] = await Promise.all([
+    post.videoPath ? signMediaPath(post.videoPath) : null,
+    post.posterPath ? signMediaPath(post.posterPath) : null,
+    post.imagePath ? signMediaPath(post.imagePath) : null,
+  ]);
+  return {
+    ...post,
+    videoUrl: videoUrl ?? post.videoUrl,
+    posterUrl: posterUrl ?? post.posterUrl,
+    imageUrl: imageUrl ?? post.imageUrl,
+  };
+}
 
 function reelSourceOf(row: Row | undefined): ReelSource | null {
   if (!row || row.kind !== 'post') return null;
@@ -210,10 +228,45 @@ function ReelsFeedInner({
   const indexRef = useRef(0);
   const countRef = useRef(0);
   const firstIdRef = useRef<string | undefined>(undefined);
+  const postsRef = useRef<FeedPost[]>([]);
+  /** When each post's signed URLs were issued (ms), by post id. */
+  const signedAt = useRef(new Map<string, number>());
+  const loadRetried = useRef(new Set<string>());
 
   useEffect(() => {
     firstIdRef.current = posts[0]?.id;
+    postsRef.current = posts;
+    const now = Date.now();
+    for (const p of posts) if (!signedAt.current.has(p.id)) signedAt.current.set(p.id, now);
   }, [posts]);
+
+  /** Swap fresh URLs into the list for these posts (by id). */
+  const applyResigned = useCallback((fresh: FeedPost[]) => {
+    const now = Date.now();
+    const byId = new Map(fresh.map((p) => [p.id, p]));
+    for (const p of fresh) signedAt.current.set(p.id, now);
+    setPosts((prev) =>
+      prev.map((p) => {
+        const f = byId.get(p.id);
+        return f
+          ? { ...p, videoUrl: f.videoUrl, posterUrl: f.posterUrl, imageUrl: f.imageUrl }
+          : p;
+      }),
+    );
+  }, []);
+
+  // A slot failed to load its source (often an expired signed URL): re-sign once and let it retry.
+  useEffect(() => {
+    pool.onLoadFailed = (key) => {
+      if (loadRetried.current.has(key)) return;
+      loadRetried.current.add(key);
+      const post = postsRef.current.find((p) => p.id === key);
+      if (post) void resignPost(post).then((f) => applyResigned([f]));
+    };
+    return () => {
+      pool.onLoadFailed = null;
+    };
+  }, [pool, applyResigned]);
 
   useEffect(() => {
     hasPosts.current = posts.length > 0;
@@ -230,15 +283,43 @@ function ReelsFeedInner({
         ).catch(() => null);
         // New posts on top shift the list (content-position keeping); if they were at the top, stay there.
         const wasTop = indexRef.current === 0;
-        const newTop = page[0]?.id !== firstIdRef.current;
-        setPosts(page);
-        if (follows) setFollowing(follows);
-        if (wasTop && newTop) {
-          const top = () => listRef.current?.scrollToOffset({ offset: 0, animated: false });
-          setTimeout(top, 0);
-          setTimeout(top, 200);
+        const prev = postsRef.current;
+        if (pull || prev.length === 0) {
+          const newTop = page[0]?.id !== firstIdRef.current;
+          setPosts(page);
+          if (wasTop && newTop) {
+            const top = () => listRef.current?.scrollToOffset({ offset: 0, animated: false });
+            setTimeout(top, 0);
+            setTimeout(top, 200);
+          }
+          setHasMore(!finite && page.length === pageSize);
+        } else {
+          // Merge: new posts on top, everything already loaded (pages, index) stays put.
+          const have = new Set(prev.map((p) => p.id));
+          const added = page.filter((p) => !have.has(p.id));
+          const now = Date.now();
+          const stale = prev.filter((p) => now - (signedAt.current.get(p.id) ?? now) > URL_MAX_AGE_MS);
+          const fresh = new Map(page.map((p) => [p.id, p]));
+          const resigned = await Promise.all(stale.map((p) => fresh.get(p.id) ?? resignPost(p)));
+          if (added.length > 0) {
+            // Keep the reader on the same reel: the list grows above it.
+            if (!wasTop) indexRef.current += added.length;
+            if (REEL_PAGER === 'scrollview' && !wasTop) {
+              scrollRef.current?.scrollTo({ y: indexRef.current * pageHRef.current, animated: false });
+            }
+            setPosts((cur) => {
+              const seen = new Set(cur.map((p) => p.id));
+              return [...added.filter((p) => !seen.has(p.id)), ...cur];
+            });
+            if (wasTop) {
+              const top = () => listRef.current?.scrollToOffset({ offset: 0, animated: false });
+              setTimeout(top, 0);
+              setTimeout(top, 200);
+            }
+          }
+          if (resigned.length > 0) applyResigned(resigned);
         }
-        setHasMore(!finite && page.length === pageSize);
+        if (follows) setFollowing((old) => new Set([...old, ...follows]));
         setMoreError(false);
         setError(null);
         if (pull) listRef.current?.scrollToOffset({ offset: 0, animated: false });
@@ -258,7 +339,7 @@ function ReelsFeedInner({
         setRefreshing(false);
       }
     },
-    [me, handleError, toast, loadPage, finite, pageSize],
+    [me, handleError, toast, loadPage, finite, pageSize, applyResigned],
   );
 
   useEffect(() => {
