@@ -30,7 +30,7 @@ select throws_ok(
   $$insert into gift_catalog (name, coins, tier, render_mode, anchor_preferred) values ('Odd', 150, 'glows', 'anchor', 'knee')$$,
   '23514', null, 'anchor points are the six named ones');
 select throws_ok(
-  $$insert into gift_catalog (name, coins, tier, render_mode) values ('smile', 1, 'blips', 'rail')$$,
+  $$insert into gift_catalog (slug, name, coins, tier, render_mode) values ('smile-again', 'smile', 1, 'blips', 'rail')$$,
   '23505', null, 'gift names are unique, case-insensitively');
 
 set local role anon;
