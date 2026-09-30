@@ -21,7 +21,7 @@ export const purposeCards: PurposeCard[] = [
   {
     icon: 'moon-outline',
     headline: 'It ends on purpose',
-    body: "Feeds finish. When you've seen what's new, we say so, and you can put your phone down.",
+    body: "Feeds finish. When you've seen what's new, you can put your phone down.",
   },
   {
     icon: 'camera-outline',
