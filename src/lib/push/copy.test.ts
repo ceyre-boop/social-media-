@@ -2,7 +2,14 @@ import { describe, expect, test } from 'bun:test';
 
 import { brand } from '@/config/brand';
 
-import { NOTIFICATION_TYPES, notificationCopy, type NotificationType } from './copy';
+import { readFileSync } from 'node:fs';
+
+import {
+  MOMENT_PROMPT_LINES,
+  NOTIFICATION_TYPES,
+  notificationCopy,
+  type NotificationType,
+} from './copy';
 
 /** Manufactured urgency, guilt, FOMO. None of these may ever appear in notification copy. */
 const BANNED = [
@@ -88,6 +95,32 @@ describe('notification copy', () => {
   test('clips long user-supplied text', () => {
     const c = notificationCopy('comment', { actor_name: 'x'.repeat(500), snippet: 'y'.repeat(500) });
     expect(c.body.length).toBeLessThanOrEqual(200);
+  });
+
+  test('moment prompts: a varied set of 5-8 lines, each reachable by data.line', () => {
+    const texts = MOMENT_PROMPT_LINES.map((_, line) => notificationCopy('moment_prompt', { line }).body);
+    expect(MOMENT_PROMPT_LINES.length).toBeGreaterThanOrEqual(5);
+    expect(MOMENT_PROMPT_LINES.length).toBeLessThanOrEqual(8);
+    expect(new Set(texts).size).toBe(MOMENT_PROMPT_LINES.length);
+    const extra = ['waiting', 'left', 'streak', 'late', 'quick'];
+    for (const t of texts) {
+      const lower = t.toLowerCase();
+      expect([...BANNED, ...extra].filter((p) => lower.includes(p))).toEqual([]);
+      expect(/!|\b[A-Z]{3,}\b/.test(t)).toBe(false);
+    }
+    expect(notificationCopy('moment_prompt', { line: 99 }).body).toBe(MOMENT_PROMPT_LINES[0]);
+    expect(notificationCopy('moment_prompt', { line: 'x' }).body).toBe(MOMENT_PROMPT_LINES[0]);
+  });
+
+  test('the database dispatcher picks from exactly this many prompt lines', () => {
+    const sql = readFileSync(
+      new URL('../../../supabase/migrations/20260930000017_moment_prompts.sql', import.meta.url),
+      'utf8',
+    );
+    const n = /moment_prompt_line_count\(\) returns int\s+language sql immutable as \$\$ select (\d+) \$\$/.exec(
+      sql,
+    )?.[1];
+    expect(Number(n)).toBe(MOMENT_PROMPT_LINES.length);
   });
 
   test('an unknown type still produces calm, generic copy', () => {

@@ -17,6 +17,8 @@ export const brand = {
   // Working name for the friends-only prompted post (brief-milestone-3 §1).
   momentsName: 'Moments',
   currency: { singular: 'blip', plural: 'blips', perDollar: 100 }, // placeholder name
+  // Working name for the friends-only prompted post (brief M3 §1). Placeholder like the app name.
+  moment: { singular: 'Moment', plural: 'Moments' },
   // Base URL for shared links (/p/<id>, /p/<id>/embed). Placeholder: the real domain lands with the rename.
   webUrl: 'https://example.app',
   storagePrefix: 'app',

@@ -38,6 +38,23 @@ export const NOTIFICATION_LABELS: Record<NotificationType, { label: string; expl
   support_reply: { label: 'Help replies', explain: 'When we answer a question you asked us.' },
 };
 
+const M = brand.moment.singular;
+
+/**
+ * Moment prompt lines: an invitation to share something ordinary, nothing more. The dispatcher
+ * (migration 017) picks data.line in 0..length-1; keep ops.moment_prompt_line_count() in step.
+ * Never a countdown, never "your friends are waiting", never a streak.
+ */
+export const MOMENT_PROMPT_LINES = [
+  `What are you up to? Share a ${M.toLowerCase()} with your friends.`,
+  'What does your day look like right now?',
+  "What's in front of you at the moment?",
+  'A small look at your day, if you feel like sharing one.',
+  "Whatever you're doing, it counts. Show your friends?",
+  "What's around you right now? Ordinary is perfect.",
+  'Take a second to share what you are doing, whenever suits you.',
+] as const;
+
 const MAX_NAME = 40;
 const MAX_SNIPPET = 80;
 
@@ -59,7 +76,13 @@ export function notificationCopy(
 
   switch (type) {
     case 'moment_prompt':
-      return { title: brand.appName, body: 'What are you up to? Share a moment with your friends.' };
+    {
+      const i = typeof d.line === 'number' && Number.isInteger(d.line) ? d.line : 0;
+      return {
+        title: brand.appName,
+        body: MOMENT_PROMPT_LINES[i >= 0 && i < MOMENT_PROMPT_LINES.length ? i : 0],
+      };
+    }
     case 'friend_request':
       return { title: 'Friend request', body: `${who} would like to be friends.` };
     case 'friend_accepted':

@@ -269,24 +269,30 @@ isOneToOne: false
                   ]
                 },"friendships": {
                   Row: {
-                    "addressee_id": string,"created_at": string,"requester_id": string,"responded_at": string | null,"status": Database["public"]['Enums']["friend_status"]
+                    "accepted_at": string | null,"created_at": string,"declined_at": string | null,"requested_by": string,"requester_withdrew": boolean,"state": string,"user_a_id": string,"user_b_id": string
                   }
                   Insert: {
-                    "addressee_id": string,"created_at"?: string,"requester_id": string,"responded_at"?: string | null,"status"?: Database["public"]['Enums']["friend_status"]
+                    "accepted_at"?: string | null,"created_at"?: string,"declined_at"?: string | null,"requested_by": string,"requester_withdrew"?: boolean,"state"?: string,"user_a_id": string,"user_b_id": string
                   }
                   Update: {
-                    "addressee_id"?: string,"created_at"?: string,"requester_id"?: string,"responded_at"?: string | null,"status"?: Database["public"]['Enums']["friend_status"]
+                    "accepted_at"?: string | null,"created_at"?: string,"declined_at"?: string | null,"requested_by"?: string,"requester_withdrew"?: boolean,"state"?: string,"user_a_id"?: string,"user_b_id"?: string
                   }
                   Relationships: [
                     {
-      foreignKeyName: "friendships_addressee_id_fkey"
-      columns: ["addressee_id"]
+      foreignKeyName: "friendships_requested_by_fkey"
+      columns: ["requested_by"]
 isOneToOne: false
       referencedRelation: "users"
       referencedColumns: ["id"]
     },{
-      foreignKeyName: "friendships_requester_id_fkey"
-      columns: ["requester_id"]
+      foreignKeyName: "friendships_user_a_id_fkey"
+      columns: ["user_a_id"]
+isOneToOne: false
+      referencedRelation: "users"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "friendships_user_b_id_fkey"
+      columns: ["user_b_id"]
 isOneToOne: false
       referencedRelation: "users"
       referencedColumns: ["id"]
@@ -836,13 +842,13 @@ isOneToOne: false
                   ]
                 },"posts": {
                   Row: {
-                    "allow_comments": boolean,"allow_gifts": boolean,"author_id": string,"caption": string | null,"comment_count": number,"created_at": string,"deleted_at": string | null,"expires_at": string | null,"id": string,"kind": Database["public"]['Enums']["post_kind"],"like_count": number,"view_count": number,"visibility": Database["public"]['Enums']["visibility"]
+                    "allow_comments": boolean,"allow_gifts": boolean,"author_id": string,"camera_effect": string | null,"caption": string | null,"capture_mode": string,"comment_count": number,"created_at": string,"deleted_at": string | null,"expires_at": string | null,"id": string,"kind": Database["public"]['Enums']["post_kind"],"like_count": number,"view_count": number,"visibility": Database["public"]['Enums']["visibility"]
                   }
                   Insert: {
-                    "allow_comments"?: boolean,"allow_gifts"?: boolean,"author_id": string,"caption"?: string | null,"comment_count"?: number,"created_at"?: string,"deleted_at"?: string | null,"expires_at"?: string | null,"id"?: string,"kind": Database["public"]['Enums']["post_kind"],"like_count"?: number,"view_count"?: number,"visibility"?: Database["public"]['Enums']["visibility"]
+                    "allow_comments"?: boolean,"allow_gifts"?: boolean,"author_id": string,"camera_effect"?: string | null,"caption"?: string | null,"capture_mode"?: string,"comment_count"?: number,"created_at"?: string,"deleted_at"?: string | null,"expires_at"?: string | null,"id"?: string,"kind": Database["public"]['Enums']["post_kind"],"like_count"?: number,"view_count"?: number,"visibility"?: Database["public"]['Enums']["visibility"]
                   }
                   Update: {
-                    "allow_comments"?: boolean,"allow_gifts"?: boolean,"author_id"?: string,"caption"?: string | null,"comment_count"?: number,"created_at"?: string,"deleted_at"?: string | null,"expires_at"?: string | null,"id"?: string,"kind"?: Database["public"]['Enums']["post_kind"],"like_count"?: number,"view_count"?: number,"visibility"?: Database["public"]['Enums']["visibility"]
+                    "allow_comments"?: boolean,"allow_gifts"?: boolean,"author_id"?: string,"camera_effect"?: string | null,"caption"?: string | null,"capture_mode"?: string,"comment_count"?: number,"created_at"?: string,"deleted_at"?: string | null,"expires_at"?: string | null,"id"?: string,"kind"?: Database["public"]['Enums']["post_kind"],"like_count"?: number,"view_count"?: number,"visibility"?: Database["public"]['Enums']["visibility"]
                   }
                   Relationships: [
                     {
@@ -967,13 +973,13 @@ isOneToOne: false
                   ]
                 },"users": {
                   Row: {
-                    "age_verification_ref": string | null,"age_verified": boolean,"age_verified_at": string | null,"app_role": string,"country_code": string | null,"created_at": string,"date_of_birth": string | null,"deleted_at": string | null,"email": string | null,"id": string,"phone": string | null,"quiet_end": string,"quiet_start": string,"status": Database["public"]['Enums']["account_status"],"timezone": string
+                    "age_verification_ref": string | null,"age_verified": boolean,"age_verified_at": string | null,"app_role": string,"country_code": string | null,"created_at": string,"date_of_birth": string | null,"deleted_at": string | null,"email": string | null,"id": string,"moment_prompts_per_day": number | null,"phone": string | null,"quiet_end": string,"quiet_start": string,"status": Database["public"]['Enums']["account_status"],"timezone": string,"waking_end": string,"waking_start": string
                   }
                   Insert: {
-                    "age_verification_ref"?: string | null,"age_verified"?: boolean,"age_verified_at"?: string | null,"app_role"?: string,"country_code"?: string | null,"created_at"?: string,"date_of_birth"?: string | null,"deleted_at"?: string | null,"email"?: string | null,"id": string,"phone"?: string | null,"quiet_end"?: string,"quiet_start"?: string,"status"?: Database["public"]['Enums']["account_status"],"timezone"?: string
+                    "age_verification_ref"?: string | null,"age_verified"?: boolean,"age_verified_at"?: string | null,"app_role"?: string,"country_code"?: string | null,"created_at"?: string,"date_of_birth"?: string | null,"deleted_at"?: string | null,"email"?: string | null,"id": string,"moment_prompts_per_day"?: number | null,"phone"?: string | null,"quiet_end"?: string,"quiet_start"?: string,"status"?: Database["public"]['Enums']["account_status"],"timezone"?: string,"waking_end"?: string,"waking_start"?: string
                   }
                   Update: {
-                    "age_verification_ref"?: string | null,"age_verified"?: boolean,"age_verified_at"?: string | null,"app_role"?: string,"country_code"?: string | null,"created_at"?: string,"date_of_birth"?: string | null,"deleted_at"?: string | null,"email"?: string | null,"id"?: string,"phone"?: string | null,"quiet_end"?: string,"quiet_start"?: string,"status"?: Database["public"]['Enums']["account_status"],"timezone"?: string
+                    "age_verification_ref"?: string | null,"age_verified"?: boolean,"age_verified_at"?: string | null,"app_role"?: string,"country_code"?: string | null,"created_at"?: string,"date_of_birth"?: string | null,"deleted_at"?: string | null,"email"?: string | null,"id"?: string,"moment_prompts_per_day"?: number | null,"phone"?: string | null,"quiet_end"?: string,"quiet_start"?: string,"status"?: Database["public"]['Enums']["account_status"],"timezone"?: string,"waking_end"?: string,"waking_start"?: string
                   }
                   Relationships: [
                     
@@ -1060,6 +1066,11 @@ isOneToOne: true
 "can_view_post":
 { Args: { "p_post": string,"p_viewer": string }; Returns: boolean
                            },
+"find_user_by_username":
+{ Args: { "name": string }; Returns: {
+              "avatar_media_id": string,"display_name": string,"user_id": string,"username": string
+            }[]
+                           },
 "is_adult":
 { Args: { "uid": string }; Returns: boolean
                            },
@@ -1071,6 +1082,11 @@ isOneToOne: true
                            },
 "is_valid_timezone":
 { Args: { "tz": string }; Returns: boolean
+                           },
+"my_friendships":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "avatar_media_id": string,"display_name": string,"since": string,"status": string,"user_id": string,"username": string
+            }[]
                            },
 "my_notification_prefs":
 { Args: Record<PropertyKey, never>; Returns: {
@@ -1091,6 +1107,15 @@ isOneToOne: true
 "relationship_state":
 { Args: { "actor": string,"subject": string }; Returns: string
                            },
+"remove_friend":
+{ Args: { "other": string }; Returns: undefined
+                           },
+"request_friend":
+{ Args: { "target": string }; Returns: string
+                           },
+"respond_friend":
+{ Args: { "accept": boolean,"other": string }; Returns: string
+                           },
 "show_limit":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
@@ -1099,7 +1124,7 @@ isOneToOne: true
                            }
           }
           Enums: {
-            "account_status": "active"|"suspended"|"deactivated"|"banned","friend_status": "pending"|"accepted"|"declined"|"blocked","ledger_side": "debit"|"credit","media_kind": "image"|"video"|"audio","media_status": "uploading"|"processing"|"ready"|"failed","moderation_action": "none"|"warn"|"age_gate"|"limit_reach"|"remove_content"|"suspend"|"ban"|"law_enforcement_referral","notification_type": "moment_prompt"|"friend_request"|"friend_accepted"|"followed_live"|"comment"|"gift_received"|"like"|"support_reply","payout_status": "pending"|"processing"|"paid"|"failed"|"reversed","post_kind": "post"|"reel"|"story","reach_reason": "normal"|"new_account"|"low_quality_signal"|"duplicate_content"|"moderation_limit"|"viewer_preference"|"rate_limited"|"boosted","report_reason": "spam"|"harassment"|"nudity"|"violence"|"csam"|"self_harm"|"illegal"|"impersonation"|"ip"|"other","report_status": "open"|"triaging"|"actioned"|"dismissed"|"appealed","stream_status": "scheduled"|"live"|"ended"|"errored","visibility": "public"|"followers"|"friends"|"private"
+            "account_status": "active"|"suspended"|"deactivated"|"banned","ledger_side": "debit"|"credit","media_kind": "image"|"video"|"audio","media_status": "uploading"|"processing"|"ready"|"failed","moderation_action": "none"|"warn"|"age_gate"|"limit_reach"|"remove_content"|"suspend"|"ban"|"law_enforcement_referral","notification_type": "moment_prompt"|"friend_request"|"friend_accepted"|"followed_live"|"comment"|"gift_received"|"like"|"support_reply","payout_status": "pending"|"processing"|"paid"|"failed"|"reversed","post_kind": "post"|"reel"|"story"|"moment","reach_reason": "normal"|"new_account"|"low_quality_signal"|"duplicate_content"|"moderation_limit"|"viewer_preference"|"rate_limited"|"boosted","report_reason": "spam"|"harassment"|"nudity"|"violence"|"csam"|"self_harm"|"illegal"|"impersonation"|"ip"|"other","report_status": "open"|"triaging"|"actioned"|"dismissed"|"appealed","stream_status": "scheduled"|"live"|"ended"|"errored","visibility": "public"|"followers"|"friends"|"private"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -1219,7 +1244,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "account_status": ["active", "suspended", "deactivated", "banned"],"friend_status": ["pending", "accepted", "declined", "blocked"],"ledger_side": ["debit", "credit"],"media_kind": ["image", "video", "audio"],"media_status": ["uploading", "processing", "ready", "failed"],"moderation_action": ["none", "warn", "age_gate", "limit_reach", "remove_content", "suspend", "ban", "law_enforcement_referral"],"notification_type": ["moment_prompt", "friend_request", "friend_accepted", "followed_live", "comment", "gift_received", "like", "support_reply"],"payout_status": ["pending", "processing", "paid", "failed", "reversed"],"post_kind": ["post", "reel", "story"],"reach_reason": ["normal", "new_account", "low_quality_signal", "duplicate_content", "moderation_limit", "viewer_preference", "rate_limited", "boosted"],"report_reason": ["spam", "harassment", "nudity", "violence", "csam", "self_harm", "illegal", "impersonation", "ip", "other"],"report_status": ["open", "triaging", "actioned", "dismissed", "appealed"],"stream_status": ["scheduled", "live", "ended", "errored"],"visibility": ["public", "followers", "friends", "private"]
+            "account_status": ["active", "suspended", "deactivated", "banned"],"ledger_side": ["debit", "credit"],"media_kind": ["image", "video", "audio"],"media_status": ["uploading", "processing", "ready", "failed"],"moderation_action": ["none", "warn", "age_gate", "limit_reach", "remove_content", "suspend", "ban", "law_enforcement_referral"],"notification_type": ["moment_prompt", "friend_request", "friend_accepted", "followed_live", "comment", "gift_received", "like", "support_reply"],"payout_status": ["pending", "processing", "paid", "failed", "reversed"],"post_kind": ["post", "reel", "story", "moment"],"reach_reason": ["normal", "new_account", "low_quality_signal", "duplicate_content", "moderation_limit", "viewer_preference", "rate_limited", "boosted"],"report_reason": ["spam", "harassment", "nudity", "violence", "csam", "self_harm", "illegal", "impersonation", "ip", "other"],"report_status": ["open", "triaging", "actioned", "dismissed", "appealed"],"stream_status": ["scheduled", "live", "ended", "errored"],"visibility": ["public", "followers", "friends", "private"]
           }
         }
 } as const
