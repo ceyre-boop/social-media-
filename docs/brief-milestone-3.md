@@ -259,6 +259,12 @@ the way support can.
 
 ### Creator strictness
 
+> **Superseded 2026-09-30** by the speech dial (Community Policy v0.2):
+> Family / Standard / Open / Max, set per room by the creator and per person by
+> each viewer; the always-blocked ceiling is not configurable. Old values map
+> open→open, standard→standard, protected→family (migration 024,
+> `live_streams.room_level`, `users.default_room_level`).
+
 Per-stream: **Open / Standard / Protected**, as specified in the policy. Creators
 may tighten but never loosen below ORANGE. Trusted Circles bypass YELLOW only.
 

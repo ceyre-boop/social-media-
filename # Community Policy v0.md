@@ -1,10 +1,71 @@
-# Community Policy v0.1
+# Community Policy v0.2
 
 **Governing principle:** You may feel anything. You may not attack a person.
 
 Every rule below is an application of that sentence. If a situation isn't covered,
 decide it by asking whether a human being is being attacked — not by whether the
 content is negative, uncomfortable, or sad.
+
+---
+
+## v0.2 — The speech dial (Colin, 2026-09-30)
+
+> "People should be allowed to say what they want as long as it is not
+> controlling, harassing, or bullying. Intention matters. Creators and users
+> control to what degree they allow it. There's a max — at max we still won't
+> let everything fly. Minimum is G-rated old Disney."
+
+**This section supersedes** the Open / Standard / Protected creator threshold
+and the "one standard everywhere" parts of *Tier modifiers* below, and the
+"Dark humor is In" note (dark humor is now a Max-level choice). The DM,
+age-based, age verification, appeals, reach and support sections still apply
+unchanged.
+
+### Four levels
+
+| Level | What it lets through | Example |
+| --- | --- | --- |
+| **Family** (the minimum) | Old-Disney G. No swearing, no insults, no crude jokes. Feelings are always fine. | "I'm so sad", "this is awful", "I'm furious at the airline" |
+| **Standard** (the default) | Swearing and heated arguments. Calling someone a name gets the YELLOW mirror: *"This might land harder than you mean it to. Send as is, or reword?"* They can still send. | "this level is so damn hard" |
+| **Open** | Roasting, trash talk, crude humor — between people who can take it. | "your aim is so bad my grandma could carry you" |
+| **Max** | Everything in Open, plus dark humor, edgy jokes, and in-group slurs not aimed at anyone. | a joke about your own funeral |
+
+### Always blocked, at every level (the ceiling)
+
+Threats. Doxxing. Harassing or bullying a person. Controlling or coercive
+behaviour (demanding someone's location or password, cutting them off from
+friends, threats of consequences, guilt as leverage). Sexual content — out at
+every level (App Store). Slurs aimed at a person. Anything sexual toward, or
+luring, a minor.
+
+- **RED** (blocked, logged, human review within 24h): credible threats, CSAM,
+  luring or moving a minor into private contact, encouraging self-harm.
+- **ORANGE** (rephrase, no strike) for the rest of the ceiling, unless severe.
+
+### Who sets it
+
+- **Creators** set their room: their live chat and the comments on their posts
+  (a default in Settings, per post and per stream after that).
+- **Each person** sets what they see and what they can receive (DMs, replies).
+- What a viewer sees is **min(room level, their level)**. Above it, a message
+  is hidden behind "Hidden by your settings · Show" — except a message whose
+  only issue is swearing, which a Family viewer sees with the swears as ***.
+- Sending above the room's level (or above what the recipient accepts) gets a
+  rephrase prompt that names the level. Never a strike.
+- **Minors are capped at Standard everywhere.** They can pick Family or
+  Standard, never above; content above Standard never reaches them, even in an
+  Open or Max room (enforced by the database, not just the app). They get no
+  "Show".
+
+### Intent matters
+
+- A roast between **friends or mutual follows** at Open or Max is banter. The
+  same roast aimed at a **stranger** is bullying, at every level.
+- Repeated hostile messages at the same person in a short window become
+  harassment, even if each one alone would pass.
+- Sentiment is still never an input. Sad, angry, grieving and venting are
+  allowed at every level, Family included. Family bans swearing, insults and
+  crude jokes — not emotions.
 
 ---
 
@@ -150,6 +211,9 @@ architecture is therefore load-bearing rather than peripheral, and the DM and li
 restrictions below are the most important rules in this document.
 
 ### Creator threshold
+
+> **Superseded by v0.2 (the speech dial) above.** Mapping for existing rooms:
+> Open → Open, Standard → Standard, Protected → Family.
 
 Creators set live-chat strictness per stream: **Open / Standard / Protected**.
 
