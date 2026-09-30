@@ -11,6 +11,7 @@
  *
  * Everything works with push denied or on web: the inbox + <InAppNudge> carry every notification.
  */
+import { useRouter, type Href } from 'expo-router';
 import { useEffect, useSyncExternalStore } from 'react';
 
 import { supabase } from '@/lib/supabase';
@@ -19,11 +20,13 @@ import {
   askPermission,
   configurePush,
   expoPushToken,
+  onNotificationOpened,
   onTokenRotation,
   permissionState,
   platformName,
   pushSupported,
 } from './device';
+import { routeForNotification } from './routes';
 
 export { pushSupported };
 export type { PermissionState } from './device';
@@ -72,6 +75,21 @@ export function usePushRegistration(userId: string | null): void {
     void syncPushToken();
     return onTokenRotation(() => void syncPushToken());
   }, [userId]);
+}
+
+/**
+ * Tapping a push opens the right place (routes.ts): a Moment prompt opens the camera, friend
+ * notifications open Add friends. Works for the tap that launched the app too. Mount once, signed in.
+ */
+export function useNotificationRouting(signedIn: boolean): void {
+  const router = useRouter();
+  useEffect(() => {
+    if (!signedIn || !pushSupported) return;
+    return onNotificationOpened((type) => {
+      const to = routeForNotification(type);
+      if (to) router.push(to as Href);
+    });
+  }, [signedIn, router]);
 }
 
 // ---------------------------------------------------------------- in-context permission

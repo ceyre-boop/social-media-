@@ -1,3 +1,4 @@
+import { useRouter, type Href } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,6 +7,7 @@ import { IconButton, Text } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { pushReachable } from '@/lib/push';
 import { notificationCopy, type NotificationType } from '@/lib/push/copy';
+import { routeForNotification } from '@/lib/push/routes';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/lib/theme';
 
@@ -22,6 +24,7 @@ export function InAppNudge() {
   const { session } = useAuth();
   const uid = session?.user.id ?? null;
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const { colors, spacing, radius, elevation } = useTheme();
   const [nudge, setNudge] = useState<Nudge | null>(null);
 
@@ -73,21 +76,31 @@ export function InAppNudge() {
   const dismiss = useCallback(async () => {
     if (!nudge) return;
     setNudge(null);
-    await supabase.from('notifications').update({ read_at: new Date().toISOString() }).eq('id', nudge.id);
+    await supabase
+      .from('notifications')
+      .update({ read_at: new Date().toISOString() })
+      .eq('id', nudge.id);
     void load();
   }, [nudge, load]);
 
+  // Tapping the card opens the thing it is about (same routes as a push tap) and marks it read.
+  const open = useCallback(() => {
+    if (!nudge) return;
+    const to = routeForNotification(nudge.kind);
+    void dismiss();
+    if (to) router.push(to as Href);
+  }, [nudge, dismiss, router]);
+
   if (!nudge) return null;
   const copy = notificationCopy(nudge.kind, nudge.data);
+  const target = routeForNotification(nudge.kind);
   return (
     <View
       pointerEvents="box-none"
       style={[styles.wrap, { top: insets.top + spacing.sm, paddingHorizontal: spacing.md }]}
     >
-      <Pressable
+      <View
         accessibilityRole="alert"
-        accessibilityLabel={`${copy.title}. ${copy.body}`}
-        onPress={dismiss}
         style={[
           styles.card,
           elevation[2],
@@ -100,16 +113,22 @@ export function InAppNudge() {
           },
         ]}
       >
-        <View style={styles.text}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`${copy.title}. ${copy.body}`}
+          accessibilityHint={target ? 'Opens it' : 'Dismisses it'}
+          onPress={target ? open : dismiss}
+          style={styles.text}
+        >
           <Text variant="callout" weight="700">
             {copy.title}
           </Text>
           <Text variant="caption" tone="secondary">
             {copy.body}
           </Text>
-        </View>
+        </Pressable>
         <IconButton icon="close" label="Dismiss" size={18} onPress={dismiss} />
-      </Pressable>
+      </View>
     </View>
   );
 }

@@ -6,6 +6,7 @@
  * with the same generic error, so the app shows one friendly message and never guesses why.
  * Nobody sees anyone else's friends, and nothing here counts anything.
  */
+import { requestPushPermission } from '@/lib/push';
 import { supabase } from '@/lib/supabase';
 
 export type FriendStatus = 'friends' | 'incoming' | 'outgoing';
@@ -40,10 +41,26 @@ export async function fetchFriendIds(): Promise<string[]> {
   return (await fetchFriendships()).filter((f) => f.status === 'friends').map((f) => f.user_id);
 }
 
+let askedThisSession = false;
+
+/**
+ * In context, never at launch: the first time someone sends a friend request or has one waiting,
+ * explain and offer push (so they hear when it's answered, or when someone asks). Once per session;
+ * requestPushPermission itself does nothing if they already answered the OS prompt.
+ */
+export function askForFriendNotifications(): void {
+  if (askedThisSession) return;
+  askedThisSession = true;
+  void requestPushPermission(
+    'We can let you know when someone asks to be your friend, or says yes to you. Nothing else from this.',
+  );
+}
+
 /** 'requested' (or a no-op that looks the same) | 'friends' (they had asked you). */
 export async function requestFriend(target: string): Promise<'requested' | 'friends'> {
   const { data, error } = await supabase.rpc('request_friend', { target });
   if (error) throw error;
+  askForFriendNotifications();
   return data === 'friends' ? 'friends' : 'requested';
 }
 

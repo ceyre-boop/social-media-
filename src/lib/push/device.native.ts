@@ -75,6 +75,27 @@ export function onTokenRotation(cb: () => void): () => void {
   return () => sub.remove();
 }
 
+/**
+ * Calls back with the notification `type` whenever the person taps a push: once for the tap that
+ * cold-started the app (if any), then for every tap while it runs. Each response is handled once.
+ */
+export function onNotificationOpened(cb: (type: unknown) => void): () => void {
+  let lastId: string | null = null;
+  const handle = (r: Notifications.NotificationResponse | null) => {
+    if (!r || r.actionIdentifier !== Notifications.DEFAULT_ACTION_IDENTIFIER) return;
+    const id = r.notification.request.identifier;
+    if (id === lastId) return;
+    lastId = id;
+    cb((r.notification.request.content.data as { type?: unknown } | undefined)?.type);
+  };
+  void Notifications.getLastNotificationResponseAsync().then((r) => {
+    handle(r);
+    void Notifications.clearLastNotificationResponseAsync();
+  });
+  const sub = Notifications.addNotificationResponseReceivedListener(handle);
+  return () => sub.remove();
+}
+
 export function platformName(): 'ios' | 'android' {
   return Platform.OS === 'ios' ? 'ios' : 'android';
 }

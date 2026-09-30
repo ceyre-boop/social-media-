@@ -7,6 +7,7 @@ import { brand } from '@/config/brand';
 import { useAuth } from '@/lib/auth';
 import {
   FRIEND_ACTION_FAILED,
+  askForFriendNotifications,
   fetchFriendships,
   findUserByUsername,
   removeFriend,
@@ -59,7 +60,10 @@ export default function Friends() {
 
   const load = useCallback(() => {
     fetchFriendships()
-      .then(setList)
+      .then((rows) => {
+        setList(rows);
+        if (rows.some((f) => f.status === 'incoming')) askForFriendNotifications();
+      })
       .catch(() => setMessage(FRIEND_ACTION_FAILED));
   }, []);
   useFocusEffect(load);

@@ -24,6 +24,10 @@ export function onTokenRotation(_cb: () => void): () => void {
   return () => {};
 }
 
+export function onNotificationOpened(_cb: (type: unknown) => void): () => void {
+  return () => {};
+}
+
 export function platformName(): 'ios' | 'android' {
   return 'ios';
 }
