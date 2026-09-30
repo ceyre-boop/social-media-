@@ -209,7 +209,7 @@ export function fetchFeedPage(me: string, cursor?: Cursor | null) {
 }
 
 export function fetchUserPosts(me: string, authorId: string) {
-  return fetchPosts({ me, authorId, limit: 60 });
+  return fetchPosts({ me, authorId, kinds: ['post', 'reel'], limit: 60 });
 }
 
 export async function setLike(postId: string, userId: string, liked: boolean) {

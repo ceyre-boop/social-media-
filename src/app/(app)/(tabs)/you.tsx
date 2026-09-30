@@ -13,9 +13,20 @@ import { useNavClearance } from '@/lib/layout';
 import { useTheme } from '@/lib/theme';
 import { VISIBILITY_META } from '@/lib/visibility';
 
+function formatDuration(ms: number): string {
+  const seconds = Math.max(0, Math.floor(ms / 1000));
+  const minutes = Math.floor(seconds / 60);
+  return `${minutes}:${String(seconds % 60).padStart(2, '0')}`;
+}
+
 function Thumb({ post }: { post: FeedPost }) {
   const { colors, stage, spacing, radius } = useTheme();
   const vis = post.visibility !== 'public' ? VISIBILITY_META[post.visibility] : null;
+  const duration =
+    post.kind === 'reel' && post.durationMs !== null ? formatDuration(post.durationMs) : null;
+  const reelLabel = ['Your reel', duration, post.caption].filter(Boolean).join(', ');
+  const reelAccessibility =
+    post.kind === 'reel' ? { accessible: true, accessibilityLabel: reelLabel } : {};
   return (
     <View style={styles.cell}>
       <View
@@ -24,8 +35,36 @@ function Thumb({ post }: { post: FeedPost }) {
           styles.inner,
           { backgroundColor: colors.surface2, borderRadius: radius.xs },
         ]}
+        {...reelAccessibility}
       >
-        {post.imageUrl ? (
+        {post.kind === 'reel' ? (
+          <>
+            {post.posterUrl ? (
+              <Image
+                source={{ uri: post.posterUrl }}
+                style={StyleSheet.absoluteFill}
+                contentFit="cover"
+              />
+            ) : (
+              <View style={styles.reelFallback}>
+                <Ionicons name="videocam-outline" size={28} color={colors.muted} />
+              </View>
+            )}
+            <View
+              style={[
+                styles.duration,
+                { backgroundColor: stage.control, borderRadius: radius.pill, gap: spacing.xxs },
+              ]}
+            >
+              <Ionicons name="play" size={10} color={stage.text} />
+              {duration ? (
+                <Text variant="micro" tone="onMedia" style={styles.durationText}>
+                  {duration}
+                </Text>
+              ) : null}
+            </View>
+          </>
+        ) : post.imageUrl ? (
           <Image
             source={{ uri: post.imageUrl }}
             style={StyleSheet.absoluteFill}
@@ -127,7 +166,7 @@ export default function You() {
             onAction={load}
           />
         ) : loaded && posts.length === 0 ? (
-          <EmptyState title="No posts yet" message="Your photos will show up here." />
+          <EmptyState title="No posts yet" message="Your photos and reels will show up here." />
         ) : (
           <View style={styles.grid}>
             {posts.map((p) => (
@@ -150,6 +189,17 @@ const styles = StyleSheet.create({
   cell: { width: '33.3333%', aspectRatio: 1 },
   inner: { margin: 1, overflow: 'hidden' },
   textTile: { flex: 1, justifyContent: 'center' },
+  reelFallback: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  duration: {
+    position: 'absolute',
+    bottom: 6,
+    left: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+  },
+  durationText: { letterSpacing: 0 },
   badge: {
     position: 'absolute',
     top: 6,
