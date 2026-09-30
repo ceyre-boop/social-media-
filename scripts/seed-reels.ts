@@ -38,6 +38,9 @@
  *
  * `bunx supabase db reset` wipes storage metadata and rows; run this again after.
  *
+ * Hosted preview: `bun scripts/seed-reels.ts --preview <project-ref>` (must equal the
+ *   linked project; see readPreviewStack).
+ *
  * Real content: `bun scripts/seed-reels.ts --from ~/path/to/videos`
  *   Uses up to 20 real videos from the folder (mp4/mov/m4v/webm/mkv, sorted by
  *   name) in place of the generated patterns: scaled/cropped to 720x1280, first
@@ -151,6 +154,24 @@ function readLocalStack(): LocalStack {
   const serviceRoleKey = env.get('SERVICE_ROLE_KEY');
   if (!apiUrl || !serviceRoleKey) fail('supabase status did not report API_URL and SERVICE_ROLE_KEY. Is the local stack running?');
   return { apiUrl, serviceRoleKey };
+}
+
+/**
+ * `--preview <project-ref>`: seed the hosted *preview* project instead of the local
+ * stack. The ref must be passed explicitly AND match the project this repo is linked
+ * to (`supabase/.temp/project-ref`), so it can't hit some other project by accident.
+ * The service-role key is fetched at runtime and never printed or written to disk.
+ */
+function readPreviewStack(ref: string): LocalStack {
+  const linkedFile = join(process.cwd(), 'supabase', '.temp', 'project-ref');
+  const linked = existsSync(linkedFile) ? readFileSync(linkedFile, 'utf8').trim() : '';
+  if (!/^[a-z0-9]{20}$/.test(ref)) fail(`--preview needs a project ref, got "${ref}"`);
+  if (linked !== ref) fail(`--preview ${ref} does not match the linked project (${linked || 'none'}); refusing.`);
+  const out = run('bunx', ['supabase', 'projects', 'api-keys', '--project-ref', ref, '-o', 'json'], 'supabase projects api-keys');
+  const keys = JSON.parse(out.slice(out.indexOf('['))) as { name: string; api_key: string }[];
+  const serviceRoleKey = keys.find((k) => k.name === 'service_role')?.api_key;
+  if (!serviceRoleKey) fail('could not read the preview project service_role key');
+  return { apiUrl: `https://${ref}.supabase.co`, serviceRoleKey };
 }
 
 function assertLocal(url: string, label: string): void {
@@ -454,10 +475,18 @@ async function seedReel(db: SupabaseClient<Database>, clip: Clip, now: number): 
 // --------------------------------------------------------------------- main
 
 async function main(): Promise<void> {
-  const stack = readLocalStack();
-  assertLocal(stack.apiUrl, 'supabase status API_URL');
-  const appUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-  if (appUrl) assertLocal(appUrl, 'EXPO_PUBLIC_SUPABASE_URL');
+  const previewIdx = process.argv.indexOf('--preview');
+  const previewRef = previewIdx > -1 ? process.argv[previewIdx + 1] : undefined;
+  let stack: LocalStack;
+  if (previewRef) {
+    stack = readPreviewStack(previewRef);
+    console.log(`seed-reels: seeding the hosted preview project ${previewRef}`);
+  } else {
+    stack = readLocalStack();
+    assertLocal(stack.apiUrl, 'supabase status API_URL');
+    const appUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+    if (appUrl) assertLocal(appUrl, 'EXPO_PUBLIC_SUPABASE_URL');
+  }
 
   const outDir = process.env.SEED_REELS_OUT ?? join(tmpdir(), 'seed-reels');
   const fromIdx = process.argv.indexOf('--from');
