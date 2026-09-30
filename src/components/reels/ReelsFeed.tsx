@@ -253,6 +253,8 @@ function ReelsFeedInner({
   const postsRef = useRef<FeedPost[]>([]);
   /** Pager B: re-pin the scroll offset to an index (assigned once page height is known). */
   const syncScrollRef = useRef<(i: number) => void>(() => {});
+  /** Index at the moment the tab lost focus. Web hides blurred tabs (display: none), which resets scroll. */
+  const blurIndexRef = useRef(0);
   /** When each post's signed URLs were issued (ms), by post id. */
   const signedAt = useRef(new Map<string, number>());
   const loadRetried = useRef(new Set<string>());
@@ -379,7 +381,20 @@ function ReelsFeedInner({
         .then(() => refresh());
       setStatusBarStyle('light');
       pool.setSuspended('blur', false);
+      // Coming back: put the reader on the reel they left (web resets the scroll offset while hidden).
+      const back = blurIndexRef.current;
+      const timers: ReturnType<typeof setTimeout>[] = [];
+      if (back > 0) {
+        indexRef.current = back;
+        const restore = () => {
+          if (REEL_PAGER === 'scrollview') syncScrollRef.current(back);
+          else listRef.current?.scrollToIndex({ index: back, animated: false });
+        };
+        for (const ms of [0, 120, 400]) timers.push(setTimeout(restore, ms));
+      }
       return () => {
+        timers.forEach(clearTimeout);
+        blurIndexRef.current = indexRef.current;
         pool.setSuspended('blur', true);
         setStatusBarStyle(scheme === 'light' ? 'dark' : 'light');
       };
