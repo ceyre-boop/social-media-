@@ -35,6 +35,8 @@ type Slot = {
   loadedKey: string | null;
   /** The key whose first frame has been drawn by a mounted VideoView. */
   firstFrameKey: string | null;
+  /** This slot has been the playing current reel since it was last rewound. */
+  wasCurrent: boolean;
   lastUsed: number;
 };
 
@@ -58,6 +60,7 @@ export class PoolStore {
     token: 0,
     loadedKey: null,
     firstFrameKey: null,
+    wasCurrent: false,
     lastUsed: 0,
   }));
   private currentKey: string | null = null;
@@ -160,6 +163,7 @@ export class PoolStore {
     slot.uri = src.uri;
     slot.loadedKey = null;
     slot.firstFrameKey = null;
+    slot.wasCurrent = false;
     slot.lastUsed = ++this.clock;
     const token = ++slot.token;
     player.pause();
@@ -183,20 +187,34 @@ export class PoolStore {
       });
   }
 
+  /**
+   * Drive every player from the pool's intended state. play()/pause() are issued unconditionally
+   * (both are idempotent): `player.playing` is event-driven and lags, and on web it only updates
+   * through mounted <video> elements, so it cannot be used as a guard.
+   */
   private applyPlayback(): void {
     const blocked = this.suspended.size > 0 || this.userPaused;
     this.slots.forEach((s, i) => {
       const p = this.players[i];
       if (!p) return;
-      const shouldPlay = !blocked && s.key !== null && s.key === this.currentKey;
-      if (shouldPlay) {
-        if (!p.playing) p.play();
-      } else if (p.playing) {
-        p.pause();
-        // Off-screen neighbours rewind so a return starts cleanly on the first frame.
-        if (s.key !== this.currentKey) p.currentTime = 0;
+      const isCurrent = s.key !== null && s.key === this.currentKey;
+      if (isCurrent && !blocked) {
+        p.play();
+        s.wasCurrent = true;
+        return;
+      }
+      p.pause();
+      if (!isCurrent && s.wasCurrent) {
+        // Left the screen: rewind so a return starts cleanly on the first frame.
+        s.wasCurrent = false;
+        if (s.loadedKey === s.key) p.currentTime = 0;
       }
     });
+  }
+
+  /** A VideoView just attached to a player: re-assert play/pause (web syncs state on mount). */
+  reapply(): void {
+    this.applyPlayback();
   }
 
   /** Called by the VideoView that shows `key` once it has drawn a frame. */
@@ -204,6 +222,7 @@ export class PoolStore {
     const slot = this.slots.find((s) => s.key === key);
     if (!slot || slot.firstFrameKey === key) return;
     slot.firstFrameKey = key;
+    this.applyPlayback();
     if (__DEV__) {
       const rec = [...this.settles].reverse().find((r) => r.key === key);
       if (rec && rec.firstFrameMs === null) rec.firstFrameMs = Date.now() - rec.at;
@@ -232,12 +251,19 @@ export class PoolStore {
   }
 
   /** Dev: slot table for debugging / the web walk. */
-  debug(): { key: string | null; loaded: boolean; firstFrame: boolean; playing: boolean }[] {
+  debug(): {
+    key: string | null;
+    loaded: boolean;
+    firstFrame: boolean;
+    playing: boolean;
+    current: boolean;
+  }[] {
     return this.slots.map((s, i) => ({
       key: s.key,
       loaded: s.loadedKey === s.key && s.key !== null,
       firstFrame: s.firstFrameKey === s.key && s.key !== null,
       playing: this.players[i]?.playing ?? false,
+      current: s.key !== null && s.key === this.currentKey,
     }));
   }
 }

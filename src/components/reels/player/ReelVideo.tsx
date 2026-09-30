@@ -33,6 +33,11 @@ function ReelVideoImpl({ post }: Props) {
   const [drawnFor, setDrawnFor] = useState<unknown>(null);
   const drawn = player !== null && drawnFor === player;
 
+  // A surface attached to a player: re-assert the pool's play/pause for it.
+  useEffect(() => {
+    if (player) pool.reapply();
+  }, [player, pool]);
+
   const onFirstFrame = useCallback(() => {
     pool.markFirstFrame(post.id);
     setDrawnFor(player);
