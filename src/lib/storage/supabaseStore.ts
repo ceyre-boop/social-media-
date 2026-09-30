@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 import { supabase, supabaseUrl } from '@/lib/supabase';
 
 import { MediaStoreError, UploadAbortedError, type MediaStore, type UploadOptions } from './types';
@@ -458,8 +460,10 @@ async function upload(path: string, file: Blob | ArrayBuffer, opts: UploadOption
   try {
     // Videos go through the resumable (TUS) endpoint; everything else is one request.
     if (opts.contentType.startsWith('video/')) return await uploadVideo(path, file, opts);
+    // Native: storage-js wraps a Blob in FormData, which React Native cannot serialize.
+    const body = file instanceof Blob && Platform.OS !== 'web' ? await file.arrayBuffer() : file;
     const { error } = await waitFor(
-      supabase.storage.from(BUCKET).upload(path, file, { contentType: opts.contentType, upsert: false }),
+      supabase.storage.from(BUCKET).upload(path, body, { contentType: opts.contentType, upsert: false }),
       CHUNK_TIMEOUT_MS,
       opts.signal,
     );

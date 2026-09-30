@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 
 import type { Visibility } from '@/lib/posts';
 import { supabase } from '@/lib/supabase';
@@ -72,6 +73,20 @@ async function blobFor(uri: string, signal: AbortSignal): Promise<Blob | ArrayBu
   return typeof blob.slice === 'function' ? blob : await blob.arrayBuffer();
 }
 
+/**
+ * Web uploads the poster Blob as-is. Native must send an ArrayBuffer: storage-js wraps a Blob in
+ * FormData, which React Native cannot serialize (empty/garbage upload).
+ */
+async function posterPayload(draft: ReelDraft, signal: AbortSignal): Promise<Blob | ArrayBuffer> {
+  if (Platform.OS === 'web' && draft.posterBlob) return draft.posterBlob;
+  if (draft.posterUri) {
+    const response = await fetch(draft.posterUri, { signal });
+    if (!response.ok) throw new MediaStoreError('Could not read the cover image');
+    return response.arrayBuffer();
+  }
+  return draft.posterBlob as Blob;
+}
+
 function isAbort(error: unknown, signal: AbortSignal): boolean {
   return signal.aborted || error instanceof UploadAbortedError || (error instanceof Error && error.name === 'AbortError');
 }
@@ -137,7 +152,7 @@ export async function runReelJob(
 
     const hasPoster = !!(draft.posterBlob || draft.posterUri);
     if (hasPoster && !job.posterUploaded) {
-      const poster = draft.posterBlob ?? (await blobFor(draft.posterUri as string, signal));
+      const poster = await posterPayload(draft, signal);
       const total = poster instanceof Blob ? poster.size : poster.byteLength;
       await mediaStore.upload(job.posterPath, poster, {
         contentType: 'image/jpeg',
