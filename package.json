@@ -50,6 +50,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
+    "check:counts": "bun scripts/check-no-counts.ts",
     "lint": "expo lint",
     "format": "prettier --write .",
     "db:types": "supabase gen types typescript --local > src/lib/db/types.ts",
