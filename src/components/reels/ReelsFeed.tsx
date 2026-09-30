@@ -79,6 +79,28 @@ const VIEWABILITY = { itemVisiblePercentThreshold: 80 };
 /** Signed URLs last an hour; re-sign a little before that. */
 const URL_MAX_AGE_MS = 50 * 60 * 1000;
 
+function newer(a: FeedPost, b: FeedPost): number {
+  if (a.created_at !== b.created_at) return a.created_at < b.created_at ? 1 : -1;
+  return a.id < b.id ? 1 : a.id > b.id ? -1 : 0;
+}
+
+/**
+ * Merge a fresh first page into what is already loaded: new posts slot in by (created_at, id),
+ * loaded pages stay, and posts the server no longer returns inside the fresh page's range
+ * (deleted, unfollowed) drop out — never the one being watched.
+ */
+function mergeFeed(prev: FeedPost[], page: FeedPost[], pageSize: number, keepId?: string): FeedPost[] {
+  const inPage = new Set(page.map((p) => p.id));
+  const oldest = page[page.length - 1];
+  const complete = page.length < pageSize;
+  const kept = prev.filter(
+    (p) => inPage.has(p.id) || p.id === keepId || (!complete && oldest && newer(p, oldest) > 0),
+  );
+  const have = new Set(kept.map((p) => p.id));
+  const added = page.filter((p) => !have.has(p.id));
+  return [...kept, ...added].sort(newer);
+}
+
 /** Re-sign one post's media URLs (best effort: a failed path keeps its old URL). */
 async function resignPost(post: FeedPost): Promise<FeedPost> {
   const [videoUrl, posterUrl, imageUrl] = await Promise.all([
@@ -294,24 +316,26 @@ function ReelsFeedInner({
           }
           setHasMore(!finite && page.length === pageSize);
         } else {
-          // Merge: new posts on top, everything already loaded (pages, index) stays put.
-          const have = new Set(prev.map((p) => p.id));
-          const added = page.filter((p) => !have.has(p.id));
+          // Merge: new posts slot in, everything already loaded (pages, index) stays put.
+          const keepId = prev[indexRef.current]?.id;
+          const merged = mergeFeed(prev, page, pageSize, keepId);
           const now = Date.now();
-          const stale = prev.filter((p) => now - (signedAt.current.get(p.id) ?? now) > URL_MAX_AGE_MS);
+          const stale = merged.filter(
+            (p) => now - (signedAt.current.get(p.id) ?? now) > URL_MAX_AGE_MS,
+          );
           const fresh = new Map(page.map((p) => [p.id, p]));
           const resigned = await Promise.all(stale.map((p) => fresh.get(p.id) ?? resignPost(p)));
-          if (added.length > 0) {
-            // Keep the reader on the same reel: the list grows above it.
-            if (!wasTop) indexRef.current += added.length;
-            if (REEL_PAGER === 'scrollview' && !wasTop) {
+          const changed =
+            merged.length !== prev.length || merged.some((p, i) => p.id !== prev[i]?.id);
+          if (changed) {
+            // Keep the reader on the same reel: rows may have been inserted above it.
+            const at = keepId ? merged.findIndex((p) => p.id === keepId) : -1;
+            if (at >= 0) indexRef.current = at;
+            const byId = new Map(prev.map((p) => [p.id, p]));
+            setPosts(merged.map((p) => byId.get(p.id) ?? p));
+            if (REEL_PAGER === 'scrollview') {
               scrollRef.current?.scrollTo({ y: indexRef.current * pageHRef.current, animated: false });
-            }
-            setPosts((cur) => {
-              const seen = new Set(cur.map((p) => p.id));
-              return [...added.filter((p) => !seen.has(p.id)), ...cur];
-            });
-            if (wasTop) {
+            } else if (indexRef.current === 0) {
               const top = () => listRef.current?.scrollToOffset({ offset: 0, animated: false });
               setTimeout(top, 0);
               setTimeout(top, 200);
@@ -349,14 +373,17 @@ function ReelsFeedInner({
   // Reload whenever the tab gains focus (e.g. after posting). The feed is an always-dark viewer.
   useFocusEffect(
     useCallback(() => {
-      refresh();
+      // Refresh the Home author set first so a follow made elsewhere shows up in this reload.
+      void refreshHomeAuthors(me)
+        .catch(() => undefined)
+        .then(() => refresh());
       setStatusBarStyle('light');
       pool.setSuspended('blur', false);
       return () => {
         pool.setSuspended('blur', true);
         setStatusBarStyle(scheme === 'light' ? 'dark' : 'light');
       };
-    }, [refresh, scheme, pool]),
+    }, [refresh, scheme, pool, me]),
   );
 
   // ...and when the connection comes back or the app returns to the foreground.
@@ -427,6 +454,8 @@ function ReelsFeedInner({
     apply(next);
     try {
       await setFollow(me, authorId, next);
+      // Home is built from follows: re-read the author set so it reflects this immediately.
+      void refreshHomeAuthors(me).catch(() => undefined);
     } catch (e) {
       const code = (e as { code?: string }).code;
       if (next && code === '23505') {
