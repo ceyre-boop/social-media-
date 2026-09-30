@@ -1,5 +1,7 @@
+import MaskedView from '@react-native-masked-view/masked-view';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRef, useState } from 'react';
-import { ScrollView, TextInput, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { IconButton, Text } from '@/components/ui';
@@ -18,6 +20,36 @@ type ListProps = {
   maxHeight?: number;
 };
 
+/** Height of the fade at the top edge of the phone overlay. */
+const FADE_PX = 28;
+
+/**
+ * Fades its children out over the top FADE_PX instead of hard-clipping a bubble. Web uses a CSS
+ * mask; native uses MaskedView with a gradient alpha mask.
+ */
+function TopFade({ children, style }: { children: React.ReactNode; style: object }) {
+  const { stage } = useTheme();
+  if (Platform.OS === 'web') {
+    const mask = `linear-gradient(to bottom, transparent 0, black ${FADE_PX}px)`;
+    return (
+      <View style={[style, { maskImage: mask, WebkitMaskImage: mask } as object]}>{children}</View>
+    );
+  }
+  return (
+    <MaskedView
+      style={style}
+      maskElement={
+        <View style={StyleSheet.absoluteFill}>
+          <LinearGradient colors={[stage.scrimClear, stage.bg]} style={{ height: FADE_PX }} />
+          <View style={{ flex: 1, backgroundColor: stage.bg }} />
+        </View>
+      }
+    >
+      {children}
+    </MaskedView>
+  );
+}
+
 /** Chat messages with a gentle entry animation (fade only under reduced motion). */
 export function ChatList({ messages, variant, maxHeight }: ListProps) {
   const { stage, spacing, radius, motion } = useTheme();
@@ -25,13 +57,17 @@ export function ChatList({ messages, variant, maxHeight }: ListProps) {
   const scroller = useRef<ScrollView>(null);
   const bubble = variant === 'overlay' ? stage.controlHover : stage.surface2;
 
-  return (
+  const overlay = variant === 'overlay';
+  const list = (
     <ScrollView
       ref={scroller}
-      style={variant === 'overlay' ? { maxHeight } : { flex: 1 }}
+      style={{ flex: 1 }}
       contentContainerStyle={{
         gap: spacing.xs + 2,
-        padding: spacing.md,
+        paddingHorizontal: spacing.md,
+        paddingBottom: overlay ? spacing.xs : spacing.md,
+        // The overlay keeps room at the top for the fade so the oldest visible bubble dissolves.
+        paddingTop: overlay ? FADE_PX : spacing.md,
         justifyContent: 'flex-end',
         flexGrow: 1,
       }}
@@ -73,6 +109,9 @@ export function ChatList({ messages, variant, maxHeight }: ListProps) {
       })}
     </ScrollView>
   );
+  if (!overlay) return list;
+  // Anchored at the bottom: fixed height so the newest messages sit right above the composer.
+  return <TopFade style={{ height: maxHeight }}>{list}</TopFade>;
 }
 
 type ComposerProps = {
