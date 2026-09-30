@@ -163,6 +163,12 @@ isOneToOne: false
       foreignKeyName: "conversation_members_conversation_id_fkey"
       columns: ["conversation_id"]
 isOneToOne: false
+      referencedRelation: "conversation_roster"
+      referencedColumns: ["conversation_id"]
+    },{
+      foreignKeyName: "conversation_members_conversation_id_fkey"
+      columns: ["conversation_id"]
+isOneToOne: false
       referencedRelation: "conversations"
       referencedColumns: ["id"]
     },{
@@ -175,18 +181,24 @@ isOneToOne: false
                   ]
                 },"conversations": {
                   Row: {
-                    "created_at": string,"created_by": string | null,"id": string,"is_group": boolean,"last_message_at": string | null,"title": string | null
+                    "created_at": string,"created_by": string | null,"has_minor": boolean,"id": string,"initiated_by": string | null,"initiator_was_minor": boolean,"is_group": boolean,"last_message_at": string | null,"moderation_sensitivity": string,"retention_class": string,"title": string | null
                   }
                   Insert: {
-                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"is_group"?: boolean,"last_message_at"?: string | null,"title"?: string | null
+                    "created_at"?: string,"created_by"?: string | null,"has_minor"?: boolean,"id"?: string,"initiated_by"?: string | null,"initiator_was_minor"?: boolean,"is_group"?: boolean,"last_message_at"?: string | null,"moderation_sensitivity"?: string,"retention_class"?: string,"title"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string | null,"id"?: string,"is_group"?: boolean,"last_message_at"?: string | null,"title"?: string | null
+                    "created_at"?: string,"created_by"?: string | null,"has_minor"?: boolean,"id"?: string,"initiated_by"?: string | null,"initiator_was_minor"?: boolean,"is_group"?: boolean,"last_message_at"?: string | null,"moderation_sensitivity"?: string,"retention_class"?: string,"title"?: string | null
                   }
                   Relationships: [
                     {
       foreignKeyName: "conversations_created_by_fkey"
       columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "users"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "conversations_initiated_by_fkey"
+      columns: ["initiated_by"]
 isOneToOne: false
       referencedRelation: "users"
       referencedColumns: ["id"]
@@ -282,13 +294,13 @@ isOneToOne: false
                   ]
                 },"gift_catalog": {
                   Row: {
-                    "active": boolean,"anchor_fallbacks": (string)[],"anchor_preferred": string | null,"animation_url": string | null,"asset_kind": string,"asset_url": string | null,"bleed_pct": number,"box_fill_pct": number | null,"coins": number,"duration_ms": number,"icon_concept": string | null,"icon_url": string,"id": string,"name": string,"render_mode": string,"tier": string | null
+                    "active": boolean,"anchor_fallbacks": (string)[],"anchor_preferred": string | null,"animation_url": string | null,"asset_kind": string,"asset_url": string | null,"bleed_pct": number,"box_fill_pct": number | null,"coins": number,"duration_ms": number,"icon_concept": string | null,"icon_url": string,"id": string,"name": string,"render_mode": string,"slug": string | null,"tier": string | null
                   }
                   Insert: {
-                    "active"?: boolean,"anchor_fallbacks"?: (string)[],"anchor_preferred"?: string | null,"animation_url"?: string | null,"asset_kind"?: string,"asset_url"?: string | null,"bleed_pct"?: number,"box_fill_pct"?: number | null,"coins": number,"duration_ms"?: number,"icon_concept"?: string | null,"icon_url"?: string,"id"?: string,"name": string,"render_mode"?: string,"tier"?: string | null
+                    "active"?: boolean,"anchor_fallbacks"?: (string)[],"anchor_preferred"?: string | null,"animation_url"?: string | null,"asset_kind"?: string,"asset_url"?: string | null,"bleed_pct"?: number,"box_fill_pct"?: number | null,"coins": number,"duration_ms"?: number,"icon_concept"?: string | null,"icon_url"?: string,"id"?: string,"name": string,"render_mode"?: string,"slug"?: string | null,"tier"?: string | null
                   }
                   Update: {
-                    "active"?: boolean,"anchor_fallbacks"?: (string)[],"anchor_preferred"?: string | null,"animation_url"?: string | null,"asset_kind"?: string,"asset_url"?: string | null,"bleed_pct"?: number,"box_fill_pct"?: number | null,"coins"?: number,"duration_ms"?: number,"icon_concept"?: string | null,"icon_url"?: string,"id"?: string,"name"?: string,"render_mode"?: string,"tier"?: string | null
+                    "active"?: boolean,"anchor_fallbacks"?: (string)[],"anchor_preferred"?: string | null,"animation_url"?: string | null,"asset_kind"?: string,"asset_url"?: string | null,"bleed_pct"?: number,"box_fill_pct"?: number | null,"coins"?: number,"duration_ms"?: number,"icon_concept"?: string | null,"icon_url"?: string,"id"?: string,"name"?: string,"render_mode"?: string,"slug"?: string | null,"tier"?: string | null
                   }
                   Relationships: [
                     
@@ -576,6 +588,12 @@ isOneToOne: false
       foreignKeyName: "message_requests_conversation_id_fkey"
       columns: ["conversation_id"]
 isOneToOne: false
+      referencedRelation: "conversation_roster"
+      referencedColumns: ["conversation_id"]
+    },{
+      foreignKeyName: "message_requests_conversation_id_fkey"
+      columns: ["conversation_id"]
+isOneToOne: false
       referencedRelation: "conversations"
       referencedColumns: ["id"]
     },{
@@ -604,6 +622,12 @@ isOneToOne: false
                   }
                   Relationships: [
                     {
+      foreignKeyName: "messages_conversation_id_fkey"
+      columns: ["conversation_id"]
+isOneToOne: false
+      referencedRelation: "conversation_roster"
+      referencedColumns: ["conversation_id"]
+    },{
       foreignKeyName: "messages_conversation_id_fkey"
       columns: ["conversation_id"]
 isOneToOne: false
@@ -938,7 +962,14 @@ isOneToOne: false
                 }
           }
           Views: {
-            "ledger_balances": {
+            "conversation_roster": {
+                  Row: {
+                    "conversation_id": string | null,"user_id": string | null
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"ledger_balances": {
                   Row: {
                     "account_id": string | null,"balance": number | null,"currency": string | null
                   }
@@ -953,16 +984,28 @@ isOneToOne: false
                   ]
                 },"message_requests_inbox": {
                   Row: {
-                    "created_at": string | null,"id": string | null,"sender_id": string | null,"status": string | null
+                    "conversation_id": string | null,"created_at": string | null,"id": string | null,"sender_id": string | null,"status": string | null
                   }
                   Insert: {
-                           "created_at"?: string | null,"id"?: string | null,"sender_id"?: string | null,"status"?: string | null
+                           "conversation_id"?: string | null,"created_at"?: string | null,"id"?: string | null,"sender_id"?: string | null,"status"?: string | null
                          }
                         Update: {
-                           "created_at"?: string | null,"id"?: string | null,"sender_id"?: string | null,"status"?: string | null
+                           "conversation_id"?: string | null,"created_at"?: string | null,"id"?: string | null,"sender_id"?: string | null,"status"?: string | null
                          }
                         Relationships: [
                     {
+      foreignKeyName: "message_requests_conversation_id_fkey"
+      columns: ["conversation_id"]
+isOneToOne: false
+      referencedRelation: "conversation_roster"
+      referencedColumns: ["conversation_id"]
+    },{
+      foreignKeyName: "message_requests_conversation_id_fkey"
+      columns: ["conversation_id"]
+isOneToOne: false
+      referencedRelation: "conversations"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "message_requests_sender_id_fkey"
       columns: ["sender_id"]
 isOneToOne: false

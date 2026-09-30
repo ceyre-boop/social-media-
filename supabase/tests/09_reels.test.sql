@@ -2,7 +2,7 @@
 -- pairing, poster_path ownership and visibility, and the media bucket config.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(27);
+select plan(28);
 
 create function pg_temp.act_as(uid uuid) returns void language sql as $$
   select set_config('request.jwt.claims',
@@ -18,6 +18,16 @@ $$;
 
 set local role authenticated;
 select pg_temp.act_as('11111111-1111-4111-8111-111111111111');  -- alice
+
+-- Poster + video objects (the app uploads these before registering the row;
+-- since 010 an object a media row already points at cannot be (re)uploaded).
+select lives_ok(
+  $$insert into storage.objects (bucket_id, name, owner_id) values
+      ('media', '11111111-1111-4111-8111-111111111111/pub.mp4',         '11111111-1111-4111-8111-111111111111'),
+      ('media', '11111111-1111-4111-8111-111111111111/pub-poster.jpg',  '11111111-1111-4111-8111-111111111111'),
+      ('media', '11111111-1111-4111-8111-111111111111/priv.mp4',        '11111111-1111-4111-8111-111111111111'),
+      ('media', '11111111-1111-4111-8111-111111111111/priv-poster.jpg', '11111111-1111-4111-8111-111111111111')$$,
+  'alice uploads her reel videos and posters into her own folder');
 
 -- ------------------------------------------------------------ 30-second cap
 select throws_ok(
@@ -60,7 +70,12 @@ select lives_ok(
   'images still need no duration');
 select throws_ok(
   $$update public.media_assets set duration_ms = 45000 where id = 'e0000000-0000-4000-8000-000000000004'$$,
-  '23514', 'video_too_long', 'a video cannot be stretched past the cap by UPDATE');
+  '42501', null, 'clients cannot UPDATE duration_ms at all (010: set once at INSERT)');
+reset role;
+select throws_ok(
+  $$update public.media_assets set duration_ms = 45000 where id = 'e0000000-0000-4000-8000-000000000004'$$,
+  '23514', 'video_too_long', 'even a server-side UPDATE cannot stretch a video past the cap');
+set local role authenticated;
 
 -- --------------------------------------------------------------- poster_path
 select throws_ok(
@@ -104,14 +119,6 @@ select lives_ok(
     values ('e0000000-0000-4000-8000-000000000014', 'e0000000-0000-4000-8000-000000000004', 0)$$,
   'stories are unchanged: a story may attach video');
 
--- Poster + video objects (the app uploads these before registering the row).
-select lives_ok(
-  $$insert into storage.objects (bucket_id, name, owner_id) values
-      ('media', '11111111-1111-4111-8111-111111111111/pub.mp4',         '11111111-1111-4111-8111-111111111111'),
-      ('media', '11111111-1111-4111-8111-111111111111/pub-poster.jpg',  '11111111-1111-4111-8111-111111111111'),
-      ('media', '11111111-1111-4111-8111-111111111111/priv.mp4',        '11111111-1111-4111-8111-111111111111'),
-      ('media', '11111111-1111-4111-8111-111111111111/priv-poster.jpg', '11111111-1111-4111-8111-111111111111')$$,
-  'alice uploads her reel videos and posters into her own folder');
 reset role;
 
 -- Re-kinding either side cannot break the pairing (service-role paths).

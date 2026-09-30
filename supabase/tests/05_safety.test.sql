@@ -1,5 +1,6 @@
--- Child safety and DM rules (brief §7): helper privacy, can_dm, message and
--- member-join gating, live gating, message requests.
+-- Child safety and DM rules (brief §7, as amended by migration 010): helper
+-- privacy, can_dm, message and member-join gating, live gating, message
+-- requests. 11_dm_rules covers the 010 direction table and opacity in full.
 begin;
 create extension if not exists pgtap with schema extensions;
 select plan(57);
@@ -47,7 +48,7 @@ select is(public.can_dm('33333333-3333-4333-8333-333333333333', '55555555-5555-4
 select is(public.can_dm('44444444-4444-4444-8444-444444444444', '55555555-5555-4555-8555-555555555555'),
   false, 'carol (unverified adult) ↔ dave, no mutual: cannot DM');
 select is(public.can_dm('11111111-1111-4111-8111-111111111111', '55555555-5555-4555-8555-555555555555'),
-  true,  'alice ↔ dave, both age-verified adults: can DM without a relationship');
+  false, 'alice ↔ dave, verified adults but not connected: no DIRECT thread (010: a message request instead)');
 
 -- --------------------------------------------- messages: mutual adults (C1)
 insert into public.conversations (id, created_by)
@@ -88,14 +89,16 @@ select set_config('request.jwt.claims', '', true);  -- service path: no JWT
 delete from public.blocks;
 
 -- ------------------------------------------ messages: minor ↔ adult (C2)
+-- An ADULT-initiated thread (dave's). 010: in a thread a minor started, the
+-- adult may keep replying; here he may not once the connection lapses.
 insert into public.conversations (id, created_by)
-values ('c0000000-0000-4000-8000-000000000002', '33333333-3333-4333-8333-333333333333');
+values ('c0000000-0000-4000-8000-000000000002', '55555555-5555-4555-8555-555555555555');
 insert into public.conversation_members (conversation_id, user_id)
-values ('c0000000-0000-4000-8000-000000000002', '33333333-3333-4333-8333-333333333333');
+values ('c0000000-0000-4000-8000-000000000002', '55555555-5555-4555-8555-555555555555');
 select throws_ok(
   $$insert into public.conversation_members (conversation_id, user_id)
-    values ('c0000000-0000-4000-8000-000000000002', '55555555-5555-4555-8555-555555555555')$$,
-  'P0001', 'member_join_not_allowed', 'dave cannot even be added to a conversation with minnie');
+    values ('c0000000-0000-4000-8000-000000000002', '33333333-3333-4333-8333-333333333333')$$,
+  'P0001', 'member_join_not_allowed', 'minnie cannot even be added to a conversation with dave');
 
 -- Build the conversation while they are mutual, then remove the relationship:
 -- the send-time check must still stop both directions.
@@ -104,14 +107,14 @@ insert into public.relationships (actor_id, subject_id, state, distinct_weeks, i
   ('55555555-5555-4555-8555-555555555555', '33333333-3333-4333-8333-333333333333', 'regular', 4, 4, now(), now()),
   ('33333333-3333-4333-8333-333333333333', '55555555-5555-4555-8555-555555555555', 'regular', 4, 4, now(), now());
 insert into public.conversation_members (conversation_id, user_id)
-values ('c0000000-0000-4000-8000-000000000002', '55555555-5555-4555-8555-555555555555');
+values ('c0000000-0000-4000-8000-000000000002', '33333333-3333-4333-8333-333333333333');
 
 set local role authenticated;
 select pg_temp.act_as('33333333-3333-4333-8333-333333333333');
 select lives_ok(
   $$insert into public.messages (conversation_id, sender_id, body)
     values ('c0000000-0000-4000-8000-000000000002', '33333333-3333-4333-8333-333333333333', 'hi (mutual)')$$,
-  'minnie → dave succeeds while they are mutual regulars (the minor''s only DM path)');
+  'minnie → dave succeeds while they are mutual regulars');
 reset role;
 delete from public.relationships
 where (actor_id, subject_id) in (('55555555-5555-4555-8555-555555555555', '33333333-3333-4333-8333-333333333333'),
@@ -119,15 +122,15 @@ where (actor_id, subject_id) in (('55555555-5555-4555-8555-555555555555', '33333
 
 set local role authenticated;
 select pg_temp.act_as('33333333-3333-4333-8333-333333333333');
-select throws_ok(
+select lives_ok(
   $$insert into public.messages (conversation_id, sender_id, body)
     values ('c0000000-0000-4000-8000-000000000002', '33333333-3333-4333-8333-333333333333', 'hi dave')$$,
-  'P0001', 'dm_not_allowed', 'minnie cannot insert a message to dave without a mutual relationship');
+  '010: a minor may still write to an adult already in the thread (minor → anyone)');
 select pg_temp.act_as('55555555-5555-4555-8555-555555555555');
 select throws_ok(
   $$insert into public.messages (conversation_id, sender_id, body)
     values ('c0000000-0000-4000-8000-000000000002', '55555555-5555-4555-8555-555555555555', 'hi minnie')$$,
-  'P0001', 'dm_not_allowed', 'an adult (dave) cannot message minnie without a mutual relationship');
+  'P0001', 'dm_not_allowed', 'an adult (dave) cannot message minnie in his own thread once they are no longer connected');
 
 -- Adult writes into a solo conversation, then tries to add the minor.
 insert into public.conversations (id, created_by)
