@@ -248,6 +248,24 @@ async function sessionToken(signal?: AbortSignal): Promise<string> {
   return token;
 }
 
+async function refreshedToken(signal?: AbortSignal): Promise<string> {
+  const result = await waitFor(supabase.auth.refreshSession(), CREATE_OR_HEAD_TIMEOUT_MS, signal);
+  const token = result.data.session?.access_token;
+  if (!token) throw new MediaStoreError('Not authenticated', { status: 401, code: 'not_authenticated' });
+  return token;
+}
+
+/** The job's own object already exists (paths are unique per job), so a retry is a success. */
+function alreadyExists(error: unknown): boolean {
+  const { status, message } = errorShape(error);
+  return status === 409 || /already exists|duplicate/i.test(message);
+}
+
+function authFailure(error: unknown): boolean {
+  const status = error instanceof MediaStoreError ? error.status : errorShape(error).status;
+  return status === 401 || status === 403;
+}
+
 async function headOffset(location: string, total: number, token: string, signal?: AbortSignal): Promise<number> {
   const response = await fetchWithTimeout(
     location,
@@ -371,22 +389,49 @@ async function patchChunk(
 async function uploadVideo(path: string, file: Blob | ArrayBuffer, opts: UploadOptions): Promise<{ path: string }> {
   throwIfAborted(opts.signal);
   const total = fileSize(file);
-  const token = await sessionToken(opts.signal);
+  const auth = { token: await sessionToken(opts.signal) };
+  // An expired access token mid-upload: refresh the session and retry the call once.
+  const authed = async <T>(run: (token: string) => Promise<T>): Promise<T> => {
+    try {
+      return await run(auth.token);
+    } catch (error) {
+      if (!authFailure(error)) throw error;
+      auth.token = await refreshedToken(opts.signal);
+      return run(auth.token);
+    }
+  };
+  const create = async (): Promise<string | null> => {
+    try {
+      return await authed((t) => createUpload(path, total, opts.contentType, t, opts.signal));
+    } catch (error) {
+      if (error instanceof UploadAbortedError || !alreadyExists(error)) throw error;
+      return null; // a previous attempt already finished this object
+    }
+  };
   const existing = matchingResume(opts.resumeKey, path, total, opts.contentType);
   let location: string;
   let offset = 0;
+  const finished = () => {
+    clearResume(opts.resumeKey);
+    opts.onProgress?.(total, total);
+    return { path };
+  };
 
   if (existing) {
     try {
-      offset = await headOffset(existing.location, total, token, opts.signal);
+      offset = await authed((t) => headOffset(existing.location, total, t, opts.signal));
       location = existing.location;
     } catch (error) {
       if (error instanceof UploadAbortedError) throw error;
       clearResume(opts.resumeKey);
-      location = await createUpload(path, total, opts.contentType, token, opts.signal);
+      const created = await create();
+      if (created === null) return finished();
+      location = created;
     }
   } else {
-    location = await createUpload(path, total, opts.contentType, token, opts.signal);
+    const created = await create();
+    if (created === null) return finished();
+    location = created;
   }
 
   saveResume(opts.resumeKey, { location, path, total, contentType: opts.contentType });
@@ -401,7 +446,7 @@ async function uploadVideo(path: string, file: Blob | ArrayBuffer, opts: UploadO
       try {
         const chunkEnd = Math.min(offset + TUS_CHUNK_BYTES, total);
         const chunk = sliceFile(file, offset, chunkEnd);
-        offset = await patchChunk(location, offset, chunk, total, token, opts.signal);
+        offset = await authed((t) => patchChunk(location, offset, chunk, total, t, opts.signal));
         opts.onProgress?.(offset, total);
         uploaded = true;
         break;
@@ -410,7 +455,7 @@ async function uploadVideo(path: string, file: Blob | ArrayBuffer, opts: UploadO
         lastError = error;
         const status = error instanceof MediaStoreError ? error.status : 0;
         if (status === 409) {
-          const serverOffset = await headOffset(location, total, token, opts.signal);
+          const serverOffset = await authed((t) => headOffset(location, total, t, opts.signal));
           if (serverOffset === offset) {
             if (attempt === RETRY_DELAYS_MS.length) {
               lastError = new MediaStoreError('Upload offset conflict could not be resolved', {
@@ -429,7 +474,7 @@ async function uploadVideo(path: string, file: Blob | ArrayBuffer, opts: UploadO
         }
         if (!retryable(error) || attempt === RETRY_DELAYS_MS.length) break;
         try {
-          offset = await headOffset(location, total, token, opts.signal);
+          offset = await authed((t) => headOffset(location, total, t, opts.signal));
           if (offset >= total) {
             opts.onProgress?.(offset, total);
             uploaded = true;
@@ -468,7 +513,7 @@ async function upload(path: string, file: Blob | ArrayBuffer, opts: UploadOption
       opts.signal,
     );
     throwIfAborted(opts.signal);
-    if (error) throw asMediaError(error);
+    if (error && !alreadyExists(error)) throw asMediaError(error);
     opts.onProgress?.(total, total);
     return { path };
   } catch (error) {
@@ -516,4 +561,23 @@ async function remove(paths: string[]): Promise<void> {
   }
 }
 
-export const supabaseStore: MediaStore = { upload, signedUrl, signedUrls, remove };
+async function discardUploads(resumeKeys: string[]): Promise<void> {
+  for (const key of resumeKeys) {
+    const entry = resumes.get(key) ?? readLocalResume(key);
+    clearResume(key);
+    if (!entry) continue;
+    try {
+      // TUS termination: frees the unfinished server-side session.
+      const token = await sessionToken();
+      await fetchWithTimeout(
+        entry.location,
+        { method: 'DELETE', headers: tusHeaders(token) },
+        CREATE_OR_HEAD_TIMEOUT_MS,
+      );
+    } catch {
+      // Best effort: an orphaned session expires on its own.
+    }
+  }
+}
+
+export const supabaseStore: MediaStore = { upload, signedUrl, signedUrls, remove, discardUploads };

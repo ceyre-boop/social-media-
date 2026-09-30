@@ -36,6 +36,7 @@ import {
 } from '@/lib/upload/clip';
 import {
   createReelJob,
+  discardReelJob,
   runReelJob,
   type ReelDraft,
   type ReelJob,
@@ -125,7 +126,9 @@ export default function Create() {
         const next = await prepareReelDraft(source);
         if (!mountedRef.current) return;
         // A new clip means a new file: never resume a previous clip's upload into it.
+        const old = jobRef.current;
         jobRef.current = null;
+        if (old) void discardReelJob(old);
         setReelState('idle');
         setProgress(null);
         setDraft(next);
@@ -183,8 +186,16 @@ export default function Create() {
     void acceptClip({ uri: clip.uri, durationMs: clip.durationMs });
   }
 
-  function removeClip() {
+  /** Drop the current job and clean up whatever it already uploaded (best effort). */
+  function discardJob() {
+    const job = jobRef.current;
     jobRef.current = null;
+    if (job) void discardReelJob(job);
+  }
+
+  function removeClip() {
+    abortRef.current?.abort();
+    discardJob();
     setDraft(null);
     setProgress(null);
     setReelState('idle');

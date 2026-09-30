@@ -12,6 +12,8 @@ export interface MediaStore {
   signedUrl(path: string, ttlSec?: number): Promise<string | null>;
   signedUrls(paths: string[], ttlSec?: number): Promise<Record<string, string | null>>;
   remove(paths: string[]): Promise<void>;
+  /** Best effort: end unfinished resumable sessions and forget their local resume entries. */
+  discardUploads(resumeKeys: string[]): Promise<void>;
 }
 
 export class MediaStoreError extends Error {

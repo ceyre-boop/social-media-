@@ -15,4 +15,5 @@ export const r2Store: MediaStore = {
   async remove() {
     throw notConfigured();
   },
+  async discardUploads() {},
 };

@@ -118,6 +118,21 @@ async function cleanupAfterDatabaseFailure(
   }
 }
 
+/** The clip was removed: delete anything this job uploaded and end its resumable sessions. Best effort. */
+export async function discardReelJob(job: ReelJob): Promise<void> {
+  try {
+    await mediaStore.discardUploads([job.resumeKey, job.posterResumeKey]);
+  } catch {
+    // Nothing more to do.
+  }
+  if (!job.videoMadeProgress && !job.videoUploaded && !job.posterUploaded) return;
+  try {
+    await mediaStore.remove([job.videoPath, job.posterPath]);
+  } catch (error) {
+    if (__DEV__) console.warn('reel discard: remove storage objects failed:', error);
+  }
+}
+
 export async function runReelJob(
   job: ReelJob,
   options: {
