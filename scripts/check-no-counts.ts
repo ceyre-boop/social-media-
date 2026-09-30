@@ -1,5 +1,5 @@
 /**
- * Smiley shows no follower or following counts anywhere in the UI. Fails (exit 1) if any of the
+ * The app shows no follower or following counts anywhere in the UI. Fails (exit 1) if any of the
  * count identifiers appear in src/. src/lib/db/types.ts mirrors the database and is excluded.
  *
  *   bun scripts/check-no-counts.ts

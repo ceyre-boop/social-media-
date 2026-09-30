@@ -1,5 +1,7 @@
 import { Platform } from 'react-native';
 
+import { storageKey } from '@/config/brand';
+import { legacyStorageKey, readMigrated } from '@/lib/legacyKey';
 import { supabase, supabaseUrl } from '@/lib/supabase';
 
 import { MediaStoreError, UploadAbortedError, type MediaStore, type UploadOptions } from './types';
@@ -56,14 +58,20 @@ function base64(value: string): string {
   return btoa(binary);
 }
 
-function resumeStorageKey(resumeKey: string): string {
-  return `smiley.tus.${resumeKey}`;
+function resumeName(resumeKey: string): string {
+  return `tus.${resumeKey}`;
 }
 
 function readLocalResume(resumeKey: string): ResumeEntry | null {
   if (typeof window === 'undefined') return null;
   try {
-    const raw = window.localStorage?.getItem(resumeStorageKey(resumeKey));
+    const ls = window.localStorage;
+    const raw = ls
+      ? readMigrated(
+          { get: (k) => ls.getItem(k), set: (k, v) => ls.setItem(k, v), remove: (k) => ls.removeItem(k) },
+          resumeName(resumeKey),
+        )
+      : null;
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
     if (
@@ -94,7 +102,7 @@ function saveResume(resumeKey: string | undefined, entry: ResumeEntry): void {
   resumes.set(resumeKey, entry);
   if (typeof window === 'undefined') return;
   try {
-    window.localStorage?.setItem(resumeStorageKey(resumeKey), JSON.stringify(entry));
+    window.localStorage?.setItem(storageKey(resumeName(resumeKey)), JSON.stringify(entry));
   } catch {
     // Local persistence is optional; the in-memory resume entry remains available.
   }
@@ -105,7 +113,8 @@ function clearResume(resumeKey: string | undefined): void {
   resumes.delete(resumeKey);
   if (typeof window === 'undefined') return;
   try {
-    window.localStorage?.removeItem(resumeStorageKey(resumeKey));
+    window.localStorage?.removeItem(storageKey(resumeName(resumeKey)));
+    window.localStorage?.removeItem(legacyStorageKey(resumeName(resumeKey)));
   } catch {
     // Local persistence is optional and may be unavailable (for example, private browsing).
   }

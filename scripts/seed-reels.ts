@@ -12,7 +12,7 @@
  *      pattern (gradients / mandelbrot / life / cellauto / testsrc2, hue-shifted)
  *      with a big "REEL N" label and a quiet sine tone, plus a poster JPEG of
  *      the first frame. No network video sources are used.
- *      Output dir: $SEED_REELS_OUT, else <os tmpdir>/smiley-seed-reels.
+ *      Output dir: $SEED_REELS_OUT, else <os tmpdir>/seed-reels.
  *      Existing clips are reused, so re-runs are fast.
  *   3. Uploads each clip to `media/<authorId>/reel-N.mp4` and its poster to
  *      `media/<authorId>/reel-N-poster.jpg` with the service-role key, read at
@@ -387,7 +387,7 @@ async function main(): Promise<void> {
   const appUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
   if (appUrl) assertLocal(appUrl, 'EXPO_PUBLIC_SUPABASE_URL');
 
-  const outDir = process.env.SEED_REELS_OUT ?? join(tmpdir(), 'smiley-seed-reels');
+  const outDir = process.env.SEED_REELS_OUT ?? join(tmpdir(), 'seed-reels');
   console.log(`seed-reels: clips in ${outDir}`);
   const clips = buildClips(outDir);
 

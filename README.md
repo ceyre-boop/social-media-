@@ -1,6 +1,6 @@
-# Smiley
+# Social app
 
-Smiley is a social platform that optimizes for joy and genuine connection instead of attention.
+This is a social platform that optimizes for joy and genuine connection instead of attention.
 This repo is the first vertical slice: sign up, create a profile, post an image, see a feed, like it.
 
 ## Prerequisites
@@ -60,4 +60,4 @@ required on the sign-in screen.
 ## Docs
 
 Design docs live in [`docs/`](docs/), starting with
-[`docs/claude-code-brief_smiley.md`](docs/claude-code-brief_smiley.md).
+[`docs/brief-milestone-1.md`](docs/brief-milestone-1.md).

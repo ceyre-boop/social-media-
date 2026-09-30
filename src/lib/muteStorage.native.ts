@@ -1,11 +1,21 @@
 import { Storage } from 'expo-sqlite/kv-store';
 
-const STORAGE_KEY = 'smiley.muted';
+import { storageKey } from '@/config/brand';
+import { readMigrated } from '@/lib/legacyKey';
+
+const NAME = 'muted';
 
 /** Read the persisted mute preference, treating an unavailable store as no preference. */
 export function readMuted(): boolean | null {
   try {
-    const value = Storage.getItemSync(STORAGE_KEY);
+    const value = readMigrated(
+      {
+        get: (k) => Storage.getItemSync(k),
+        set: (k, v) => Storage.setItemSync(k, v),
+        remove: (k) => Storage.removeItemSync(k),
+      },
+      NAME,
+    );
     if (value === '1') return true;
     if (value === '0') return false;
     return null;
@@ -18,7 +28,7 @@ export function readMuted(): boolean | null {
 /** Persist the mute preference without making storage availability a runtime dependency. */
 export function writeMuted(muted: boolean): void {
   try {
-    Storage.setItemSync(STORAGE_KEY, muted ? '1' : '0');
+    Storage.setItemSync(storageKey(NAME), muted ? '1' : '0');
   } catch (error) {
     if (__DEV__) console.warn('Unable to save mute preference', error);
   }

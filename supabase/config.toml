@@ -417,9 +417,9 @@ enabled = true
 # The app signs in with a 6-digit email code (brief §8.5), so both templates carry {{ .Token }}.
 # Hosted projects need the same templates set in the dashboard (Auth → Email Templates).
 [auth.email.template.magic_link]
-subject = "Your Smiley code"
+subject = "Your sign-in code"
 content_path = "./supabase/templates/magic_link.html"
 
 [auth.email.template.confirmation]
-subject = "Your Smiley code"
+subject = "Your sign-in code"
 content_path = "./supabase/templates/confirmation.html"
