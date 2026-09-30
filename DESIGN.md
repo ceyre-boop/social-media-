@@ -17,6 +17,7 @@ Why: the original product name conflicts with a live trademark, and the currency
 3. **Confident, not childish.** Bright and warm, but adult: real type hierarchy, restrained radii, no cartoon chrome. This is not a kids' app (COPPA); the tone is a friend with good taste.
 4. **Stop points.** Feeds end. Discover is finite and finishes with a full-page "That's everything for now" so it is unmistakable that you are done. Nothing auto-advances; no infinite refill.
 5. **Media is always dark.** Reels and live sit on a fixed dark "stage" palette regardless of the theme, so video looks right in light mode too.
+6. **The chrome is quiet.** See "Emphasis & restraint": one accent, one emphasis level, and the video is the brightest thing on screen.
 
 ## Color tokens
 
@@ -24,27 +25,27 @@ Read via `useTheme().colors`. Both themes are fully designed; dark is the defaul
 
 | Token            | Dark                  | Light                   | Use                                              |
 | ---------------- | --------------------- | ----------------------- | ------------------------------------------------ |
-| `bg`             | `#0E0B10`             | `#FFF9F6` (warm cream)  | Screen background                                |
-| `surface`        | `#17131A`             | `#FFFFFF`               | Cards, inputs, sheets                            |
-| `surface2`       | `#211B25`             | `#FBF1F4`               | Secondary buttons, hover, chips                  |
-| `surface3`       | `#2C2431`             | `#F5E6EC`               | Pressed secondary, deepest fill                  |
-| `border`         | `#342B3A`             | `#EEDFE6`               | Hairlines, card outlines                         |
-| `borderStrong`   | `#4A3D52`             | `#DCC6D1`               | Sheet handle, toast outline                      |
-| `text`           | `#FBF6F9`             | `#1C1220`               | Primary text                                     |
-| `textSecondary`  | `#C9BFCC`             | `#4E4054`               | Supporting text                                  |
-| `muted`          | `#978C9C`             | `#6F6175`               | Hints, timestamps, placeholders                  |
-| `primary`        | `#FF6FB5`             | `#BA3273` *             | Buttons, links, active states                    |
+| `bg`             | `#050506`             | `#FAFAFA`  | Screen background                                |
+| `surface`        | `#0F0F11`             | `#FFFFFF`               | Cards, inputs, sheets                            |
+| `surface2`       | `#171719`             | `#F2F2F3`               | Secondary buttons, hover, chips                  |
+| `surface3`       | `#222225`             | `#E8E8EA`               | Pressed secondary, deepest fill                  |
+| `border`         | `#26262A`             | `#E4E4E7`               | Hairlines, card outlines                         |
+| `borderStrong`   | `#3B3B40`             | `#CFCFD4`               | Sheet handle, toast outline                      |
+| `text`           | `#F4F4F5`             | `#111113`               | Primary text                                     |
+| `textSecondary`  | `#BDBDC2`             | `#46464C`               | Supporting text                                  |
+| `muted`          | `#93939A`             | `#62626A`               | Hints, timestamps, placeholders                  |
+| `primary`        | `#FF6FB5`             | `#BA3273` *             | Primary button, active nav (color only)                    |
 | `primaryPressed` | `#F0529F`             | `#9E2A62` *             | Pressed / hover primary                          |
 | `onPrimary`      | `#24040F`             | `#FFFFFF`               | Text/icons on `primary`                          |
-| `primarySubtle`  | `#3A1A2B`             | `#FCE3EF`               | Active nav row, tinted chip                      |
+| `primarySubtle`  | `#3A1A2B`             | `#FCE3EF`               | Reserved (not used in chrome)                      |
 | `focus`          | `#FF9CCB`             | `#8C1240`               | Focus ring, focused input border                 |
 | `success`        | `#4CD68A`             | `#177844` *             | Success text/icons                               |
 | `warning`        | `#FFC24D`             | `#8F5E18` *             | Warning text/icons                               |
 | `danger`         | `#FF6B6B`             | `#BA3C3C` *             | Errors, destructive                              |
 | `info`           | `#5CC8FF`             | `#176EA6` *             | Informational                                    |
 | `live`           | `#FF4FA3`             | `#BA3273` *             | LIVE tag, live dot, avatar live ring. Never red. |
-| `scrim`          | `rgba(8,6,10,0.72)`   | `rgba(28,18,32,0.55)`   | Behind sheets/dialogs                            |
-| `overlay`        | `rgba(14,11,16,0.55)` | `rgba(255,249,246,0.7)` | Translucent chip over content                    |
+| `scrim`          | `rgba(0,0,0,0.75)`   | `rgba(0,0,0,0.5)`   | Behind sheets/dialogs                            |
+| `overlay`        | `rgba(5,5,6,0.55)` | `rgba(250,250,250,0.7)` | Translucent chip over content                    |
 
 \* Adjusted from the brief to meet WCAG AA, see "Contrast" below.
 
@@ -60,8 +61,8 @@ Everything drawn over photos, video and live uses `stage.*`: `bg`, `surface`, `t
 
 Every text/background pair below meets AA (4.5:1) unless noted; UI components (focus ring, borders that carry meaning, icons) meet 3:1.
 
-- Dark: all brief values pass as given (lowest: `muted` on `surface3` 4.66:1).
-- Light, adjusted because the brief values failed as text on `bg`/`surface`/`surface2`/`primarySubtle`:
+- Neutrals (restraint pass): `text` 14.4 to 18.5:1, `textSecondary` 8.5 to 10.9:1, `muted` 4.9 to 6.7:1 on every surface, both themes; `primary` 7.0:1 or better on dark surfaces, 4.95 or better on light (WCAG luminance formula).
+- Light accents, adjusted because the brief values failed as text on `bg`/`surface`/`surface2`:
   - `primary` `#D63A84` (4.38:1 with white; 3.6 on `primarySubtle`) to **`#BA3273`** (white 5.54:1; min 4.58 on any surface).
   - `primaryPressed` `#BD2E72` to **`#9E2A62`** (keeps the pressed step visibly darker; white 7.09:1).
   - `success` `#1E9E5A` to **`#177844`**, `warning` `#B7791F` to **`#8F5E18`**, `danger` `#D64545` to **`#BA3C3C`**, `info` `#1B7FBF` to **`#176EA6`**, `live` `#D63A84` to **`#BA3273`** (all were 3.3 to 4.4:1 as text; now 4.55 or better).
@@ -125,12 +126,25 @@ Every interactive primitive has hover (web), pressed, disabled and focus-visible
 | `Skeleton`                  | `width`, `height`, `radius`                                                                                 | Static, no shimmer (calm loading)                                                                                                                                                                                                                                                               |
 | `EmptyState`                | `title`, `message`, `actionLabel`, `illustration`, `compact`                                                | Illustration slot defaults to the logo; `display` title (or `title` when `compact`)                                                                                                                                                                                                             |
 | `Sheet`                     | `visible`, `onClose`, `title`, `scroll`                                                                     | Phone: bottom sheet, sized to content (max ~90%), drag down (RNGH + Reanimated) or tap backdrop / handle / Escape to dismiss, safe-area and keyboard aware. Width >= 768: centered dialog with a close button. Reduced motion: fades only. Handle is a labelled Close button for screen readers |
-| `TabBar` / `TabBarItem`     | `label`, `active`, `emphasized`                                                                             | Floating pill on the stage glass; icons only, labels spoken via `accessibilityLabel`; `emphasized` is the pink Create button; fits 320px; no badges or counts                                                                                                                                   |
+| `TabBar` / `TabBarItem`     | `label`, `active`                                                                             | Floating pill on the stage glass; icons only, labels spoken via `accessibilityLabel`; active is icon color only; fits 320px; no badges or counts                                                                                                                                   |
 | `Toast` (`useToast().show`) | `message`, `tone`, `actionLabel`, `onAction`, `duration`                                                    | Stacked (max 3), auto-dismiss (4.5s default), polite live region, dismiss button, fades in place under reduced motion                                                                                                                                                                           |
 
 ## Shell
 
-Five destinations, everywhere: **Home, Discover, Create, Live, You**. Phone: floating pill (icons only). Desktop >= 768: sidebar (icons only at 768-1199, icons + labels from 1200) with Create as the prominent button; the right rail appears at >= 1200. No red, no counts, no badges in navigation.
+Five destinations, everywhere: **Home, Discover, Create, Live, You**. Phone: floating pill (icons only). Desktop >= 768: sidebar (icons only at 768-1199, icons + labels from 1200) beside a centered content column. Create is a regular nav row (a plus in a small outlined rounded square), not a button. There is no persistent right rail. No red, no counts, no badges in navigation. See "Emphasis & restraint".
+
+## Emphasis & restraint
+
+Compared with TikTok web: the video is the only bright object and the chrome is aggressively boring. The rules below apply to chrome (nav, headers, sheets, forms, chips). They do not apply to content or celebrations: gifts, likes, avatars, the end-of-feed rainbow and the LIVE dot stay colorful.
+
+1. **One accent, one job at a time.** `primary` (pink) in the shell means exactly one thing: "you are here" on the active nav item (icon and label color). Everything else in the chrome is neutral gray. No pink fills, tinted pills or pink text in the shell.
+2. **One emphasis level.** Nothing in the chrome is louder than the rest. Create is a normal nav row, not a filled button. Wordmark: neutral text, weight 600, small, beside the logo mark. At most one filled `primary` Button per screen, and only when it is THE primary action there.
+3. **Active state is color only.** No filled-vs-outline glyph swap, no size or weight change, no background pill, on the sidebar and on the phone pill. Hover and press may show a faint neutral disc; that is feedback, not state.
+4. **Uniform icons.** One family (Ionicons), outline style, 24px in nav (sidebar and pill), 26px for the reel action rail, one neutral color (`textSecondary` on themed surfaces, `stage.textSecondary` on the pill). The Create glyph (`shell/CreateGlyph`) is drawn to the same box and stroke.
+5. **Uniform labels.** One size (16), one weight (600), one color for every nav label; active changes color only.
+6. **Neutral surfaces.** Dark neutrals are near-black with no purple tint (`bg #050506`, sidebar = page bg, borders a subtle neutral gray, secondary text neutral gray). Light mode uses neutral grays with the same single accent. Chips, badges, segmented controls, toggles and progress bars are neutral.
+7. **The video owns the brightness.** On desktop the feed stage is a pure-black surround with the 9:16 card as the only bright object. Rail icons over or beside it are neutral white/gray on a neutral translucent disc; a liked heart may use `primary` because it is content state.
+8. **Explanations are not chrome.** Persistent explainer cards ("How it works") are not allowed in the shell. Put that copy in an About page or an empty state, once.
 
 ## Adding a token
 
