@@ -10,7 +10,7 @@ Colin's Milestone 2 brief is front-end only: the visible surface first, backend 
 - The image reels feed is `src/app/(app)/(tabs)/index.tsx` plus `src/components/reels/*`.
 - Other existing pieces: floating pill nav, sidebar and rail, `src/lib/errors.ts`, `src/lib/posts.ts` (signed URLs), `src/lib/follows.ts`.
 
-**Colin's decision:** add `react-native-compressor`. The app then needs an **Expo dev build**; Expo Go can't run custom native modules.
+**Colin's decision (revised mid-build): option 1, no new native deps.** Record: expo-camera `maxDuration: 30`, 720p. Library on iOS: expo-image-picker `allowsEditing` + `videoMaxDuration: 30` (Apple's native trimmer) + `videoExportPreset` 1280x720 (compression). Library on Android: videos over 30s rejected with friendly copy. Web: 30s or under only. Runs in **Expo Go**, so no dev build, no EAS, no Apple account. `react-native-compressor`, `react-native-video-trim` and `expo-dev-client` were removed.
 
 ## Things to flag before building
 1. **`frontend-design` skill:** it isn't installed on this machine. I'll use the installed `design:design-system` skill for the token and spec work, plus a visual review pass. I'm naming it so it isn't a silent substitution.
