@@ -169,3 +169,63 @@ Both keep the swipe off React state: the live index is a Reanimated shared value
 | _(iPhone …)_  | B scrollview |                        |                        |            |            |                   |       |
 | _(Android …)_ | A flashlist  |                        |                        |            |            |                   |       |
 | _(Android …)_ | B scrollview |                        |                        |            |            |                   |       |
+
+## Live
+
+Live is a shell for now: stub data (`src/lib/live/stub.ts`), no network. It always sits on the dark **stage** palette, in both themes.
+
+- **Directory** (`live/index`): "Live now" header, a friendly "Live is in preview. Streams here are samples." note, and a responsive grid of `StreamCard`s (2 columns on phones, 3 in the desktop column, 4 if the column is wider than 800). Each card is a token-gradient thumbnail (two `brand` colors) with the host avatar, the title over a bottom scrim, the LIVE chip, then the host name and "1.2k watching" beneath. Viewer counts are explicitly wanted on live; nothing else counts. Empty state uses `EmptyState`.
+- **LIVE chip** (`LiveChip`): the breathing `LiveDot` plus a `micro` label on the stage glass. Warm, never red.
+- **Viewer** (`live/[id]`): placeholder video surface (`VideoPlaceholder`), top bar (back, host, viewer count, LIVE chip, participants, viewer options), chat (bottom-left overlay on phones, a 260px right column at >= 768), a send box that only appends locally ("Sending is off in preview"), and the gift button. Keyboard aware on native.
+- **Placeholder video** is the one looping exception besides the live dot: a slow 9s cross-fade between the stream's two gradient colors, plus a placeholder creator (host avatar as the head) that sways gently so anchored gifts have someone to land on. It stands in for video and holds still under reduced motion.
+- **Participants** are a `Sheet` with avatars and a Host / Co-host / Guest / Viewer label.
+
+## Gifts
+
+Visual only: no Stripe, no balance, no ledger, no network. The catalog (`src/components/gifts/catalog.ts`) mirrors migration 009 exactly (slug, name, blips, tier, render mode, anchors, duration, fill). 100 blips = $1.00, stated in the picker; the sheet footer reads "Preview — gifting isn't live yet". Gifts are gestures, never luxury goods, vehicles or wealth signifiers; nothing implies a gift affects reach; no countdowns or spend-gated gifts.
+
+### Tier tokens
+
+`giftTier` in `theme.ts` (theme-independent), anchored to brand yellow, cream (`giftCream`) and near-black (`giftInk`). Each tier may use a wider accent range than the one below: `accent` fills the icon tile edge and glow, `range` colors confetti, sparks and light.
+
+| Tier | Accent | Range |
+|---|---|---|
+| Blips | sun | sun |
+| Sparks | tangerine | sun, tangerine |
+| Glows | magenta | + magenta |
+| Bursts | violet | + violet |
+| Showers | sky | + sky |
+| Sunrise | pink | pink + the whole mane |
+
+### Icons
+
+`GiftIcon` renders every gift the same way: the illustration (`assets/gifts/<slug>.png`, mapped by static `require` in `icons.ts`) on a rounded tile in the tier accent (30% fill plus a solid accent edge, so the dark-outlined art reads on bright video and on the dark stage). The five slots without art yet (Long Hug, Standing Ovation, Northern Lights, Constellation, The Whole Sky) show one Ionicons glyph on a solid accent tile. Adding art later means adding one line to `icons.ts`; nothing else changes.
+
+### Render modes (docs/gift-render-spec.md)
+
+| Mode | Tiers | Where | Duration |
+|---|---|---|---|
+| A Rail | Blips, Sparks | Stacked cards on the right, above the bottom guard, max 4 visible | 1.2 to 2s |
+| B Anchor | Glows | Follows the creator's body | 2.4 to 3s |
+| C Stage | Bursts, Showers | Stage box, filling 45/60/75/90% by value | 3.0 to 4.0s |
+| D Takeover | Sunrise | Everything except the top 10% and bottom 12% | 6s |
+
+Every gift is usable with no animation asset: the icon plays with the mode's default motion.
+
+**Safe areas** come from `useGiftStage()` / `computeGiftStage()` (`stageLayout.ts`): top guard 0-14% (header, viewer count, close), bottom guard 72-100% (chat, composer, gift button), 16pt side gutters, stage box x 16..w-16 and y 18-68%. Content stays in the box; particles and light may bleed up to 12% beyond it (everything is clipped to the bleed box) and are capped at 40% alpha over a guard. The overlay renders below the header, chat and composer in z-order, so the close button and composer are reachable in every mode. On desktop the overlay covers only the video area; the chat column is never covered. `EXPO_PUBLIC_GIFT_DEBUG=1` draws every rect on top of the viewer.
+
+**Rail combos**: the same gift from the same sender within 3s increments the counter on the existing card (it scales with the streak and pulses on every hit) and resets the window. A card that already left but whose window is still open continues the count. A fifth card pushes the oldest out early. Sparks get a small particle puff; Blips do not.
+
+**Anchor** placement is a pure engine (`gifts/anchor/engine.ts`): a sample buffer keyed by PTS, matched to the PTS of the frame on screen (not the latest sample), linearly interpolated between the 10-15 Hz samples, `c >= 0.6` on the preferred anchor then the fallbacks, `s` scales the sprite. No usable anchor: the gift degrades to a full-size Glow rail card. Tracking lost mid-animation: hold 400ms, then ease to the stage center; switching anchors blends. It never jumps. Preview feed: a stub anchor stream with a simulated 3s video delay.
+
+**Queue** (`gifts/queue.ts`, pure): one Anchor/Stage/Takeover at a time; the playing gift is never preempted; value-ordered then FIFO; depth 8 (overflow becomes rail cards); at most 70% of any 60s window occupied by Stage/Takeover (past that, rail until it clears); one Takeover per 60s (the rest queue). Rail is concurrent, capped at 4.
+
+**Takeover** foregrounds the sender (avatar and name), then "sent Sunrise". The Whole Sky replaces the sun with every color washed across the sky. Tap to dismiss.
+
+### Viewer motion setting
+
+Viewer options sheet, remembered per device: **Full** (as specified), **Calm** (Anchor and Stage at 50% scale, no takeover, no particles; a Sunrise plays as a 50% Stage), **Minimal** (every gift is a rail card). With nothing saved, OS reduced motion selects Calm; the OS setting also makes every mode fade-only (no translate or scale). A stub host toggle ("Cap incoming animation size") caps anchor and stage scale at 75%. "Try gifts" plays a scripted run of every mode plus ten rapid gifts.
+
+### Motion exception
+
+Gifts are the one place lavish motion is right (principle 2), but it stays warm: nothing shakes, flashes or hurries, and every animation ends on its own.
