@@ -14,6 +14,8 @@
 export const brand = {
   appName: 'Smiley', // placeholder: product name is changing (trademark)
   tagline: 'A place you come back to because it feels good.',
+  // Working name for the friends-only prompted post (brief-milestone-3 §1).
+  momentsName: 'Moments',
   currency: { singular: 'blip', plural: 'blips', perDollar: 100 }, // placeholder name
   // Base URL for shared links (/p/<id>, /p/<id>/embed). Placeholder: the real domain lands with the rename.
   webUrl: 'https://example.app',
