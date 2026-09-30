@@ -9,7 +9,7 @@ import {
   FRIEND_ACTION_FAILED,
   askForFriendNotifications,
   fetchFriendships,
-  findUserByUsername,
+  normalizeUsername,
   removeFriend,
   requestFriend,
   respondFriend,
@@ -17,6 +17,7 @@ import {
   type PersonBasics,
 } from '@/lib/friends';
 import { useNavClearance } from '@/lib/layout';
+import { searchUsers } from '@/lib/search';
 import { useTheme } from '@/lib/theme';
 
 function nameOf(p: { display_name: string | null; username: string }) {
@@ -53,7 +54,7 @@ export default function Friends() {
   const me = session!.user.id;
   const [list, setList] = useState<Friendship[]>([]);
   const [query, setQuery] = useState('');
-  const [found, setFound] = useState<PersonBasics | null | 'none'>(null);
+  const [found, setFound] = useState<PersonBasics[] | null | 'none'>(null);
   const [looking, setLooking] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -73,9 +74,12 @@ export default function Friends() {
     setLooking(true);
     setMessage(null);
     try {
-      setFound((await findUserByUsername(query)) ?? 'none');
-    } catch {
+      const rows = await searchUsers(normalizeUsername(query), 10);
+      setFound(rows.length ? rows : 'none');
+    } catch (e) {
+      const limited = (e as { message?: string } | null)?.message?.includes('search_rate_limited');
       setFound('none');
+      if (limited) setMessage('That was a lot of searching. Give it a minute.');
     } finally {
       setLooking(false);
     }
@@ -140,10 +144,10 @@ export default function Friends() {
       >
         <View style={{ gap: spacing.sm }}>
           <Text tone="secondary">
-            {`Friends see each other's ${brand.moment.plural}. Ask for their exact username.`}
+            {`Friends see each other's ${brand.moment.plural}. Look them up by username or name.`}
           </Text>
           <TextField
-            label="Username"
+            label="Username or name"
             value={query}
             onChangeText={(t) => {
               setQuery(t);
@@ -162,10 +166,16 @@ export default function Friends() {
             onPress={() => void lookUp()}
           />
           {found === 'none' ? (
-            <Text tone="muted">Nobody with that exact username. Check the spelling with them.</Text>
+            <Text tone="muted">Nobody by that name. Check the spelling with them.</Text>
           ) : found ? (
             <Card>
-              <PersonLine person={found}>{foundAction(found)}</PersonLine>
+              <View style={{ gap: spacing.md }}>
+                {found.map((p) => (
+                  <PersonLine key={p.user_id} person={p}>
+                    {foundAction(p)}
+                  </PersonLine>
+                ))}
+              </View>
             </Card>
           ) : null}
           {message ? <Text tone="danger">{message}</Text> : null}

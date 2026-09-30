@@ -79,13 +79,3 @@ export async function removeFriend(other: string): Promise<void> {
 export function normalizeUsername(input: string): string {
   return input.trim().replace(/^@+/, '').trim();
 }
-
-/** Exact username match only (not search). Null when there is nobody by that name you can see. */
-export async function findUserByUsername(input: string): Promise<PersonBasics | null> {
-  const name = normalizeUsername(input);
-  if (!name) return null;
-  const { data, error } = await supabase.rpc('find_user_by_username', { name });
-  if (error) throw error;
-  const row = data?.[0];
-  return row ? { user_id: row.user_id, username: row.username, display_name: row.display_name } : null;
-}

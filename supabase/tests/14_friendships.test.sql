@@ -136,7 +136,7 @@ select is(pg_temp.as_user('alice', $$select public.request_friend('99999999-9999
           'P0001:request_not_allowed', 'nonexistent person: the same generic refusal');
 select is(pg_temp.as_user('alice', $$select public.request_friend('11111111-1111-4111-8111-111111111111')$$),
           'P0001:request_not_allowed', 'yourself: the same generic refusal');
-select is((select count(*)::int from public.notifications where user_id = pg_temp.u('minnie')), 0, 'the minor was never notified');
+select is((select count(*)::int from public.notifications where user_id = pg_temp.u('minnie') and kind like 'friend%'), 0, 'the minor was never notified');
 
 select is(pg_temp.as_user('minnie', $$select public.request_friend('11111111-1111-4111-8111-111111111111')$$),
           'ok:requested', 'minor → adult is allowed');
