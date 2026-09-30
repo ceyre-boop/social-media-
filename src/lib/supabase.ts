@@ -2,7 +2,7 @@ import '@/lib/storage-polyfill';
 
 import { createClient } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
-import { AppState, Platform } from 'react-native';
+import { AppState, NativeModules, Platform } from 'react-native';
 
 import type { Database } from '@/lib/db/types';
 import { RequestTimeoutError } from '@/lib/errors';
@@ -19,25 +19,51 @@ const LOOPBACK = new Set(['127.0.0.1', 'localhost', '[::1]']);
  * http://<mac-ip>:8081, or Expo Go connected to the Mac's dev server — point Supabase at
  * that same host so the phone reaches the Mac's database. Production URLs are untouched.
  */
+/** Host part of "exp://192.168.4.43:8081/…", "http://192.168.4.43:8081/x.bundle", or "192.168.4.43:8081". */
+function hostOf(value: unknown): string | undefined {
+  if (typeof value !== 'string' || !value) return undefined;
+  const m = /^(?:[a-z][a-z0-9+.-]*:\/\/)?(\[[^\]]+\]|[^/:?#]+)/i.exec(value);
+  return m?.[1];
+}
+
+/** Where this JS was loaded from on a phone: Expo Go / dev client → the Mac running Metro. */
+function devServerHost(): string | undefined {
+  const c = Constants as unknown as {
+    expoConfig?: { hostUri?: string };
+    expoGoConfig?: { debuggerHost?: string };
+    manifest2?: { extra?: { expoGo?: { debuggerHost?: string }; expoClient?: { hostUri?: string } } };
+    linkingUri?: string;
+  };
+  const scriptURL = (NativeModules as { SourceCode?: { scriptURL?: string } }).SourceCode?.scriptURL;
+  const candidates = [
+    c.expoConfig?.hostUri,
+    c.expoGoConfig?.debuggerHost,
+    c.manifest2?.extra?.expoGo?.debuggerHost,
+    c.manifest2?.extra?.expoClient?.hostUri,
+    scriptURL, // the bundle URL always points at the dev server
+    c.linkingUri,
+  ];
+  for (const candidate of candidates) {
+    const host = hostOf(candidate);
+    // Real network hosts only (IPs / dotted names), never scheme hosts like "expo-development-client".
+    if (host && !LOOPBACK.has(host) && (host.includes('.') || host.startsWith('['))) return host;
+  }
+  return undefined;
+}
+
 function devReachableUrl(url: string): string {
   if (!__DEV__) return url;
-  let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
-    return url;
-  }
-  if (!LOOPBACK.has(parsed.hostname)) return url;
-  let host: string | undefined;
-  if (Platform.OS === 'web') {
-    host = typeof window !== 'undefined' ? window.location.hostname : undefined;
-  } else {
-    // "192.168.4.43:8081" when Expo Go loads the bundle from the Mac.
-    host = Constants.expoConfig?.hostUri?.split(':')[0];
-  }
+  // String surgery, not `new URL()`: React Native's URL polyfill can't read/set hostname.
+  const m = /^(https?:\/\/)(\[[^\]]+\]|[^/:]+)(.*)$/i.exec(url);
+  if (!m || !LOOPBACK.has(m[2])) return url;
+  const host =
+    Platform.OS === 'web'
+      ? typeof window !== 'undefined'
+        ? window.location.hostname
+        : undefined
+      : devServerHost();
   if (!host || LOOPBACK.has(host)) return url;
-  parsed.hostname = host;
-  return parsed.toString().replace(/\/$/, '');
+  return `${m[1]}${host}${m[3]}`.replace(/\/$/, '');
 }
 
 /** True when the env vars are missing. The root layout shows a config screen instead of crashing. */
