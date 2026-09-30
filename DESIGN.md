@@ -1,6 +1,14 @@
-# Smiley design system
+# Design system
 
 Source of truth: `src/lib/theme.ts`. Primitives: `src/components/ui/`. Nothing else may define a color, type size, radius, shadow, or duration.
+
+## Naming
+
+The product name and the currency name are placeholders and live in one file: `src/config/brand.ts` (`brand.appName`, `brand.currency`), with helpers `formatCurrency`, `currencyRate`, `pageTitle`, `storageKey`. All UI copy, page titles, accessibility labels and `app.config.ts` (display name, permission copy) read from it. Identifiers, file names, storage keys (`app.*` via `brand.storagePrefix`), slug (`social-app`) and scheme (`socialapp`) are deliberately name-independent.
+
+To rename: edit `src/config/brand.ts`. Hand-edit list: none for code or config (Supabase email templates and subjects are brand-free); README.md prose and this file's prose may still say the old names. `bun run check:brand` fails if either name appears elsewhere in `src/` or `app.config.ts`.
+
+Why: the original product name conflicts with a live trademark, and the currency name is undecided, so neither can be baked into code.
 
 ## Principles
 
@@ -143,7 +151,7 @@ Five destinations, everywhere: **Home, Discover, Create, Live, You**. Phone: flo
 
 **Pause rules.** Tap toggles pause on the current reel (a play glyph fades in). Tab blur (`useFocusEffect`), app background (`AppState`) and a hidden web tab (`visibilitychange`) suspend every player; returning resumes only the current one, unless the user had paused it.
 
-**Mute.** `src/lib/mute.ts` (subscribe/get/set, `useMuted`) persisted under `smiley.muted` with `expo-sqlite/kv-store` on native and `localStorage` on web. First launch is muted. The speaker button on reel pages toggles it; the pool writes `player.muted` directly on every player, with no React render.
+**Mute.** `src/lib/mute.ts` (subscribe/get/set, `useMuted`) persisted under `app.muted` (legacy `smiley.muted` is read once and migrated) with `expo-sqlite/kv-store` on native and `localStorage` on web. First launch is muted. The speaker button on reel pages toggles it; the pool writes `player.muted` directly on every player, with no React render.
 
 **Gestures** (RNGH, `Gesture.Exclusive(longPress, doubleTap, tap)`): tap pauses/resumes, double-tap likes (never unlikes; heart burst), long-press opens the options sheet. The info overlay is `box-none`, so taps on empty areas reach the media.
 

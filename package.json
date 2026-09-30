@@ -1,5 +1,5 @@
 {
-  "name": "smiley",
+  "name": "social-app",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "dependencies": {
@@ -52,6 +52,8 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "check:counts": "bun scripts/check-no-counts.ts",
+    "check:brand": "bun scripts/check-brand.ts",
+    "check": "bun run typecheck && bun run lint && bun run check:counts && bun run check:brand",
     "lint": "expo lint",
     "format": "prettier --write .",
     "db:types": "supabase gen types typescript --local > src/lib/db/types.ts",
