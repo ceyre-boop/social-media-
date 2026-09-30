@@ -423,3 +423,11 @@ content_path = "./supabase/templates/magic_link.html"
 [auth.email.template.confirmation]
 subject = "Your sign-in code"
 content_path = "./supabase/templates/confirmation.html"
+
+# Hosted preview project (public web preview). Overrides only what differs from local.
+[remotes.preview]
+project_id = "hjuaceylrywhmblmhbia"
+
+[remotes.preview.auth]
+site_url = "https://social-app-preview-self.vercel.app"
+additional_redirect_urls = ["https://social-app-preview-self.vercel.app"]
