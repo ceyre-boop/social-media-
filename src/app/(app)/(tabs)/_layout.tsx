@@ -15,6 +15,8 @@ import { useTheme } from '@/lib/theme';
  *   compact: content + bottom tab bar
  *   medium:  icon-only sidebar (72) + centered 600px column
  *   wide:    full sidebar (240) + centered 600px column + right rail (320)
+ * The live viewer (/live/[id]) is immersive: no floating nav, sidebar or rail, and the stage gets
+ * the full window (it has its own back/close, and the gift takeover may not be covered).
  * The hidden <TabList> registers the routes; visible triggers are plain <TabTrigger name> elsewhere.
  */
 export default function TabsLayout() {
@@ -22,6 +24,7 @@ export default function TabsLayout() {
   const { colors } = useTheme();
   const pathname = usePathname();
   const compact = bp === 'compact';
+  const immersive = /^\/live\/[^/]+/.test(pathname);
 
   return (
     // Full-bleed backdrop so the margins around the centered shell match the app background.
@@ -33,7 +36,7 @@ export default function TabsLayout() {
           backgroundColor: colors.bg,
           // Sidebar + column (+ rail) sit together as one centered group instead of the sidebar
           // hugging the window edge with dead space before the column.
-          ...(compact
+          ...(compact || immersive
             ? null
             : {
                 width: '100%',
@@ -42,30 +45,31 @@ export default function TabsLayout() {
               }),
         }}
       >
-        {compact ? null : <Sidebar expanded={bp === 'wide'} pathname={pathname} />}
+        {compact || immersive ? null : <Sidebar expanded={bp === 'wide'} pathname={pathname} />}
 
         <View style={{ flex: 1, flexDirection: 'row', justifyContent: 'center' }}>
           <View
             style={[
-              { flex: 1, maxWidth: compact ? undefined : COLUMN_MAX_WIDTH },
-              !compact && {
-                borderLeftWidth: 1,
-                borderRightWidth: 1,
-                borderColor: colors.border,
-              },
+              { flex: 1, maxWidth: compact || immersive ? undefined : COLUMN_MAX_WIDTH },
+              !compact &&
+                !immersive && {
+                  borderLeftWidth: 1,
+                  borderRightWidth: 1,
+                  borderColor: colors.border,
+                },
             ]}
           >
-            {compact ? null : <OfflineBanner />}
+            {compact || immersive ? null : <OfflineBanner />}
             <View style={{ flex: 1 }}>
               {/* ScreenContainer defaults to flexShrink 0, which lets tall screens overflow the bar. */}
               <TabSlot style={{ flexShrink: 1, minHeight: 0 }} />
             </View>
           </View>
-          {bp === 'wide' ? <Rail /> : null}
+          {bp === 'wide' && !immersive ? <Rail /> : null}
         </View>
 
-        {compact ? <OfflineBanner floating /> : null}
-        {compact ? <FloatingNav pathname={pathname} /> : null}
+        {compact && !immersive ? <OfflineBanner floating /> : null}
+        {compact && !immersive ? <FloatingNav pathname={pathname} /> : null}
 
         <TabList style={{ display: 'none' }}>
           <TabTrigger name="index" href="/" />

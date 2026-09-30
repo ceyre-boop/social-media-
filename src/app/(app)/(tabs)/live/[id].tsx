@@ -19,13 +19,14 @@ import { ParticipantsSheet } from '@/components/live/ParticipantsSheet';
 import { VideoPlaceholder } from '@/components/live/VideoPlaceholder';
 import { ViewerOptionsSheet } from '@/components/live/ViewerOptionsSheet';
 import { Avatar, EmptyState, IconButton, PageTitle, Text } from '@/components/ui';
-import { useNavClearance } from '@/lib/layout';
 import { formatViewers } from '@/lib/live/format';
 import { STUB_CHAT, STUB_INCOMING, findStream, participantsFor } from '@/lib/live/stub';
 import { useReducedMotion, useTheme } from '@/lib/theme';
 
 const DESKTOP_MIN = 768;
 const CHAT_COLUMN = 260;
+/** Composer row (44) + helper line + paddings. */
+const COMPOSER_HEIGHT = 76;
 const YOU: GiftSender = { id: 'you', name: 'You', username: 'you' };
 
 const seed: ChatEntry[] = STUB_CHAT.slice(0, 5).map((m) => ({ ...m, initial: true }));
@@ -39,7 +40,6 @@ export default function LiveViewer() {
   const router = useRouter();
   const { stage, spacing } = useTheme();
   const insets = useSafeAreaInsets();
-  const clearance = useNavClearance();
   const win = useWindowDimensions();
   const reduce = useReducedMotion();
   const desktop = win.width >= DESKTOP_MIN;
@@ -108,9 +108,12 @@ export default function LiveViewer() {
 
   const participants = participantsFor(stream);
   const topPad = desktop ? spacing.md : insets.top + spacing.sm;
-  // Phone chat sits inside the bottom guard (72-100%): between the guard line and the composer.
-  const composerTop = win.height - clearance - 76;
-  const chatHeight = Math.max(84, Math.min(140, composerTop - win.height * 0.72));
+  // The viewer is immersive (no floating nav): the composer sits on the bottom safe inset.
+  const clearance = insets.bottom + spacing.sm;
+  // Phone chat fills the bottom guard (72-100%) between the guard line and the composer, so
+  // about four full messages fit above it.
+  const composerTop = win.height - clearance - COMPOSER_HEIGHT;
+  const chatHeight = Math.max(96, Math.min(220, composerTop - win.height * 0.72));
 
   const topBar = (
     <View
@@ -162,7 +165,7 @@ export default function LiveViewer() {
               pointerEvents="box-none"
               style={{ flex: 1, justifyContent: 'flex-end', paddingBottom: clearance }}
             >
-              <View style={{ width: '66%' }}>
+              <View style={{ width: '72%' }}>
                 <ChatList messages={messages} variant="overlay" maxHeight={chatHeight} />
               </View>
               {composer}
