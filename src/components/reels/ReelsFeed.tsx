@@ -17,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { scheduleOnRN } from 'react-native-worklets';
 
 import { ReelPage } from '@/components/reels/ReelPage';
+import { useWebTouchPager } from '@/components/reels/useWebTouchPager';
 import { PerfOverlay } from '@/components/reels/player/PerfOverlay';
 import {
   PlayerPoolProvider,
@@ -613,6 +614,10 @@ function ReelsFeedInner({
   };
 
   const pageH = Math.round(size.h);
+  // Touch screens on the web: one swipe past a small threshold = exactly one whole reel.
+  const rootRef = useRef<View>(null);
+  useWebTouchPager(rootRef, pageH, rows.length, !loading);
+
   useEffect(() => {
     pageHRef.current = pageH;
     syncScrollRef.current = (i) => scrollRef.current?.scrollTo({ y: i * pageH, animated: false });
@@ -774,7 +779,7 @@ function ReelsFeedInner({
   }
 
   return (
-    <View style={styles.root} onLayout={onLayout}>
+    <View ref={rootRef} style={styles.root} onLayout={onLayout}>
       <PageTitle title={pageTitle} />
       {body}
       {compact ? (
