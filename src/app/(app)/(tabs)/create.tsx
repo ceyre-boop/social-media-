@@ -357,7 +357,9 @@ export default function Create() {
           .eq('id', mediaId);
         warn('mark media deleted', err);
       }
-      if (uploadedPath) {
+      // Once a media row exists the object is attached (immutable to clients): the soft delete above
+      // is the removal, and the server purges the object. Only an unattached upload is removed here.
+      if (uploadedPath && !mediaId) {
         const { error: err } = await supabase.storage.from('media').remove([uploadedPath]);
         warn('remove storage object', err);
       }

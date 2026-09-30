@@ -28,24 +28,16 @@ export type ReelJob = {
   videoUploaded: boolean;
   posterUploaded: boolean;
   videoMadeProgress: boolean;
+  /** Set once the media_assets row exists: from then on the storage objects are attached (immutable). */
+  mediaId: string | null;
+  /** The current attempt's posts row, cleared again if the attempt fails before it is linked. */
+  postId: string | null;
 };
 
 function createId(): string {
   const cryptoApi = globalThis.crypto;
   if (cryptoApi && typeof cryptoApi.randomUUID === 'function') return cryptoApi.randomUUID();
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-function freshPaths(job: ReelJob): void {
-  const id = createId();
-  const extension = job.draft.contentType === 'video/quicktime' ? 'mov' : 'mp4';
-  job.videoPath = `${job.uid}/${id}.${extension}`;
-  job.posterPath = `${job.uid}/${id}-poster.jpg`;
-  job.resumeKey = `reel:${job.videoPath}`;
-  job.posterResumeKey = `reel:${job.posterPath}`;
-  job.videoUploaded = false;
-  job.posterUploaded = false;
-  job.videoMadeProgress = false;
 }
 
 export function createReelJob(uid: string, draft: ReelDraft): ReelJob {
@@ -63,6 +55,8 @@ export function createReelJob(uid: string, draft: ReelDraft): ReelJob {
     videoUploaded: false,
     posterUploaded: false,
     videoMadeProgress: false,
+    mediaId: null,
+    postId: null,
   };
 }
 
@@ -91,39 +85,50 @@ function isAbort(error: unknown, signal: AbortSignal): boolean {
   return signal.aborted || error instanceof UploadAbortedError || (error instanceof Error && error.name === 'AbortError');
 }
 
-async function cleanupAfterDatabaseFailure(
-  job: ReelJob,
-  postId: string | null,
-  mediaId: string | null,
-): Promise<void> {
-  const now = new Date().toISOString();
-  const warn = (step: string, error: { message: string } | null) => {
-    if (error && __DEV__) console.warn(`reel cleanup: ${step} failed:`, error.message);
-  };
-  if (postId) {
-    const { error } = await supabase.from('posts').update({ deleted_at: now }).eq('id', postId);
-    warn('soft-delete post', error);
-  }
-  if (mediaId) {
-    const { error } = await supabase
-      .from('media_assets')
-      .update({ deleted_at: now })
-      .eq('id', mediaId);
-    warn('mark media deleted', error);
-  }
+function warn(step: string, error: { message: string } | null): void {
+  if (error && __DEV__) console.warn(`reel cleanup: ${step} failed:`, error.message);
+}
+
+/** True when a media_assets row already points at this path (so the object is attached and immutable). */
+async function pathAttached(path: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('media_assets')
+    .select('id')
+    .or(`provider_asset_id.eq.${path},poster_path.eq.${path}`)
+    .limit(1);
+  return !!data && data.length > 0;
+}
+
+/** An upload that is refused (403) because the path is already attached counts as done. */
+async function uploadOrAttached(path: string, run: () => Promise<unknown>): Promise<void> {
   try {
-    await mediaStore.remove([job.videoPath, job.posterPath]);
+    await run();
   } catch (error) {
-    if (__DEV__) console.warn('reel cleanup: remove storage objects failed:', error);
+    if (error instanceof MediaStoreError && error.status === 403 && (await pathAttached(path))) return;
+    throw error;
   }
 }
 
-/** The clip was removed: delete anything this job uploaded and end its resumable sessions. Best effort. */
+/**
+ * The clip was removed. Once a media row exists its objects are attached and immutable to clients,
+ * so removal is a soft delete of the rows (the server purges the objects); only unattached objects
+ * are deleted directly. Also ends unfinished resumable sessions. Best effort throughout.
+ */
 export async function discardReelJob(job: ReelJob): Promise<void> {
   try {
     await mediaStore.discardUploads([job.resumeKey, job.posterResumeKey]);
   } catch {
     // Nothing more to do.
+  }
+  const now = new Date().toISOString();
+  if (job.postId) {
+    const { error } = await supabase.from('posts').update({ deleted_at: now }).eq('id', job.postId);
+    warn('soft-delete post', error);
+  }
+  if (job.mediaId) {
+    const { error } = await supabase.from('media_assets').update({ deleted_at: now }).eq('id', job.mediaId);
+    warn('soft-delete media', error);
+    return;
   }
   if (!job.videoMadeProgress && !job.videoUploaded && !job.posterUploaded) return;
   try {
@@ -148,34 +153,39 @@ export async function runReelJob(
   if (signal.aborted) throw new UploadAbortedError();
 
   try {
-    if (!job.videoUploaded) {
+    // Media row inserted on an earlier attempt: both objects are attached, nothing to upload.
+    if (!job.mediaId && !job.videoUploaded) {
       // Only a previous attempt that moved bytes makes this one a resume.
       const resuming = job.videoMadeProgress;
       onProgress({ phase: 'video', sent: 0, total: draft.bytes, resuming });
       const video = await blobFor(draft.uri, signal);
-      await mediaStore.upload(job.videoPath, video, {
-        contentType: draft.contentType,
-        signal,
-        resumeKey: job.resumeKey,
-        onProgress: (sent, total) => {
-          if (sent > 0) job.videoMadeProgress = true;
-          onProgress({ phase: 'video', sent, total, resuming });
-        },
-      });
+      await uploadOrAttached(job.videoPath, () =>
+        mediaStore.upload(job.videoPath, video, {
+          contentType: draft.contentType,
+          signal,
+          resumeKey: job.resumeKey,
+          onProgress: (sent, total) => {
+            if (sent > 0) job.videoMadeProgress = true;
+            onProgress({ phase: 'video', sent, total, resuming });
+          },
+        }),
+      );
       job.videoUploaded = true;
     }
 
     const hasPoster = !!(draft.posterBlob || draft.posterUri);
-    if (hasPoster && !job.posterUploaded) {
+    if (!job.mediaId && hasPoster && !job.posterUploaded) {
       const poster = await posterPayload(draft, signal);
       const total = poster instanceof Blob ? poster.size : poster.byteLength;
-      await mediaStore.upload(job.posterPath, poster, {
-        contentType: 'image/jpeg',
-        signal,
-        resumeKey: job.posterResumeKey,
-        onProgress: (sent, uploadedTotal) =>
-          onProgress({ phase: 'poster', sent, total: uploadedTotal || total, resuming: false }),
-      });
+      await uploadOrAttached(job.posterPath, () =>
+        mediaStore.upload(job.posterPath, poster, {
+          contentType: 'image/jpeg',
+          signal,
+          resumeKey: job.posterResumeKey,
+          onProgress: (sent, uploadedTotal) =>
+            onProgress({ phase: 'poster', sent, total: uploadedTotal || total, resuming: false }),
+        }),
+      );
       job.posterUploaded = true;
     }
   } catch (error) {
@@ -185,43 +195,56 @@ export async function runReelJob(
 
   if (signal.aborted) throw new UploadAbortedError();
   onProgress({ phase: 'saving', sent: 0, total: 0, resuming: false });
-  let mediaId: string | null = null;
-  let postId: string | null = null;
   try {
-    const { data: media, error: mediaError } = await supabase
-      .from('media_assets')
+    if (!job.mediaId) {
+      const { data: media, error: mediaError } = await supabase
+        .from('media_assets')
+        .insert({
+          owner_id: job.uid,
+          kind: 'video',
+          status: 'ready',
+          provider: mediaProvider,
+          provider_asset_id: job.videoPath,
+          poster_path: hasPoster ? job.posterPath : null,
+          duration_ms: Math.max(1, Math.min(30_500, Math.round(draft.durationMs))),
+          width: draft.width && Number.isFinite(draft.width) ? Math.round(draft.width) : null,
+          height: draft.height && Number.isFinite(draft.height) ? Math.round(draft.height) : null,
+          bytes: draft.bytes,
+        })
+        .select('id')
+        .single();
+      if (mediaError) throw mediaError;
+      job.mediaId = media.id;
+    }
+    const { data: post, error: postError } = await supabase
+      .from('posts')
       .insert({
-        owner_id: job.uid,
-        kind: 'video',
-        status: 'ready',
-        provider: mediaProvider,
-        provider_asset_id: job.videoPath,
-        poster_path: hasPoster ? job.posterPath : null,
-        duration_ms: Math.max(1, Math.min(30_500, Math.round(draft.durationMs))),
-        width: draft.width && Number.isFinite(draft.width) ? Math.round(draft.width) : null,
-        height: draft.height && Number.isFinite(draft.height) ? Math.round(draft.height) : null,
-        bytes: draft.bytes,
+        author_id: job.uid,
+        kind: 'reel',
+        caption: options.caption.trim() || null,
+        visibility: options.visibility,
       })
       .select('id')
       .single();
-    if (mediaError) throw mediaError;
-    mediaId = media.id;
-    const { data: post, error: postError } = await supabase
-      .from('posts')
-      .insert({ author_id: job.uid, kind: 'reel', caption: options.caption.trim() || null, visibility: options.visibility })
-      .select('id')
-      .single();
     if (postError) throw postError;
-    postId = post.id;
+    job.postId = post.id;
     const { error: linkError } = await supabase
       .from('post_media')
-      .insert({ post_id: post.id, media_id: media.id, position: 0 });
+      .insert({ post_id: post.id, media_id: job.mediaId, position: 0 });
     if (linkError) throw linkError;
     return { postId: post.id };
   } catch (error) {
-    // Database failure means uploaded objects are removed, so retry must use new paths rather than a stale TUS entry.
-    await cleanupAfterDatabaseFailure(job, postId, mediaId);
-    freshPaths(job);
+    // Keep the uploads and the media row (attached objects cannot be re-uploaded or removed): a
+    // retry resumes at the database steps. Only a half-made post is withdrawn so it never shows
+    // as an empty reel.
+    if (job.postId) {
+      const { error: undoError } = await supabase
+        .from('posts')
+        .update({ deleted_at: new Date().toISOString() })
+        .eq('id', job.postId);
+      warn('soft-delete post', undoError);
+      job.postId = null;
+    }
     throw error;
   }
 }
