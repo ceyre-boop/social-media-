@@ -297,19 +297,14 @@ select is(private.blocked_with_me('11111111-1111-4111-8111-111111111111'), false
 
 -- ----------------------------------------- friendships / appeals (review 8)
 select pg_temp.act_as('22222222-2222-4222-8222-222222222222');  -- bob
-insert into public.friendships (requester_id, addressee_id)
-values ('22222222-2222-4222-8222-222222222222', '55555555-5555-4555-8555-555555555555');
-select is(
-  pg_temp.affected($$update public.friendships set status = 'accepted'
-                      where requester_id = '22222222-2222-4222-8222-222222222222'
-                        and addressee_id = '55555555-5555-4555-8555-555555555555'$$),
-  0, 'the requester cannot accept their own friend request');
+-- (migration 014 replaced the v0.1 table; 14_friendships covers it in full)
+select public.request_friend('55555555-5555-4555-8555-555555555555');
+select throws_ok(
+  $$select public.respond_friend('55555555-5555-4555-8555-555555555555', true)$$,
+  'P0001', 'request_not_allowed', 'the requester cannot accept their own friend request');
 select pg_temp.act_as('55555555-5555-4555-8555-555555555555');  -- dave, addressee
-select is(
-  pg_temp.affected($$update public.friendships set status = 'accepted', responded_at = now()
-                      where requester_id = '22222222-2222-4222-8222-222222222222'
-                        and addressee_id = '55555555-5555-4555-8555-555555555555'$$),
-  1, 'the addressee can accept');
+select is(public.respond_friend('22222222-2222-4222-8222-222222222222', true),
+  'friends', 'the addressee can accept');
 select throws_ok(
   $$insert into public.appeals (decision_id, user_id, statement, outcome)
     values (gen_random_uuid(), '55555555-5555-4555-8555-555555555555', 'x', 'granted')$$,
