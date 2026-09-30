@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { View } from 'react-native';
 
-import { ChoiceGroup, Group, Row, SettingsPage } from '@/components/settings/parts';
+import { ChoiceGroup, Group, Row, SettingsPage, type Choice } from '@/components/settings/parts';
 import { Button, EmptyState, Sheet, Text, TextField, useToast } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
+import { ALWAYS_BLOCKED, LEVEL_COPY } from '@/lib/contentFilter/copy';
+import { allowedLevels } from '@/lib/contentFilter/levels';
 import { searchUsers, type SearchResult } from '@/lib/search';
 import {
   addToCircle,
@@ -11,32 +13,22 @@ import {
   fetchCircle,
   removeFromCircle,
   unblockUser,
+  isAdultDob,
   type BlockedUser,
-  type ChatStrictness,
   type CircleMember,
+  type SpeechLevel,
 } from '@/lib/settings';
 import { useUserSettings } from '@/lib/settings/useUserSettings';
 import { useTheme } from '@/lib/theme';
 
-const STRICTNESS: { value: ChatStrictness; label: string; explain: string }[] = [
-  {
-    value: 'open',
-    label: 'Open',
-    explain:
-      'Fewer interruptions. Mildly unkind messages go through. Serious harm is still stopped.',
-  },
-  {
-    value: 'standard',
-    label: 'Standard',
-    explain:
-      'Mildly unkind messages get a gentle "are you sure?" first. The sender can still send.',
-  },
-  {
-    value: 'protected',
-    label: 'Protected',
-    explain: 'Mildly unkind messages are held back, and so are messages from brand-new accounts.',
-  },
-];
+/** The dial's stops, each with one plain line and a short example. Minors see Family and Standard. */
+function dial(adult: boolean): Choice<SpeechLevel>[] {
+  return allowedLevels(adult).map((l) => ({
+    value: l,
+    label: LEVEL_COPY[l].label,
+    explain: `${LEVEL_COPY[l].line} ${LEVEL_COPY[l].example}`,
+  }));
+}
 
 export default function Safety() {
   const { session, handleError } = useAuth();
@@ -88,13 +80,38 @@ export default function Safety() {
         />
       ) : null}
       {settings ? (
-        <ChoiceGroup
-          title="Chat on your live streams"
-          note="Applies to streams you start from now on. The most serious things (threats, harassment, anything that puts someone at risk) are always stopped, whichever you pick. You can make chat stricter, but never looser than that."
-          options={STRICTNESS}
-          value={settings.default_chat_strictness}
-          onChange={(v) => save({ default_chat_strictness: v })}
-        />
+        <>
+          <ChoiceGroup
+            title="What you see"
+            note={
+              isAdultDob(settings.date_of_birth)
+                ? 'Also what people can send you in messages and replies. Anything above your level is hidden, and you can tap Show.'
+                : 'Also what people can send you in messages and replies. Under 18, you can pick Family or Standard.'
+            }
+            options={dial(isAdultDob(settings.date_of_birth))}
+            value={settings.speech_level}
+            onChange={(v) => save({ speech_level: v })}
+          />
+          <ChoiceGroup
+            title="Your room"
+            note="Where your live chat and the comments on your new posts start. Each viewer still sees no more than their own level."
+            options={dial(isAdultDob(settings.date_of_birth))}
+            value={settings.default_room_level}
+            onChange={(v) => save({ default_room_level: v })}
+          />
+          <Group
+            title="Never allowed, at any level"
+            note="You can reword and resend straight away. Threats and anything putting a young person at risk go to a person on our safety team."
+          >
+            <View style={{ padding: 16, gap: 6 }}>
+              {ALWAYS_BLOCKED.map((line) => (
+                <Text key={line} variant="callout">
+                  {`• ${line}`}
+                </Text>
+              ))}
+            </View>
+          </Group>
+        </>
       ) : null}
 
       <Group

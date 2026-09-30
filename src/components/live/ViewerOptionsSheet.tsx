@@ -3,7 +3,16 @@ import { Switch, View } from 'react-native';
 import type { GiftMotion } from '@/components/gifts';
 import { Button, SegmentedControl, Sheet, Text } from '@/components/ui';
 import type { Segment } from '@/components/ui';
+import { LEVEL_COPY } from '@/lib/contentFilter/copy';
+import type { SpeechLevel } from '@/lib/contentFilter/types';
 import { useTheme } from '@/lib/theme';
+
+const LEVEL_ICON: Record<SpeechLevel, Segment<SpeechLevel>['icon']> = {
+  family: 'happy-outline',
+  standard: 'chatbubble-outline',
+  open: 'flame-outline',
+  max: 'skull-outline',
+};
 
 const SEGMENTS: Segment<GiftMotion>[] = [
   { value: 'full', label: 'Full', icon: 'sparkles' },
@@ -25,9 +34,17 @@ type Props = {
   hostCap: boolean;
   onHostCap: (v: boolean) => void;
   onTryGifts: () => void;
+  /** The viewer's own speech level (null while it loads). */
+  level: SpeechLevel | null;
+  /** The levels this viewer may pick (minors: Family, Standard). */
+  levels: SpeechLevel[];
+  onLevel: (l: SpeechLevel) => void;
 };
 
-/** Viewer options: gift animation size (Full / Calm / Minimal), the preview demo, host menu stub. */
+/**
+ * Viewer options: what you see in chat (your speech level, a quick switch for the Settings dial),
+ * gift animation size (Full / Calm / Minimal), the preview demo, host menu stub.
+ */
 export function ViewerOptionsSheet({
   visible,
   onClose,
@@ -36,11 +53,29 @@ export function ViewerOptionsSheet({
   hostCap,
   onHostCap,
   onTryGifts,
+  level,
+  levels,
+  onLevel,
 }: Props) {
   const { colors, spacing, radius } = useTheme();
   return (
     <Sheet visible={visible} onClose={onClose} title="Viewer options" scroll>
       <View style={{ gap: spacing.xl }}>
+        {level ? (
+          <View style={{ gap: spacing.sm }}>
+            <Text variant="callout">What you see in chat</Text>
+            <SegmentedControl
+              label="What you see in chat"
+              segments={levels.map((l) => ({ value: l, label: LEVEL_COPY[l].label, icon: LEVEL_ICON[l] }))}
+              value={level}
+              onChange={onLevel}
+            />
+            <Text variant="caption" tone="muted">
+              {`${LEVEL_COPY[level].line} You never see more than this room allows. Same setting as Settings › Safety.`}
+            </Text>
+          </View>
+        ) : null}
+
         <View style={{ gap: spacing.sm }}>
           <Text variant="callout">Gift animations</Text>
           <SegmentedControl

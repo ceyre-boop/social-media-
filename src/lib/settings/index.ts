@@ -2,10 +2,11 @@
  * Data access for Settings. Every read and write is the signed-in person's own row (RLS); the
  * database enforces the rules (quiet hours, friend request permission, deletion confirmation).
  */
+import type { SpeechLevel } from '@/lib/contentFilter/types';
 import { supabase } from '@/lib/supabase';
 
 export type FriendRequestPolicy = 'everyone' | 'following' | 'nobody';
-export type ChatStrictness = 'open' | 'standard' | 'protected';
+export type { SpeechLevel };
 
 export type UserSettings = {
   timezone: string;
@@ -16,11 +17,24 @@ export type UserSettings = {
   /** null = we pick one or two a day. */
   moment_prompts_per_day: 1 | 2 | null;
   friend_requests_from: FriendRequestPolicy;
-  default_chat_strictness: ChatStrictness;
+  /** What you see, and what you can receive (DMs, replies). Minors: Family or Standard. */
+  speech_level: SpeechLevel;
+  /** The level your live chat and new posts' comments start at. */
+  default_room_level: SpeechLevel;
+  /** Read-only here: decides which levels you can pick (the database enforces the cap). */
+  date_of_birth: string | null;
 };
 
+/** 18+ by date of birth; unknown is not adult (matches public.is_adult). */
+export function isAdultDob(dob: string | null, today = new Date()): boolean {
+  if (!dob) return false;
+  const [y, m, d] = dob.split('-').map(Number);
+  const eighteen = new Date(Date.UTC(y + 18, m - 1, d));
+  return eighteen.getTime() <= Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+}
+
 const COLUMNS =
-  'timezone, quiet_start, quiet_end, waking_start, waking_end, moment_prompts_per_day, friend_requests_from, default_chat_strictness';
+  'timezone, quiet_start, quiet_end, waking_start, waking_end, moment_prompts_per_day, friend_requests_from, speech_level, default_room_level, date_of_birth';
 
 export async function fetchUserSettings(uid: string): Promise<UserSettings> {
   const { data, error } = await supabase.from('users').select(COLUMNS).eq('id', uid).single();
@@ -29,7 +43,8 @@ export async function fetchUserSettings(uid: string): Promise<UserSettings> {
 }
 
 export async function updateUserSettings(uid: string, patch: Partial<UserSettings>): Promise<void> {
-  const { error } = await supabase.from('users').update(patch).eq('id', uid);
+  const { date_of_birth: _readOnly, ...writable } = patch;
+  const { error } = await supabase.from('users').update(writable).eq('id', uid);
   if (error) throw error;
 }
 

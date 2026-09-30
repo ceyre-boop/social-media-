@@ -138,13 +138,13 @@ isOneToOne: false
                   ]
                 },"comments": {
                   Row: {
-                    "author_id": string,"body": string,"created_at": string,"deleted_at": string | null,"id": string,"like_count": number,"parent_id": string | null,"post_id": string
+                    "author_id": string,"body": string,"created_at": string,"deleted_at": string | null,"id": string,"like_count": number,"parent_id": string | null,"post_id": string,"required_level": Database["public"]['Enums']["speech_level"]
                   }
                   Insert: {
-                    "author_id": string,"body": string,"created_at"?: string,"deleted_at"?: string | null,"id"?: string,"like_count"?: number,"parent_id"?: string | null,"post_id": string
+                    "author_id": string,"body": string,"created_at"?: string,"deleted_at"?: string | null,"id"?: string,"like_count"?: number,"parent_id"?: string | null,"post_id": string,"required_level"?: Database["public"]['Enums']["speech_level"]
                   }
                   Update: {
-                    "author_id"?: string,"body"?: string,"created_at"?: string,"deleted_at"?: string | null,"id"?: string,"like_count"?: number,"parent_id"?: string | null,"post_id"?: string
+                    "author_id"?: string,"body"?: string,"created_at"?: string,"deleted_at"?: string | null,"id"?: string,"like_count"?: number,"parent_id"?: string | null,"post_id"?: string,"required_level"?: Database["public"]['Enums']["speech_level"]
                   }
                   Relationships: [
                     {
@@ -525,13 +525,13 @@ isOneToOne: false
                   ]
                 },"live_chat_messages": {
                   Row: {
-                    "body": string,"created_at": string,"deleted_at": string | null,"id": number,"stream_id": string,"user_id": string
+                    "body": string,"created_at": string,"deleted_at": string | null,"id": number,"required_level": Database["public"]['Enums']["speech_level"],"stream_id": string,"user_id": string
                   }
                   Insert: {
-                    "body": string,"created_at"?: string,"deleted_at"?: string | null,"id"?: number,"stream_id": string,"user_id": string
+                    "body": string,"created_at"?: string,"deleted_at"?: string | null,"id"?: number,"required_level"?: Database["public"]['Enums']["speech_level"],"stream_id": string,"user_id": string
                   }
                   Update: {
-                    "body"?: string,"created_at"?: string,"deleted_at"?: string | null,"id"?: number,"stream_id"?: string,"user_id"?: string
+                    "body"?: string,"created_at"?: string,"deleted_at"?: string | null,"id"?: number,"required_level"?: Database["public"]['Enums']["speech_level"],"stream_id"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -575,13 +575,13 @@ isOneToOne: false
                   ]
                 },"live_streams": {
                   Row: {
-                    "chat_strictness": Database["public"]['Enums']["chat_strictness"],"created_at": string,"ended_at": string | null,"host_id": string,"id": string,"ingest_url": string | null,"is_adult_only": boolean,"peak_viewers": number,"playback_url": string | null,"provider": string,"provider_room_id": string | null,"recording_media_id": string | null,"scheduled_for": string | null,"started_at": string | null,"status": Database["public"]['Enums']["stream_status"],"title": string | null,"total_viewers": number
+                    "created_at": string,"ended_at": string | null,"host_id": string,"id": string,"ingest_url": string | null,"is_adult_only": boolean,"peak_viewers": number,"playback_url": string | null,"provider": string,"provider_room_id": string | null,"recording_media_id": string | null,"room_level": Database["public"]['Enums']["speech_level"],"scheduled_for": string | null,"started_at": string | null,"status": Database["public"]['Enums']["stream_status"],"title": string | null,"total_viewers": number
                   }
                   Insert: {
-                    "chat_strictness"?: Database["public"]['Enums']["chat_strictness"],"created_at"?: string,"ended_at"?: string | null,"host_id": string,"id"?: string,"ingest_url"?: string | null,"is_adult_only"?: boolean,"peak_viewers"?: number,"playback_url"?: string | null,"provider": string,"provider_room_id"?: string | null,"recording_media_id"?: string | null,"scheduled_for"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["stream_status"],"title"?: string | null,"total_viewers"?: number
+                    "created_at"?: string,"ended_at"?: string | null,"host_id": string,"id"?: string,"ingest_url"?: string | null,"is_adult_only"?: boolean,"peak_viewers"?: number,"playback_url"?: string | null,"provider": string,"provider_room_id"?: string | null,"recording_media_id"?: string | null,"room_level"?: Database["public"]['Enums']["speech_level"],"scheduled_for"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["stream_status"],"title"?: string | null,"total_viewers"?: number
                   }
                   Update: {
-                    "chat_strictness"?: Database["public"]['Enums']["chat_strictness"],"created_at"?: string,"ended_at"?: string | null,"host_id"?: string,"id"?: string,"ingest_url"?: string | null,"is_adult_only"?: boolean,"peak_viewers"?: number,"playback_url"?: string | null,"provider"?: string,"provider_room_id"?: string | null,"recording_media_id"?: string | null,"scheduled_for"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["stream_status"],"title"?: string | null,"total_viewers"?: number
+                    "created_at"?: string,"ended_at"?: string | null,"host_id"?: string,"id"?: string,"ingest_url"?: string | null,"is_adult_only"?: boolean,"peak_viewers"?: number,"playback_url"?: string | null,"provider"?: string,"provider_room_id"?: string | null,"recording_media_id"?: string | null,"room_level"?: Database["public"]['Enums']["speech_level"],"scheduled_for"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["stream_status"],"title"?: string | null,"total_viewers"?: number
                   }
                   Relationships: [
                     {
@@ -656,13 +656,13 @@ isOneToOne: false
                   ]
                 },"messages": {
                   Row: {
-                    "body": string | null,"conversation_id": string,"created_at": string,"deleted_at": string | null,"edited_at": string | null,"id": string,"media_id": string | null,"reply_to_id": string | null,"sender_id": string,"shared_post_id": string | null
+                    "body": string | null,"conversation_id": string,"created_at": string,"deleted_at": string | null,"edited_at": string | null,"id": string,"media_id": string | null,"reply_to_id": string | null,"required_level": Database["public"]['Enums']["speech_level"],"sender_id": string,"shared_post_id": string | null
                   }
                   Insert: {
-                    "body"?: string | null,"conversation_id": string,"created_at"?: string,"deleted_at"?: string | null,"edited_at"?: string | null,"id"?: string,"media_id"?: string | null,"reply_to_id"?: string | null,"sender_id": string,"shared_post_id"?: string | null
+                    "body"?: string | null,"conversation_id": string,"created_at"?: string,"deleted_at"?: string | null,"edited_at"?: string | null,"id"?: string,"media_id"?: string | null,"reply_to_id"?: string | null,"required_level"?: Database["public"]['Enums']["speech_level"],"sender_id": string,"shared_post_id"?: string | null
                   }
                   Update: {
-                    "body"?: string | null,"conversation_id"?: string,"created_at"?: string,"deleted_at"?: string | null,"edited_at"?: string | null,"id"?: string,"media_id"?: string | null,"reply_to_id"?: string | null,"sender_id"?: string,"shared_post_id"?: string | null
+                    "body"?: string | null,"conversation_id"?: string,"created_at"?: string,"deleted_at"?: string | null,"edited_at"?: string | null,"id"?: string,"media_id"?: string | null,"reply_to_id"?: string | null,"required_level"?: Database["public"]['Enums']["speech_level"],"sender_id"?: string,"shared_post_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -880,13 +880,13 @@ isOneToOne: false
                   ]
                 },"posts": {
                   Row: {
-                    "allow_comments": boolean,"allow_gifts": boolean,"author_id": string,"camera_effect": string | null,"caption": string | null,"capture_mode": string,"comment_count": number,"created_at": string,"deleted_at": string | null,"expires_at": string | null,"id": string,"kind": Database["public"]['Enums']["post_kind"],"like_count": number,"view_count": number,"visibility": Database["public"]['Enums']["visibility"]
+                    "allow_comments": boolean,"allow_gifts": boolean,"author_id": string,"camera_effect": string | null,"caption": string | null,"capture_mode": string,"comment_count": number,"created_at": string,"deleted_at": string | null,"expires_at": string | null,"id": string,"kind": Database["public"]['Enums']["post_kind"],"like_count": number,"room_level": Database["public"]['Enums']["speech_level"],"view_count": number,"visibility": Database["public"]['Enums']["visibility"]
                   }
                   Insert: {
-                    "allow_comments"?: boolean,"allow_gifts"?: boolean,"author_id": string,"camera_effect"?: string | null,"caption"?: string | null,"capture_mode"?: string,"comment_count"?: number,"created_at"?: string,"deleted_at"?: string | null,"expires_at"?: string | null,"id"?: string,"kind": Database["public"]['Enums']["post_kind"],"like_count"?: number,"view_count"?: number,"visibility"?: Database["public"]['Enums']["visibility"]
+                    "allow_comments"?: boolean,"allow_gifts"?: boolean,"author_id": string,"camera_effect"?: string | null,"caption"?: string | null,"capture_mode"?: string,"comment_count"?: number,"created_at"?: string,"deleted_at"?: string | null,"expires_at"?: string | null,"id"?: string,"kind": Database["public"]['Enums']["post_kind"],"like_count"?: number,"room_level"?: Database["public"]['Enums']["speech_level"],"view_count"?: number,"visibility"?: Database["public"]['Enums']["visibility"]
                   }
                   Update: {
-                    "allow_comments"?: boolean,"allow_gifts"?: boolean,"author_id"?: string,"camera_effect"?: string | null,"caption"?: string | null,"capture_mode"?: string,"comment_count"?: number,"created_at"?: string,"deleted_at"?: string | null,"expires_at"?: string | null,"id"?: string,"kind"?: Database["public"]['Enums']["post_kind"],"like_count"?: number,"view_count"?: number,"visibility"?: Database["public"]['Enums']["visibility"]
+                    "allow_comments"?: boolean,"allow_gifts"?: boolean,"author_id"?: string,"camera_effect"?: string | null,"caption"?: string | null,"capture_mode"?: string,"comment_count"?: number,"created_at"?: string,"deleted_at"?: string | null,"expires_at"?: string | null,"id"?: string,"kind"?: Database["public"]['Enums']["post_kind"],"like_count"?: number,"room_level"?: Database["public"]['Enums']["speech_level"],"view_count"?: number,"visibility"?: Database["public"]['Enums']["visibility"]
                   }
                   Relationships: [
                     {
@@ -1009,6 +1009,94 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"support_edges": {
+                  Row: {
+                    "from_node": string,"label": string,"sort": number,"to_node": string
+                  }
+                  Insert: {
+                    "from_node": string,"label": string,"sort"?: number,"to_node": string
+                  }
+                  Update: {
+                    "from_node"?: string,"label"?: string,"sort"?: number,"to_node"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "support_edges_from_node_fkey"
+      columns: ["from_node"]
+isOneToOne: false
+      referencedRelation: "support_nodes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "support_edges_to_node_fkey"
+      columns: ["to_node"]
+isOneToOne: false
+      referencedRelation: "support_nodes"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"support_hits": {
+                  Row: {
+                    "at": string,"id": number,"node_id": string,"session_id": string,"user_id": string | null
+                  }
+                  Insert: {
+                    "at"?: string,"id"?: never,"node_id": string,"session_id": string,"user_id"?: string | null
+                  }
+                  Update: {
+                    "at"?: string,"id"?: never,"node_id"?: string,"session_id"?: string,"user_id"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "support_hits_node_id_fkey"
+      columns: ["node_id"]
+isOneToOne: false
+      referencedRelation: "support_nodes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "support_hits_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "users"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"support_nodes": {
+                  Row: {
+                    "body": string | null,"fix_label": string | null,"fix_route": string | null,"human_category": Database["public"]['Enums']["support_category"] | null,"id": string,"kind": Database["public"]['Enums']["support_node_kind"],"prompt": string,"updated_at": string
+                  }
+                  Insert: {
+                    "body"?: string | null,"fix_label"?: string | null,"fix_route"?: string | null,"human_category"?: Database["public"]['Enums']["support_category"] | null,"id": string,"kind": Database["public"]['Enums']["support_node_kind"],"prompt": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "body"?: string | null,"fix_label"?: string | null,"fix_route"?: string | null,"human_category"?: Database["public"]['Enums']["support_category"] | null,"id"?: string,"kind"?: Database["public"]['Enums']["support_node_kind"],"prompt"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"support_tickets": {
+                  Row: {
+                    "body": string | null,"category": Database["public"]['Enums']["support_category"],"created_at": string,"first_response_at": string | null,"first_response_due": string,"id": string,"node_id": string | null,"priority": string,"resolved_at": string | null,"session_id": string | null,"status": string,"user_id": string
+                  }
+                  Insert: {
+                    "body"?: string | null,"category": Database["public"]['Enums']["support_category"],"created_at"?: string,"first_response_at"?: string | null,"first_response_due": string,"id"?: string,"node_id"?: string | null,"priority"?: string,"resolved_at"?: string | null,"session_id"?: string | null,"status"?: string,"user_id"?: string
+                  }
+                  Update: {
+                    "body"?: string | null,"category"?: Database["public"]['Enums']["support_category"],"created_at"?: string,"first_response_at"?: string | null,"first_response_due"?: string,"id"?: string,"node_id"?: string | null,"priority"?: string,"resolved_at"?: string | null,"session_id"?: string | null,"status"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "support_tickets_node_id_fkey"
+      columns: ["node_id"]
+isOneToOne: false
+      referencedRelation: "support_nodes"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "support_tickets_user_id_fkey"
+      columns: ["user_id"]
+isOneToOne: false
+      referencedRelation: "users"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"trusted_circle_members": {
                   Row: {
                     "created_at": string,"creator_id": string,"member_id": string
@@ -1036,13 +1124,13 @@ isOneToOne: false
                   ]
                 },"users": {
                   Row: {
-                    "age_verification_ref": string | null,"age_verified": boolean,"age_verified_at": string | null,"app_role": string,"country_code": string | null,"created_at": string,"date_of_birth": string | null,"default_chat_strictness": Database["public"]['Enums']["chat_strictness"],"deleted_at": string | null,"email": string | null,"friend_requests_from": Database["public"]['Enums']["friend_request_policy"],"id": string,"moment_prompts_per_day": number | null,"phone": string | null,"quiet_end": string,"quiet_start": string,"status": Database["public"]['Enums']["account_status"],"timezone": string,"waking_end": string,"waking_start": string
+                    "age_verification_ref": string | null,"age_verified": boolean,"age_verified_at": string | null,"app_role": string,"country_code": string | null,"created_at": string,"date_of_birth": string | null,"default_room_level": Database["public"]['Enums']["speech_level"],"deleted_at": string | null,"email": string | null,"friend_requests_from": Database["public"]['Enums']["friend_request_policy"],"id": string,"moment_prompts_per_day": number | null,"phone": string | null,"quiet_end": string,"quiet_start": string,"speech_level": Database["public"]['Enums']["speech_level"],"status": Database["public"]['Enums']["account_status"],"timezone": string,"waking_end": string,"waking_start": string
                   }
                   Insert: {
-                    "age_verification_ref"?: string | null,"age_verified"?: boolean,"age_verified_at"?: string | null,"app_role"?: string,"country_code"?: string | null,"created_at"?: string,"date_of_birth"?: string | null,"default_chat_strictness"?: Database["public"]['Enums']["chat_strictness"],"deleted_at"?: string | null,"email"?: string | null,"friend_requests_from"?: Database["public"]['Enums']["friend_request_policy"],"id": string,"moment_prompts_per_day"?: number | null,"phone"?: string | null,"quiet_end"?: string,"quiet_start"?: string,"status"?: Database["public"]['Enums']["account_status"],"timezone"?: string,"waking_end"?: string,"waking_start"?: string
+                    "age_verification_ref"?: string | null,"age_verified"?: boolean,"age_verified_at"?: string | null,"app_role"?: string,"country_code"?: string | null,"created_at"?: string,"date_of_birth"?: string | null,"default_room_level"?: Database["public"]['Enums']["speech_level"],"deleted_at"?: string | null,"email"?: string | null,"friend_requests_from"?: Database["public"]['Enums']["friend_request_policy"],"id": string,"moment_prompts_per_day"?: number | null,"phone"?: string | null,"quiet_end"?: string,"quiet_start"?: string,"speech_level"?: Database["public"]['Enums']["speech_level"],"status"?: Database["public"]['Enums']["account_status"],"timezone"?: string,"waking_end"?: string,"waking_start"?: string
                   }
                   Update: {
-                    "age_verification_ref"?: string | null,"age_verified"?: boolean,"age_verified_at"?: string | null,"app_role"?: string,"country_code"?: string | null,"created_at"?: string,"date_of_birth"?: string | null,"default_chat_strictness"?: Database["public"]['Enums']["chat_strictness"],"deleted_at"?: string | null,"email"?: string | null,"friend_requests_from"?: Database["public"]['Enums']["friend_request_policy"],"id"?: string,"moment_prompts_per_day"?: number | null,"phone"?: string | null,"quiet_end"?: string,"quiet_start"?: string,"status"?: Database["public"]['Enums']["account_status"],"timezone"?: string,"waking_end"?: string,"waking_start"?: string
+                    "age_verification_ref"?: string | null,"age_verified"?: boolean,"age_verified_at"?: string | null,"app_role"?: string,"country_code"?: string | null,"created_at"?: string,"date_of_birth"?: string | null,"default_room_level"?: Database["public"]['Enums']["speech_level"],"deleted_at"?: string | null,"email"?: string | null,"friend_requests_from"?: Database["public"]['Enums']["friend_request_policy"],"id"?: string,"moment_prompts_per_day"?: number | null,"phone"?: string | null,"quiet_end"?: string,"quiet_start"?: string,"speech_level"?: Database["public"]['Enums']["speech_level"],"status"?: Database["public"]['Enums']["account_status"],"timezone"?: string,"waking_end"?: string,"waking_start"?: string
                   }
                   Relationships: [
                     
@@ -1195,10 +1283,18 @@ isOneToOne: true
                            },
 "show_trgm":
 { Args: { "": string }; Returns: (string)[]
+                           },
+"support_hit":
+{ Args: { "p_node": string,"p_session": string }; Returns: undefined
+                           },
+"support_insights":
+{ Args: { "p_days"?: number }; Returns: {
+              "hits": number,"human_category": Database["public"]['Enums']["support_category"],"kind": Database["public"]['Enums']["support_node_kind"],"node_id": string,"people": number,"prompt": string,"sessions": number
+            }[]
                            }
           }
           Enums: {
-            "account_status": "active"|"suspended"|"deactivated"|"banned","chat_strictness": "open"|"standard"|"protected","friend_request_policy": "everyone"|"following"|"nobody","ledger_side": "debit"|"credit","media_kind": "image"|"video"|"audio","media_status": "uploading"|"processing"|"ready"|"failed","moderation_action": "none"|"warn"|"age_gate"|"limit_reach"|"remove_content"|"suspend"|"ban"|"law_enforcement_referral","notification_type": "moment_prompt"|"friend_request"|"friend_accepted"|"followed_live"|"comment"|"gift_received"|"like"|"support_reply","payout_status": "pending"|"processing"|"paid"|"failed"|"reversed","post_kind": "post"|"reel"|"story"|"moment","reach_reason": "normal"|"new_account"|"low_quality_signal"|"duplicate_content"|"moderation_limit"|"viewer_preference"|"rate_limited"|"boosted","report_reason": "spam"|"harassment"|"nudity"|"violence"|"csam"|"self_harm"|"illegal"|"impersonation"|"ip"|"other","report_status": "open"|"triaging"|"actioned"|"dismissed"|"appealed","stream_status": "scheduled"|"live"|"ended"|"errored","visibility": "public"|"followers"|"friends"|"private"
+            "account_status": "active"|"suspended"|"deactivated"|"banned","friend_request_policy": "everyone"|"following"|"nobody","ledger_side": "debit"|"credit","media_kind": "image"|"video"|"audio","media_status": "uploading"|"processing"|"ready"|"failed","moderation_action": "none"|"warn"|"age_gate"|"limit_reach"|"remove_content"|"suspend"|"ban"|"law_enforcement_referral","notification_type": "moment_prompt"|"friend_request"|"friend_accepted"|"followed_live"|"comment"|"gift_received"|"like"|"support_reply","payout_status": "pending"|"processing"|"paid"|"failed"|"reversed","post_kind": "post"|"reel"|"story"|"moment","reach_reason": "normal"|"new_account"|"low_quality_signal"|"duplicate_content"|"moderation_limit"|"viewer_preference"|"rate_limited"|"boosted","report_reason": "spam"|"harassment"|"nudity"|"violence"|"csam"|"self_harm"|"illegal"|"impersonation"|"ip"|"other","report_status": "open"|"triaging"|"actioned"|"dismissed"|"appealed","speech_level": "family"|"standard"|"open"|"max","stream_status": "scheduled"|"live"|"ended"|"errored","support_category": "money"|"appeal"|"self_harm"|"legal"|"general","support_node_kind": "question"|"answer"|"escalate","visibility": "public"|"followers"|"friends"|"private"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -1318,7 +1414,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "account_status": ["active", "suspended", "deactivated", "banned"],"chat_strictness": ["open", "standard", "protected"],"friend_request_policy": ["everyone", "following", "nobody"],"ledger_side": ["debit", "credit"],"media_kind": ["image", "video", "audio"],"media_status": ["uploading", "processing", "ready", "failed"],"moderation_action": ["none", "warn", "age_gate", "limit_reach", "remove_content", "suspend", "ban", "law_enforcement_referral"],"notification_type": ["moment_prompt", "friend_request", "friend_accepted", "followed_live", "comment", "gift_received", "like", "support_reply"],"payout_status": ["pending", "processing", "paid", "failed", "reversed"],"post_kind": ["post", "reel", "story", "moment"],"reach_reason": ["normal", "new_account", "low_quality_signal", "duplicate_content", "moderation_limit", "viewer_preference", "rate_limited", "boosted"],"report_reason": ["spam", "harassment", "nudity", "violence", "csam", "self_harm", "illegal", "impersonation", "ip", "other"],"report_status": ["open", "triaging", "actioned", "dismissed", "appealed"],"stream_status": ["scheduled", "live", "ended", "errored"],"visibility": ["public", "followers", "friends", "private"]
+            "account_status": ["active", "suspended", "deactivated", "banned"],"friend_request_policy": ["everyone", "following", "nobody"],"ledger_side": ["debit", "credit"],"media_kind": ["image", "video", "audio"],"media_status": ["uploading", "processing", "ready", "failed"],"moderation_action": ["none", "warn", "age_gate", "limit_reach", "remove_content", "suspend", "ban", "law_enforcement_referral"],"notification_type": ["moment_prompt", "friend_request", "friend_accepted", "followed_live", "comment", "gift_received", "like", "support_reply"],"payout_status": ["pending", "processing", "paid", "failed", "reversed"],"post_kind": ["post", "reel", "story", "moment"],"reach_reason": ["normal", "new_account", "low_quality_signal", "duplicate_content", "moderation_limit", "viewer_preference", "rate_limited", "boosted"],"report_reason": ["spam", "harassment", "nudity", "violence", "csam", "self_harm", "illegal", "impersonation", "ip", "other"],"report_status": ["open", "triaging", "actioned", "dismissed", "appealed"],"speech_level": ["family", "standard", "open", "max"],"stream_status": ["scheduled", "live", "ended", "errored"],"support_category": ["money", "appeal", "self_harm", "legal", "general"],"support_node_kind": ["question", "answer", "escalate"],"visibility": ["public", "followers", "friends", "private"]
           }
         }
 } as const

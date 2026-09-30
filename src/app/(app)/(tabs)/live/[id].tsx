@@ -19,8 +19,11 @@ import { ParticipantsSheet } from '@/components/live/ParticipantsSheet';
 import { VideoPlaceholder } from '@/components/live/VideoPlaceholder';
 import { ViewerOptionsSheet } from '@/components/live/ViewerOptionsSheet';
 import { Avatar, EmptyState, IconButton, PageTitle, Text } from '@/components/ui';
+import { allowedLevels } from '@/lib/contentFilter/levels';
 import { formatViewers } from '@/lib/live/format';
 import { STUB_CHAT, STUB_INCOMING, findStream, participantsFor } from '@/lib/live/stub';
+import { isAdultDob } from '@/lib/settings';
+import { useUserSettings } from '@/lib/settings/useUserSettings';
 import { useReducedMotion, useTheme } from '@/lib/theme';
 
 const DESKTOP_MIN = 768;
@@ -51,6 +54,7 @@ export default function LiveViewer() {
   const [options, setOptions] = useState(false);
   const [motion, setMotion] = useGiftMotion();
   const [hostCap, setHostCap] = useState(false);
+  const { settings, save } = useUserSettings();
   const feed = useAnchorFeed(reduce ? 0 : 1);
   const overlay = useRef<GiftOverlayHandle>(null);
   const demoTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -207,6 +211,9 @@ export default function LiveViewer() {
         hostCap={hostCap}
         onHostCap={setHostCap}
         onTryGifts={tryGifts}
+        level={settings?.speech_level ?? null}
+        levels={allowedLevels(isAdultDob(settings?.date_of_birth ?? null))}
+        onLevel={(l) => save({ speech_level: l })}
       />
     </KeyboardAvoidingView>
   );
