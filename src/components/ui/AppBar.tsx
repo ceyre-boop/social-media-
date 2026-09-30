@@ -1,14 +1,15 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useBreakpoint } from '@/lib/layout';
 import { useTheme } from '@/lib/theme';
 
 import { Brand } from './Logo';
+import { Text } from './Text';
 
 type Props = {
   title: string;
-  /** Compact only: show logo + wordmark instead of the title (Feed). */
+  /** Compact only: show logo + wordmark instead of the title. */
   brand?: boolean;
   left?: React.ReactNode;
   right?: React.ReactNode;
@@ -39,11 +40,7 @@ export function AppBar({ title, brand, left, right }: Props) {
         {brand && compact ? (
           <Brand size={32} />
         ) : (
-          <Text
-            accessibilityRole="header"
-            numberOfLines={1}
-            style={[styles.text, { color: colors.text }]}
-          >
+          <Text accessibilityRole="header" variant="title" numberOfLines={1}>
             {title}
           </Text>
         )}
@@ -60,5 +57,4 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
   title: { flex: 1, justifyContent: 'center' },
-  text: { fontSize: 20, fontWeight: '800' },
 });

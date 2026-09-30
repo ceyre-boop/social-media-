@@ -3,11 +3,11 @@ import { View } from 'react-native';
 
 import { useTheme } from '@/lib/theme';
 
-/** Static (non-shimmering) placeholder block. */
+/** Static (non-shimmering) placeholder block: loading is calm, never urgent. */
 export function Skeleton({
   width = '100%',
   height = 16,
-  radius = 8,
+  radius,
   style,
 }: {
   width?: DimensionValue;
@@ -15,10 +15,13 @@ export function Skeleton({
   radius?: number;
   style?: StyleProp<ViewStyle>;
 }) {
-  const { colors } = useTheme();
+  const { colors, radius: r } = useTheme();
   return (
     <View
-      style={[{ width, height, borderRadius: radius, backgroundColor: colors.surface2 }, style]}
+      style={[
+        { width, height, borderRadius: radius ?? r.sm, backgroundColor: colors.surface2 },
+        style,
+      ]}
     />
   );
 }
@@ -40,7 +43,7 @@ export function PostCardSkeleton() {
         }}
       >
         <Skeleton width={40} height={40} radius={20} />
-        <View style={{ gap: 6 }}>
+        <View style={{ gap: spacing.xs + 2 }}>
           <Skeleton width={120} height={12} />
           <Skeleton width={80} height={10} />
         </View>

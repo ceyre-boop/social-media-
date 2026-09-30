@@ -2,42 +2,23 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef, useState } from 'react';
-import {
-  AccessibilityInfo,
-  Animated,
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Animated, Platform, Pressable, StyleSheet, View } from 'react-native';
 
-import { Avatar, Chip } from '@/components/ui';
+import { Avatar, Chip, Text } from '@/components/ui';
 import { signImagePath, type FeedPost } from '@/lib/posts';
-import { palettes, tintFor } from '@/lib/theme';
+import { stage as c, tintFor, useReducedMotion } from '@/lib/theme';
 import { relativeTime } from '@/lib/validation';
 import { VISIBILITY_META } from '@/lib/visibility';
 
 import { MoreSheet } from './MoreSheet';
 
-const c = palettes.dark;
 const RAIL_W = 64;
 const DOUBLE_TAP_MS = 320;
 const shadow = {
-  textShadowColor: 'rgba(0,0,0,0.6)',
+  textShadowColor: c.textShadow,
   textShadowOffset: { width: 0, height: 1 },
   textShadowRadius: 4,
 } as const;
-
-function useReduceMotion(): boolean {
-  const [reduce, setReduce] = useState(false);
-  useEffect(() => {
-    void AccessibilityInfo.isReduceMotionEnabled().then(setReduce);
-    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduce);
-    return () => sub.remove();
-  }, []);
-  return reduce;
-}
 
 /** Big heart that pops over the media on double-tap. */
 function HeartBurst({ trigger, reduce }: { trigger: number; reduce: boolean }) {
@@ -68,7 +49,7 @@ function HeartBurst({ trigger, reduce }: { trigger: number; reduce: boolean }) {
 function RailButton({
   icon,
   label,
-  color = '#FFFFFF',
+  color = c.text,
   onPress,
   pop,
 }: {
@@ -96,7 +77,7 @@ function RailButton({
         const hovered = (s as { hovered?: boolean }).hovered;
         return [
           styles.railBtn,
-          { backgroundColor: hovered || s.pressed ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.35)' },
+          { backgroundColor: hovered || s.pressed ? c.controlHover : c.control },
         ];
       }}
     >
@@ -120,7 +101,7 @@ function Rail({ post, onToggleLike }: { post: FeedPost; onToggleLike: () => void
     <View style={styles.rail}>
       <RailButton
         icon={post.likedByMe ? 'heart' : 'heart-outline'}
-        color={post.likedByMe ? c.primary : '#FFFFFF'}
+        color={post.likedByMe ? c.primary : c.text}
         label={post.likedByMe ? 'Unlike' : 'Like'}
         onPress={onToggleLike}
         pop={pop}
@@ -149,7 +130,9 @@ function FollowPill({
       hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
       style={[styles.pill, following ? styles.pillOn : styles.pillOff]}
     >
-      <Text style={styles.pillText}>{following ? 'Following' : 'Follow'}</Text>
+      <Text variant="caption" weight="800" tone="onMedia">
+        {following ? 'Following' : 'Follow'}
+      </Text>
     </Pressable>
   );
 }
@@ -158,11 +141,7 @@ function Scrim({ position, size }: { position: 'top' | 'bottom'; size: number })
   return (
     <LinearGradient
       pointerEvents="none"
-      colors={
-        position === 'bottom'
-          ? ['rgba(0,0,0,0)', 'rgba(0,0,0,0.78)']
-          : ['rgba(0,0,0,0.5)', 'rgba(0,0,0,0)']
-      }
+      colors={position === 'bottom' ? [c.scrimClear, c.scrimBottom] : [c.scrimTop, c.scrimClear]}
       style={[styles.scrim, position === 'bottom' ? { bottom: 0 } : { top: 0 }, { height: size }]}
     />
   );
@@ -171,15 +150,12 @@ function Scrim({ position, size }: { position: 'top' | 'bottom'; size: number })
 function TextCard({ post, w }: { post: FeedPost; w: number }) {
   const tint = tintFor(post.author?.username ?? 'unknown');
   const text = post.caption ?? '';
-  const size = text.length < 40 ? 34 : text.length < 100 ? 28 : 24;
+  const variant = text.length < 40 ? 'display' : text.length < 100 ? 'title' : 'headline';
   return (
     <View style={[StyleSheet.absoluteFill, { backgroundColor: tint }]}>
-      <LinearGradient
-        colors={['rgba(0,0,0,0.05)', 'rgba(20,10,30,0.72)']}
-        style={StyleSheet.absoluteFill}
-      />
+      <LinearGradient colors={[c.cardTop, c.cardBottom]} style={StyleSheet.absoluteFill} />
       <View style={[styles.textCenter, { paddingHorizontal: Math.min(32, w * 0.08) }]}>
-        <Text selectable style={[styles.bigText, { fontSize: size, lineHeight: size * 1.25 }]}>
+        <Text selectable variant={variant} tone="onMedia" align="center">
           {text}
         </Text>
       </View>
@@ -206,7 +182,9 @@ function Media({ post, active, w }: { post: FeedPost; active: boolean; w: number
     return (
       <View style={[StyleSheet.absoluteFill, styles.unavailable]}>
         <Ionicons name="image-outline" size={40} color={c.muted} />
-        <Text style={{ color: c.muted, marginTop: 8 }}>Image unavailable</Text>
+        <Text tone="onMediaMuted" style={{ marginTop: 8 }}>
+          Image unavailable
+        </Text>
       </View>
     );
   }
@@ -214,7 +192,7 @@ function Media({ post, active, w }: { post: FeedPost; active: boolean; w: number
   const portrait = post.aspectRatio <= 0.8;
   const priority = active ? 'high' : 'low';
   return (
-    <View style={[StyleSheet.absoluteFill, { backgroundColor: '#000' }]}>
+    <View style={[StyleSheet.absoluteFill, { backgroundColor: c.bg }]}>
       {portrait ? null : (
         <>
           <Image
@@ -225,7 +203,7 @@ function Media({ post, active, w }: { post: FeedPost; active: boolean; w: number
             priority={priority}
             recyclingKey={`${post.id}-bg`}
           />
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.45)' }]} />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: c.dim }]} />
         </>
       )}
       <Image
@@ -246,7 +224,7 @@ function Caption({ text }: { text: string }) {
   const long = text.length > 90 || text.includes('\n');
   return (
     <View>
-      <Text selectable style={[styles.caption, shadow]} numberOfLines={open ? undefined : 2}>
+      <Text selectable tone="onMedia" style={shadow} numberOfLines={open ? undefined : 2}>
         {text}
       </Text>
       {long ? (
@@ -257,7 +235,9 @@ function Caption({ text }: { text: string }) {
           hitSlop={8}
           style={styles.moreBtn}
         >
-          <Text style={[styles.moreText, shadow]}>{open ? 'less' : 'more'}</Text>
+          <Text variant="callout" weight="700" tone="onMediaMuted" style={shadow}>
+            {open ? 'less' : 'more'}
+          </Text>
         </Pressable>
       ) : null}
     </View>
@@ -295,7 +275,7 @@ export function ReelPage({
   following,
   onToggleFollow,
 }: Props) {
-  const reduce = useReduceMotion();
+  const reduce = useReducedMotion();
   const [burst, setBurst] = useState(0);
   const lastTap = useRef(0);
   const card = variant === 'card';
@@ -322,7 +302,7 @@ export function ReelPage({
 
   const content = (
     <View
-      style={[{ width: w, height: h, backgroundColor: '#000' }, card && styles.cardShape]}
+      style={[{ width: w, height: h, backgroundColor: c.bg }, card && styles.cardShape]}
       accessible={false}
     >
       <Pressable
@@ -356,14 +336,19 @@ export function ReelPage({
             <Avatar username={username} displayName={post.author?.display_name} size={40} />
             <View style={{ flex: 1 }}>
               <View style={styles.nameRow}>
-                <Text numberOfLines={1} style={[styles.name, shadow, { flexShrink: 1 }]}>
+                <Text
+                  variant="headline"
+                  tone="onMedia"
+                  numberOfLines={1}
+                  style={[shadow, { flexShrink: 1 }]}
+                >
                   {name}
                 </Text>
                 {showFollow ? (
                   <FollowPill username={username} following={following} onPress={onToggleFollow} />
                 ) : null}
               </View>
-              <Text numberOfLines={1} style={[styles.handle, shadow]}>
+              <Text variant="caption" tone="onMediaMuted" numberOfLines={1} style={shadow}>
                 {post.author ? `@${post.author.username} · ` : ''}
                 {relativeTime(post.created_at)}
               </Text>
@@ -415,18 +400,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     cursor: 'pointer',
   },
-  pillOff: { borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.9)' },
-  pillOn: { backgroundColor: 'rgba(255,255,255,0.22)' },
-  pillText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
+  pillOff: { borderWidth: 1.5, borderColor: c.pillBorder },
+  pillOn: { backgroundColor: c.pillFill },
   cardShape: { borderRadius: 24, overflow: 'hidden' },
   scrim: { position: 'absolute', left: 0, right: 0 },
   info: { position: 'absolute', left: 0, right: 0, bottom: 0, gap: 10 },
   author: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  name: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
-  handle: { color: 'rgba(255,255,255,0.8)', fontSize: 13 },
-  caption: { color: '#FFFFFF', fontSize: 15, lineHeight: 21 },
   moreBtn: { minHeight: 32, justifyContent: 'center', alignSelf: 'flex-start' },
-  moreText: { color: 'rgba(255,255,255,0.85)', fontWeight: '700', fontSize: 15 },
   railHost: { position: 'absolute', right: 8 },
   rail: { width: RAIL_W, alignItems: 'center', gap: 14 },
   railBtn: {
@@ -447,6 +427,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   textCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  bigText: { color: '#FFFFFF', fontWeight: '800', textAlign: 'center' },
   unavailable: { alignItems: 'center', justifyContent: 'center', backgroundColor: c.surface },
 });

@@ -7,10 +7,10 @@
     "icon": "./assets/images/icon.png",
     "scheme": "smiley",
     "userInterfaceStyle": "automatic",
-    "backgroundColor": "#0B0A0D",
+    "backgroundColor": "#0E0B10",
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#0B0A0D",
+        "backgroundColor": "#0E0B10",
         "foregroundImage": "./assets/images/icon.png"
       },
       "predictiveBackGestureEnabled": false
@@ -18,15 +18,15 @@
     "web": {
       "output": "static",
       "favicon": "./assets/images/favicon.png",
-      "backgroundColor": "#0B0A0D",
-      "themeColor": "#0B0A0D"
+      "backgroundColor": "#0E0B10",
+      "themeColor": "#0E0B10"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#0B0A0D",
+          "backgroundColor": "#0E0B10",
           "image": "./assets/images/logo.png",
           "imageWidth": 200
         }

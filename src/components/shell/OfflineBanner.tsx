@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
-
+import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Text } from '@/components/ui';
 import { useOnline } from '@/lib/network';
 import { useTheme } from '@/lib/theme';
 
@@ -10,7 +10,7 @@ import { useTheme } from '@/lib/theme';
 export function OfflineBanner({ floating }: { floating?: boolean }) {
   const online = useOnline();
   const insets = useSafeAreaInsets();
-  const { colors } = useTheme();
+  const { colors, spacing, radius, elevation } = useTheme();
   if (online) return null;
   return (
     <View
@@ -18,12 +18,22 @@ export function OfflineBanner({ floating }: { floating?: boolean }) {
       accessibilityLiveRegion="polite"
       style={[
         styles.bar,
-        { backgroundColor: colors.surface2, borderBottomColor: colors.border },
-        floating && [styles.floating, { top: insets.top + 60 }],
+        {
+          backgroundColor: colors.surface2,
+          borderBottomColor: colors.border,
+          gap: spacing.sm,
+          paddingVertical: spacing.sm - 2,
+          paddingHorizontal: spacing.md,
+        },
+        floating && [
+          styles.floating,
+          elevation[2],
+          { top: insets.top + 60, borderRadius: radius.pill, paddingHorizontal: spacing.lg },
+        ],
       ]}
     >
       <Ionicons name="cloud-offline-outline" size={16} color={colors.muted} />
-      <Text style={[styles.text, { color: colors.text }]}>
+      <Text variant="caption" weight="600">
         You&apos;re offline. We&apos;ll reconnect automatically.
       </Text>
     </View>
@@ -35,18 +45,12 @@ const styles = StyleSheet.create({
     position: 'absolute',
     alignSelf: 'center',
     zIndex: 30,
-    borderRadius: 999,
     borderWidth: StyleSheet.hairlineWidth,
-    paddingHorizontal: 16,
   },
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  text: { fontSize: 13, fontWeight: '600' },
 });

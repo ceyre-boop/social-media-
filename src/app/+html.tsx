@@ -1,18 +1,22 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 import type { PropsWithChildren } from 'react';
 
+import { brand, palettes } from '@/lib/theme';
+
+const { dark, light } = palettes;
+
 // Web-only document shell (static rendering). Global CSS lives here so the very first
 // paint is already dark and focus rings are consistent on every element.
 const css = `
-body { background-color: #0B0A0D; margin: 0; }
-:focus-visible { outline: 2px solid #FF6FB5 !important; outline-offset: 2px; }
-::selection { background: #FF6FB5; color: #1A0710; }
+body { background-color: ${dark.bg}; margin: 0; }
+:focus-visible { outline: 2px solid ${dark.focus} !important; outline-offset: 2px; }
+::selection { background: ${brand.pink}; color: ${dark.onPrimary}; }
 /* Reels feed: one page per snap point (FlashList cells are absolutely positioned, so mark the pages themselves). */
 [data-reels] { scroll-snap-type: y mandatory; }
 [data-reels] [data-reel-page] { scroll-snap-align: start; scroll-snap-stop: always; }
 @media (prefers-color-scheme: light) {
-  body { background-color: #FFF8FB; }
-  :focus-visible { outline-color: #8C1240 !important; }
+  body { background-color: ${light.bg}; }
+  :focus-visible { outline-color: ${light.focus} !important; }
 }
 `;
 
@@ -24,7 +28,7 @@ export default function Root({ children }: PropsWithChildren) {
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
         <meta name="color-scheme" content="dark light" />
-        <meta name="theme-color" content="#0B0A0D" />
+        <meta name="theme-color" content={dark.bg} />
         <title>Smiley</title>
         <ScrollViewStyleReset />
         <style dangerouslySetInnerHTML={{ __html: css }} />

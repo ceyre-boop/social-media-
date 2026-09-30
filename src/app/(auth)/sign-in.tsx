@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 
-import { Button, LogoMark, Screen, TextField } from '@/components/ui';
+import { Button, LogoMark, Screen, Text, TextField } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { toUserError } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
@@ -31,7 +31,7 @@ function dobProblem(dob: string): string | null {
 }
 
 export default function SignIn() {
-  const { colors, spacing } = useTheme();
+  const { colors, radius, spacing } = useTheme();
   const { notice, clearNotice } = useAuth();
   const [email, setEmail] = useState(draft.email);
   const [dob, setDob] = useState(draft.dob);
@@ -137,8 +137,10 @@ export default function SignIn() {
     <Screen title="Sign in" scroll center maxWidth={420} padded safeTop safeBottom>
       <View style={styles.header}>
         <LogoMark size={96} />
-        <Text style={[styles.title, { color: colors.text }]}>Welcome to Smiley</Text>
-        <Text style={[styles.tagline, { color: colors.muted }]}>
+        <Text variant="display" align="center">
+          Welcome to Smiley
+        </Text>
+        <Text tone="secondary" align="center">
           A place you come back to because it feels good.
         </Text>
       </View>
@@ -146,9 +148,18 @@ export default function SignIn() {
       {notice ? (
         <View
           accessibilityRole="alert"
-          style={[styles.notice, { backgroundColor: colors.surface2, borderColor: colors.border }]}
+          style={[
+            styles.notice,
+            {
+              backgroundColor: colors.surface2,
+              borderColor: colors.border,
+              borderRadius: radius.md,
+            },
+          ]}
         >
-          <Text style={{ color: colors.text, fontSize: 14, textAlign: 'center' }}>{notice}</Text>
+          <Text variant="caption" align="center">
+            {notice}
+          </Text>
         </View>
       ) : null}
 
@@ -182,7 +193,7 @@ export default function SignIn() {
             onSubmitEditing={() => send()}
           />
           {error ? (
-            <Text accessibilityRole="alert" style={[styles.error, { color: colors.danger }]}>
+            <Text accessibilityRole="alert" variant="caption" tone="danger">
               {error}
             </Text>
           ) : null}
@@ -190,8 +201,8 @@ export default function SignIn() {
         </View>
       ) : (
         <View style={{ gap: spacing.lg }}>
-          <Text style={[styles.info, { color: colors.text }]}>
-            We sent a 6-digit code to <Text style={styles.bold}>{cleanEmail}</Text>.
+          <Text align="center">
+            We sent a 6-digit code to <Text weight="700">{cleanEmail}</Text>.
           </Text>
           <TextField
             label="Code"
@@ -239,11 +250,6 @@ export default function SignIn() {
 
 const styles = StyleSheet.create({
   header: { alignItems: 'center', gap: 12, marginBottom: 8 },
-  title: { fontSize: 28, fontWeight: '800', textAlign: 'center' },
-  tagline: { fontSize: 16, lineHeight: 22, textAlign: 'center' },
-  info: { fontSize: 16, lineHeight: 22, textAlign: 'center' },
-  bold: { fontWeight: '700' },
-  error: { fontSize: 14 },
-  notice: { borderWidth: 1, borderRadius: 12, padding: 12 },
-  code: { fontSize: 32, letterSpacing: 12, textAlign: 'center', fontWeight: '700', minHeight: 64 },
+  notice: { borderWidth: 1, padding: 12 },
+  code: { fontSize: 32, letterSpacing: 12, textAlign: 'center', minHeight: 64 },
 });

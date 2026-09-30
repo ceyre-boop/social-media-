@@ -1,15 +1,15 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { View } from 'react-native';
 
 import { ProfileForm, type ProfileValues } from '@/components/profile-form';
-import { Button, Screen } from '@/components/ui';
+import { Button, Screen, Text } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/lib/theme';
 import { USERNAME_RE } from '@/lib/validation';
 
 export default function Onboarding() {
-  const { colors, spacing } = useTheme();
+  const { spacing } = useTheme();
   const { session, refreshProfile, signOut, handleError } = useAuth();
   const [values, setValues] = useState<ProfileValues>({ username: '', displayName: '', bio: '' });
   const [busy, setBusy] = useState(false);
@@ -50,13 +50,11 @@ export default function Onboarding() {
   return (
     <Screen title="Create your profile" scroll center maxWidth={420} padded safeTop safeBottom>
       <View style={{ gap: spacing.xs }}>
-        <Text style={[styles.title, { color: colors.text }]}>Create your profile</Text>
-        <Text style={[styles.sub, { color: colors.muted }]}>
-          This is how people will know you on Smiley.
-        </Text>
+        <Text variant="display">Create your profile</Text>
+        <Text tone="secondary">This is how people will know you on Smiley.</Text>
       </View>
       <ProfileForm values={values} onChange={setValues} usernameError={usernameError} />
-      {error ? <Text style={{ color: colors.danger }}>{error}</Text> : null}
+      {error ? <Text tone="danger">{error}</Text> : null}
       <Button
         title="Create profile"
         onPress={save}
@@ -67,8 +65,3 @@ export default function Onboarding() {
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  title: { fontSize: 26, fontWeight: '800' },
-  sub: { fontSize: 15, lineHeight: 21 },
-});

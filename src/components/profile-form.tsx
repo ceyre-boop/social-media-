@@ -32,7 +32,7 @@ export function ProfileForm({
   return (
     <View style={{ gap: spacing.lg }}>
       <View style={styles.avatar}>
-        <Avatar username={name || '?'} displayName={values.displayName} size={88} />
+        <Avatar username={name || '?'} displayName={values.displayName} size="xl" />
       </View>
       <TextField
         label="Username"

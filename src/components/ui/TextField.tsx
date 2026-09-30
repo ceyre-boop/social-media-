@@ -1,8 +1,10 @@
 import { forwardRef, useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 import type { TextInputProps } from 'react-native';
 
-import { useTheme } from '@/lib/theme';
+import { fontFamilyFor, useTheme } from '@/lib/theme';
+
+import { Text } from './Text';
 
 type Props = TextInputProps & {
   label: string;
@@ -16,13 +18,13 @@ export const TextField = forwardRef<TextInput, Props>(function TextField(
   { label, hint, error, counter, style, onFocus, onBlur, ...props },
   ref,
 ) {
-  const { colors, radius, spacing } = useTheme();
+  const { colors, radius, spacing, type } = useTheme();
   const [focused, setFocused] = useState(false);
-  const borderColor = error ? colors.danger : focused ? colors.primary : colors.border;
+  const borderColor = error ? colors.danger : focused ? colors.focus : colors.border;
 
   return (
     <View style={{ gap: spacing.xs }}>
-      <Text style={[styles.label, { color: colors.text }]}>{label}</Text>
+      <Text variant="callout">{label}</Text>
       <TextInput
         ref={ref}
         accessibilityLabel={label}
@@ -40,10 +42,13 @@ export const TextField = forwardRef<TextInput, Props>(function TextField(
           styles.input,
           {
             borderColor,
+            borderWidth: focused ? 2 : 1,
             borderRadius: radius.md,
             backgroundColor: colors.surface,
             color: colors.text,
-            paddingHorizontal: spacing.lg,
+            paddingHorizontal: spacing.lg - (focused ? 1 : 0),
+            fontFamily: fontFamilyFor('400'),
+            fontSize: type.body.fontSize,
           },
           props.multiline && styles.multiline,
           style,
@@ -51,28 +56,31 @@ export const TextField = forwardRef<TextInput, Props>(function TextField(
       />
       <View style={styles.meta}>
         <Text
-          style={[styles.metaText, { color: error ? colors.danger : colors.muted }]}
+          variant="caption"
+          tone={error ? 'danger' : 'muted'}
+          style={styles.metaText}
           accessibilityLiveRegion={error ? 'polite' : 'none'}
         >
           {error ?? hint ?? ''}
         </Text>
-        {counter ? <Text style={[styles.metaText, { color: colors.muted }]}>{counter}</Text> : null}
+        {counter ? (
+          <Text variant="caption" tone="muted">
+            {counter}
+          </Text>
+        ) : null}
       </View>
     </View>
   );
 });
 
 const styles = StyleSheet.create({
-  label: { fontSize: 14, fontWeight: '600' },
   input: {
     minHeight: 48,
-    borderWidth: 1,
     paddingVertical: 12,
-    fontSize: 16,
-    // Web: our global :focus-visible ring replaces the browser default.
+    // Web: the focused border above replaces the browser default outline.
     outlineWidth: 0,
   },
   multiline: { minHeight: 104, textAlignVertical: 'top' },
   meta: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
-  metaText: { fontSize: 12, lineHeight: 16, flexShrink: 1 },
+  metaText: { flexShrink: 1 },
 });

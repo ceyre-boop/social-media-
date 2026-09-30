@@ -1,14 +1,17 @@
 import { Image } from 'expo-image';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { useTheme } from '@/lib/theme';
 
+import { Text } from './Text';
+
 /** Circular badge: the logo's black background reads as the badge itself. */
 export function LogoMark({ size = 40 }: { size?: number }) {
+  const { stage } = useTheme();
   return (
     <Image
       source={require('../../../assets/images/logo-256.png')}
-      style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: '#000' }}
+      style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: stage.bg }}
       accessibilityLabel="Smiley logo"
     />
   );
@@ -16,11 +19,13 @@ export function LogoMark({ size = 40 }: { size?: number }) {
 
 /** Solid pink wordmark (no gradient: that needs a dependency). */
 export function Wordmark({ size = 24 }: { size?: number }) {
-  const { colors } = useTheme();
   return (
     <Text
       accessibilityRole="header"
-      style={[styles.word, { fontSize: size, color: colors.primary }]}
+      variant="headline"
+      tone="primary"
+      weight="800"
+      style={{ fontSize: size, lineHeight: size * 1.25, letterSpacing: 0.3 }}
     >
       Smiley
     </Text>
@@ -38,5 +43,4 @@ export function Brand({ size = 32 }: { size?: number }) {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  word: { fontWeight: '900', letterSpacing: 0.5 },
 });

@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { useTheme } from '@/lib/theme';
+
+import { Text } from './Text';
 
 export type Segment<T extends string> = {
   value: T;
@@ -20,14 +22,20 @@ export function SegmentedControl<T extends string>({
   onChange: (v: T) => void;
   label: string;
 }) {
-  const { colors, radius } = useTheme();
+  const { colors, radius, spacing } = useTheme();
   return (
     <View
       accessibilityRole="radiogroup"
       accessibilityLabel={label}
       style={[
         styles.row,
-        { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radius.md },
+        {
+          backgroundColor: colors.surface,
+          borderColor: colors.border,
+          borderRadius: radius.md,
+          padding: spacing.xs,
+          gap: spacing.xs,
+        },
       ]}
     >
       {segments.map((s) => {
@@ -54,10 +62,16 @@ export function SegmentedControl<T extends string>({
               ];
             }}
           >
-            <Ionicons name={s.icon} size={18} color={active ? colors.onPrimary : colors.muted} />
+            <Ionicons
+              name={s.icon}
+              size={18}
+              color={active ? colors.onPrimary : colors.textSecondary}
+            />
             <Text
+              variant="caption"
+              weight="700"
               numberOfLines={1}
-              style={[styles.text, { color: active ? colors.onPrimary : colors.text }]}
+              style={{ color: active ? colors.onPrimary : colors.text, flexShrink: 1 }}
             >
               {s.label}
             </Text>
@@ -68,24 +82,8 @@ export function SegmentedControl<T extends string>({
   );
 }
 
-/** Small pill for status, e.g. post visibility. */
-export function Chip({ label, icon }: { label: string; icon?: keyof typeof Ionicons.glyphMap }) {
-  const { colors, radius } = useTheme();
-  return (
-    <View
-      style={[
-        styles.chip,
-        { backgroundColor: colors.surface2, borderColor: colors.border, borderRadius: radius.pill },
-      ]}
-    >
-      {icon ? <Ionicons name={icon} size={12} color={colors.muted} /> : null}
-      <Text style={[styles.chipText, { color: colors.muted }]}>{label}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', padding: 4, borderWidth: 1, gap: 4 },
+  row: { flexDirection: 'row', borderWidth: 1 },
   segment: {
     flex: 1,
     minHeight: 56,
@@ -96,14 +94,4 @@ const styles = StyleSheet.create({
     gap: 2,
     cursor: 'pointer',
   },
-  text: { fontSize: 13, fontWeight: '700', flexShrink: 1 },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderWidth: 1,
-  },
-  chipText: { fontSize: 12, fontWeight: '600' },
 });

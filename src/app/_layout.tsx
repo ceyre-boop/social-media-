@@ -1,6 +1,16 @@
+import {
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+  useFonts,
+} from '@expo-google-fonts/plus-jakarta-sans';
 import { Stack } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { RouteError } from '@/components/RouteError';
 import { StatusScreen } from '@/components/status-screen';
@@ -10,6 +20,9 @@ import { configMissing, pingServer, supabaseUrl } from '@/lib/supabase';
 import { useTheme } from '@/lib/theme';
 
 export { RouteError as ErrorBoundary };
+
+// Hold the splash until Plus Jakarta Sans is ready so text never flashes in a fallback face.
+void SplashScreen.preventAutoHideAsync().catch(() => {});
 
 type ServerState = 'checking' | 'ok' | 'down';
 
@@ -93,12 +106,30 @@ function RootStack() {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded, fontError] = useFonts({
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
+  });
+  const ready = fontsLoaded || !!fontError;
+
+  useEffect(() => {
+    if (ready) void SplashScreen.hideAsync().catch(() => {});
+  }, [ready]);
+
+  // A font error still renders (the web fallback stack / system font takes over).
+  if (!ready) return null;
+
   return (
-    <AuthProvider>
-      <ToastProvider>
-        <StatusBar style="auto" />
-        <RootStack />
-      </ToastProvider>
-    </AuthProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
+        <ToastProvider>
+          <StatusBar style="auto" />
+          <RootStack />
+        </ToastProvider>
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }
