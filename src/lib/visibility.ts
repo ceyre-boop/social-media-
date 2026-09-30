@@ -18,9 +18,9 @@ export const VISIBILITY_META: Record<Visibility, Meta> = {
     explain: 'People who follow you or keep coming back',
   },
   friends: {
-    label: 'Friends',
+    label: 'Regulars',
     icon: 'heart-outline',
-    explain: 'People you both return to',
+    explain: 'People you both keep coming back to (not the same as friends you add)',
   },
   private: { label: 'Only me', icon: 'lock-closed-outline', explain: 'Just you' },
 };

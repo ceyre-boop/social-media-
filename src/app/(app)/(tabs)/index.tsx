@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
+import { MomentsRow } from '@/components/moments/MomentsRow';
 import { ReelsFeed, type FeedPageContext, type PageCursor } from '@/components/reels/ReelsFeed';
 import { Button, LogoMark, Text } from '@/components/ui';
 import { HOME_PAGE_SIZE, fetchHome } from '@/lib/feeds';
@@ -45,6 +46,7 @@ export default function Home() {
       loadPage={loadHome}
       pageSize={HOME_PAGE_SIZE}
       emptyPage={(ctx) => <HomeEmpty {...ctx} />}
+      header={<MomentsRow />}
     />
   );
 }

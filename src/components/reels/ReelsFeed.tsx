@@ -61,6 +61,8 @@ type Props = {
   emptyPage?: (ctx: FeedPageContext) => React.ReactNode;
   /** Replaces the default "all caught up" page at the end of the feed. */
   endPage?: (ctx: FeedPageContext) => React.ReactNode;
+  /** In-flow strip above the pager (Home's Moments row). The pager gets the remaining height. */
+  header?: React.ReactNode;
 };
 
 /**
@@ -219,6 +221,7 @@ function ReelsFeedInner({
   finite,
   emptyPage,
   endPage,
+  header,
 }: Props) {
   const { spacing } = useTheme();
   const { session, handleError } = useAuth();
@@ -688,7 +691,8 @@ function ReelsFeedInner({
     return <Page height={pageH} bottomInset={bottomInset} spinner />;
   };
   const bottomInset = compact ? navClearance : 0;
-  const top = insets.top + spacing.sm;
+  // With a header the header owns the status-bar inset; the bars sit just inside the pager.
+  const top = (header && compact ? 0 : insets.top) + spacing.sm;
 
   let body: React.ReactNode;
   if (loading) {
@@ -780,13 +784,33 @@ function ReelsFeedInner({
   }
 
   return (
-    <View ref={rootRef} style={styles.root} onLayout={onLayout}>
+    <View style={styles.root}>
       <PageTitle title={pageTitle} />
-      {body}
-      {compact ? (
-        <View pointerEvents="box-none" style={[styles.topBar, { paddingTop: top }]}>
-          <Brand size={32} />
-          <View style={styles.topActions}>
+      {header ? <View style={{ paddingTop: compact ? insets.top : 0 }}>{header}</View> : null}
+      {/* The web touch pager and page height both belong to the pager area, below any header. */}
+      <View ref={rootRef} style={styles.pager} onLayout={onLayout}>
+        {body}
+        {compact ? (
+          <View pointerEvents="box-none" style={[styles.topBar, { paddingTop: top }]}>
+            <Brand size={32} />
+            <View style={styles.topActions}>
+              <IconButton
+                icon="search"
+                label="Search people"
+                onMedia
+                onPress={() => router.push('/search')}
+              />
+              <IconButton
+                icon="refresh"
+                label="Refresh feed"
+                onMedia
+                disabled={refreshing || loading}
+                onPress={() => void refresh(true)}
+              />
+            </View>
+          </View>
+        ) : (
+          <View pointerEvents="box-none" style={[styles.topBar, styles.topBarDesktop]}>
             <IconButton
               icon="search"
               label="Search people"
@@ -801,32 +825,16 @@ function ReelsFeedInner({
               onPress={() => void refresh(true)}
             />
           </View>
-        </View>
-      ) : (
-        <View pointerEvents="box-none" style={[styles.topBar, styles.topBarDesktop]}>
-          <IconButton
-            icon="search"
-            label="Search people"
-            onMedia
-            onPress={() => router.push('/search')}
+        )}
+        <PerfOverlay />
+        {compact ? (
+          <LinearGradient
+            pointerEvents="none"
+            colors={[c.scrimTop, c.scrimClear]}
+            style={[styles.topScrim, { height: top + 64 }]}
           />
-          <IconButton
-            icon="refresh"
-            label="Refresh feed"
-            onMedia
-            disabled={refreshing || loading}
-            onPress={() => void refresh(true)}
-          />
-        </View>
-      )}
-      <PerfOverlay />
-      {compact ? (
-        <LinearGradient
-          pointerEvents="none"
-          colors={[c.scrimTop, c.scrimClear]}
-          style={[styles.topScrim, { height: top + 64 }]}
-        />
-      ) : null}
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -834,6 +842,7 @@ function ReelsFeedInner({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: c.bg },
   topActions: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  pager: { flex: 1, overflow: 'hidden' },
   page: {
     alignItems: 'center',
     justifyContent: 'center',

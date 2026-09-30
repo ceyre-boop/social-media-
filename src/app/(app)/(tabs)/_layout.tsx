@@ -23,7 +23,7 @@ export default function TabsLayout() {
   const { colors } = useTheme();
   const pathname = usePathname();
   const compact = bp === 'compact';
-  const immersive = /^\/live\/[^/]+/.test(pathname);
+  const immersive = /^\/live\/[^/]+/.test(pathname) || /^\/moments\/(view|new)/.test(pathname);
 
   return (
     // Full-bleed backdrop so the margins around the centered shell match the app background.
@@ -79,6 +79,8 @@ export default function TabsLayout() {
           <TabTrigger name="search" href="/search" />
           <TabTrigger name="u/[username]" href="/u/[username]" />
           <TabTrigger name="post/[id]" href="/post/[id]" />
+          <TabTrigger name="moments" href="/moments" />
+          <TabTrigger name="friends" href="/friends" />
         </TabList>
       </Tabs>
     </View>

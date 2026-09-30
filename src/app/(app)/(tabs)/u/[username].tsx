@@ -8,6 +8,14 @@ import { AppBar, Avatar, Button, EmptyState, IconButton, PageTitle, Text } from 
 import { useAuth } from '@/lib/auth';
 import type { UserError } from '@/lib/errors';
 import { fetchFollowing, setFollow } from '@/lib/follows';
+import {
+  FRIEND_ACTION_FAILED,
+  fetchFriendships,
+  requestFriend,
+  respondFriend,
+  type FriendStatus,
+  type Friendship,
+} from '@/lib/friends';
 import { useNavClearance } from '@/lib/layout';
 import { useRevalidate } from '@/lib/network';
 import { fetchProfileByUsername, type PublicProfile } from '@/lib/profiles';
@@ -34,6 +42,9 @@ export default function UserProfile() {
   const [following, setFollowing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<UserError | null>(null);
+  const [friend, setFriend] = useState<FriendStatus | null>(null);
+  const [friendBusy, setFriendBusy] = useState(false);
+  const [friendError, setFriendError] = useState<string | null>(null);
 
   const load = useCallback(() => {
     if (!username) return;
@@ -45,12 +56,14 @@ export default function UserProfile() {
           router.replace('/you');
           return;
         }
-        const [list, follows] = await Promise.all([
+        const [list, follows, friendships] = await Promise.all([
           fetchUserPosts(me, p.user_id),
           fetchFollowing(me, [p.user_id]),
+          fetchFriendships().catch(() => [] as Friendship[]),
         ]);
         setPosts(list);
         setFollowing(follows.has(p.user_id));
+        setFriend(friendships.find((f) => f.user_id === p.user_id)?.status ?? null);
         setError(null);
         setState('ready');
       })
@@ -79,6 +92,33 @@ export default function UserProfile() {
       setBusy(false);
     }
   }
+
+  async function friendAction() {
+    if (!person || friendBusy || friend === 'friends' || friend === 'outgoing') return;
+    setFriendBusy(true);
+    setFriendError(null);
+    try {
+      if (friend === 'incoming') {
+        await respondFriend(person.user_id, true);
+        setFriend('friends');
+      } else {
+        setFriend((await requestFriend(person.user_id)) === 'friends' ? 'friends' : 'outgoing');
+      }
+    } catch {
+      setFriendError(FRIEND_ACTION_FAILED);
+    } finally {
+      setFriendBusy(false);
+    }
+  }
+
+  const friendLabel =
+    friend === 'friends'
+      ? 'Friends'
+      : friend === 'outgoing'
+        ? 'Request sent'
+        : friend === 'incoming'
+          ? 'Accept friend'
+          : 'Add friend';
 
   const name = person?.display_name || person?.username || username || '';
   const isMe = !!person && person.username.toLowerCase() === mine?.username.toLowerCase();
@@ -125,14 +165,35 @@ export default function UserProfile() {
               </Pressable>
             ) : null}
             {isMe ? null : (
-              <Button
-                title={following ? 'Following' : 'Follow'}
-                variant={following ? 'secondary' : 'primary'}
-                icon={following ? 'checkmark' : undefined}
-                loading={busy}
-                onPress={toggleFollow}
-              />
+              <View style={[styles.actions, { gap: spacing.sm }]}>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    title={following ? 'Following' : 'Follow'}
+                    variant={following ? 'secondary' : 'primary'}
+                    icon={following ? 'checkmark' : undefined}
+                    loading={busy}
+                    onPress={toggleFollow}
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Button
+                    title={friendLabel}
+                    variant="secondary"
+                    icon={
+                      friend === 'friends'
+                        ? 'people'
+                        : friend === 'outgoing'
+                          ? 'time-outline'
+                          : 'person-add-outline'
+                    }
+                    loading={friendBusy}
+                    disabled={friend === 'friends' || friend === 'outgoing'}
+                    onPress={() => void friendAction()}
+                  />
+                </View>
+              </View>
             )}
+            {friendError ? <Text tone="danger">{friendError}</Text> : null}
           </View>
 
           {error && posts.length === 0 ? (
@@ -160,6 +221,7 @@ export default function UserProfile() {
 
 const styles = StyleSheet.create({
   top: { flexDirection: 'row', alignItems: 'center' },
+  actions: { flexDirection: 'row' },
   names: { flex: 1, gap: 2 },
   link: { flexDirection: 'row', alignItems: 'center', minHeight: 32 },
   linkText: { flexShrink: 1 },

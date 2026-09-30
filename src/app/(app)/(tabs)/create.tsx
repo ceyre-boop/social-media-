@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import { ReelPreview } from '@/components/create/ReelPreview';
+import { brand } from '@/config/brand';
 import { ReelRecorder, type RecordedReel } from '@/components/create/ReelRecorder';
 import { UploadProgress } from '@/components/create/UploadProgress';
 
@@ -49,13 +50,14 @@ const SEGMENTS: Segment<Visibility>[] = VISIBILITY_ORDER.map((value) => ({
   icon: VISIBILITY_META[value].icon,
 }));
 
-type CreateMode = 'photo' | 'reel';
+type CreateMode = 'photo' | 'reel' | 'moment';
 /** idle: nothing sent yet · uploading · failed: Retry resumes · cancelled: Post resumes. */
 type ReelState = 'idle' | 'uploading' | 'failed' | 'cancelled';
 
 const MODES: Segment<CreateMode>[] = [
   { value: 'photo', label: 'Photo', icon: 'image-outline' },
   { value: 'reel', label: 'Reel', icon: 'videocam-outline' },
+  { value: 'moment', label: brand.moment.singular, icon: 'camera-outline' },
 ];
 
 const MIME_EXT: Record<string, string> = {
@@ -424,6 +426,53 @@ export default function Create() {
 
   const previewRatio = asset ? Math.min(Math.max(asset.width / asset.height, 0.5), 2) : 1;
 
+  const modePicker = (
+    <SegmentedControl
+      label="What are you posting"
+      segments={MODES}
+      value={mode}
+      onChange={(next) => {
+        if (inFlight || preparing) return;
+        setError(null);
+        setMode(next);
+      }}
+    />
+  );
+
+  // Moment: camera only, friends only. The composer is its own full-screen page.
+  if (mode === 'moment') {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.bg }}>
+        <AppBar title="Create" />
+        <Screen title="Create" scroll padded>
+          {modePicker}
+          <View
+            style={[
+              styles.dropzone,
+              {
+                borderColor: colors.border,
+                borderRadius: radius.lg,
+                backgroundColor: colors.surface,
+                padding: spacing.lg,
+              },
+            ]}
+          >
+            <Ionicons name="camera-outline" size={40} color={colors.textSecondary} />
+            <Text variant="headline">{`Share a ${brand.moment.singular}`}</Text>
+            <Text variant="caption" tone="muted" align="center">
+              A photo of right now, from the camera. Only your friends see it.
+            </Text>
+          </View>
+          <Button
+            title="Open camera"
+            icon="camera-outline"
+            onPress={() => router.push('/moments/new')}
+          />
+        </Screen>
+      </View>
+    );
+  }
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <AppBar title="Create" />
@@ -436,16 +485,7 @@ export default function Create() {
         />
       ) : null}
       <Screen title="Create" scroll padded>
-        <SegmentedControl
-          label="What are you posting"
-          segments={MODES}
-          value={mode}
-          onChange={(next) => {
-            if (inFlight || preparing) return;
-            setError(null);
-            setMode(next);
-          }}
-        />
+        {modePicker}
         {mode === 'reel' ? (
           reelArea
         ) : asset ? (
