@@ -351,7 +351,10 @@ function ReelPageImpl({
       style={[{ width: w, height: h, backgroundColor: c.bg }, card && styles.cardShape]}
       accessible={false}
     >
-      <GestureDetector gesture={gesture}>
+      {/* Web: RNGH defaults to touch-action:none, which blocks finger scrolling of the
+          feed on phone browsers. pan-y lets the browser scroll vertically while tap,
+          double-tap and long-press still reach the gesture handler. */}
+      <GestureDetector gesture={gesture} touchAction="pan-y">
         <View
           accessible={false}
           collapsable={false}
