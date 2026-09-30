@@ -1,5 +1,5 @@
 /**
- * Mode D (Takeover): Sunrise (10,000 blips). 6s, covers everything except the top 10% and
+ * Mode D (Takeover): Sunrise (10,000 units). 6s, covers everything except the top 10% and
  * bottom 12% of the viewport. The sender's name and avatar are foregrounded: this is the one
  * place the sender matters more than the gift. Tap to dismiss early. Sky and ground fade at
  * the rect edges so the guards stay clean. "The Whole Sky" washes every color across instead

@@ -1,5 +1,5 @@
 /**
- * Single source of truth for every visual decision in Smiley.
+ * Single source of truth for every visual decision in the app.
  * This is the ONLY file allowed to contain color literals (enforced by ESLint).
  * Rules of use live in DESIGN.md.
  */
@@ -158,7 +158,7 @@ export type Stage = typeof stage;
 
 /**
  * Gift tier palette (theme-independent). Anchored to the brand yellow, cream and near-black;
- * each tier may use a wider accent range than the one below it: Blips speak only in yellow,
+ * each tier may use a wider accent range than the one below it: The entry tier speaks only in yellow,
  * Sunrise uses the whole warm spectrum. `accent` fills the gift tile (ink on it is
  * `giftInk`); `range` colors confetti, sparks and light in that tier's animation.
  */
@@ -166,7 +166,7 @@ export const giftInk = brand.onRainbow;
 export const giftCream = '#FFF3D6';
 
 export const giftTier = {
-  blips: { accent: brand.sun, range: [brand.sun] },
+  entry: { accent: brand.sun, range: [brand.sun] },
   sparks: { accent: brand.tangerine, range: [brand.sun, brand.tangerine] },
   glows: { accent: brand.magenta, range: [brand.sun, brand.tangerine, brand.magenta] },
   bursts: {

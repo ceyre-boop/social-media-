@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 
+import { brand } from '@/config/brand';
 import { useTheme } from '@/lib/theme';
 
 import { Text } from './Text';
@@ -12,7 +13,7 @@ export function LogoMark({ size = 40 }: { size?: number }) {
     <Image
       source={require('../../../assets/images/logo-256.png')}
       style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: stage.bg }}
-      accessibilityLabel="Smiley logo"
+      accessibilityLabel={`${brand.appName} logo`}
     />
   );
 }
@@ -27,7 +28,7 @@ export function Wordmark({ size = 24 }: { size?: number }) {
       weight="800"
       style={{ fontSize: size, lineHeight: size * 1.25, letterSpacing: 0.3 }}
     >
-      Smiley
+      {brand.appName}
     </Text>
   );
 }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { View } from 'react-native';
 
+import { brand } from '@/config/brand';
 import { ProfileForm, type ProfileValues } from '@/components/profile-form';
 import { Button, Screen, Text } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
@@ -51,7 +52,7 @@ export default function Onboarding() {
     <Screen title="Create your profile" scroll center maxWidth={420} padded safeTop safeBottom>
       <View style={{ gap: spacing.xs }}>
         <Text variant="display">Create your profile</Text>
-        <Text tone="secondary">This is how people will know you on Smiley.</Text>
+        <Text tone="secondary">This is how people will know you on {brand.appName}.</Text>
       </View>
       <ProfileForm values={values} onChange={setValues} usernameError={usernameError} />
       {error ? <Text tone="danger">{error}</Text> : null}

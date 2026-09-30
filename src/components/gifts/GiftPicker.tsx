@@ -1,23 +1,24 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
+import { currencyRate, formatCurrency } from '@/config/brand';
 import { Sheet, Text } from '@/components/ui';
 import { useTheme } from '@/lib/theme';
 import type { GiftTierName } from '@/lib/theme';
 
-import { BLIP_RATE, TIERS, formatBlips, giftsInTier, tierInfo } from './catalog';
+import { TIERS, giftsInTier, tierInfo } from './catalog';
 import type { Gift } from './catalog';
 import { GiftIcon } from './GiftIcon';
 
 type Props = { visible: boolean; onClose: () => void; onSelect: (gift: Gift) => void };
 
 /**
- * Gift picker in a Sheet: a tab per tier, a grid of gift tiles (icon, name, blips). Tapping a
+ * Gift picker in a Sheet: a tab per tier, a grid of gift tiles (icon, name, value). Tapping a
  * gift only plays its animation. No balance, purchase or ledger; the rate is stated openly.
  */
 export function GiftPicker({ visible, onClose, onSelect }: Props) {
   const { colors, radius, spacing } = useTheme();
-  const [tier, setTier] = useState<GiftTierName>('blips');
+  const [tier, setTier] = useState<GiftTierName>('entry');
   const info = tierInfo(tier);
   const gifts = giftsInTier(tier);
 
@@ -25,7 +26,7 @@ export function GiftPicker({ visible, onClose, onSelect }: Props) {
     <Sheet visible={visible} onClose={onClose} title="Send a gift" scroll>
       <View style={{ gap: spacing.lg }}>
         <Text variant="caption" tone="secondary">
-          {BLIP_RATE}
+          {currencyRate()}
         </Text>
 
         <ScrollView
@@ -91,7 +92,7 @@ export function GiftPicker({ visible, onClose, onSelect }: Props) {
             <Pressable
               key={gift.id}
               accessibilityRole="button"
-              accessibilityLabel={`${gift.name}, ${formatBlips(gift.blips)}`}
+              accessibilityLabel={`${gift.name}, ${formatCurrency(gift.coins)}`}
               onPress={() => onSelect(gift)}
               style={(state) => {
                 const hovered = (state as { hovered?: boolean }).hovered;
@@ -118,7 +119,7 @@ export function GiftPicker({ visible, onClose, onSelect }: Props) {
                 {gift.name}
               </Text>
               <Text variant="caption" tone="muted">
-                {formatBlips(gift.blips)}
+                {formatCurrency(gift.coins)}
               </Text>
             </Pressable>
           ))}

@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 
+import { brand } from '@/config/brand';
 import { Card, Text } from '@/components/ui';
 import { RAIL_WIDTH } from '@/lib/layout';
 import { useTheme } from '@/lib/theme';
@@ -19,7 +20,7 @@ export function Rail() {
     <View style={[styles.rail, { padding: spacing.lg }]}>
       <Card elevation={1} style={{ gap: spacing.md }}>
         <Text accessibilityRole="header" variant="headline">
-          How Smiley works
+          How {brand.appName} works
         </Text>
         {POINTS.map((p) => (
           <View key={p.icon} style={[styles.row, { gap: spacing.md }]}>

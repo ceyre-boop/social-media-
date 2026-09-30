@@ -1,6 +1,7 @@
 import type { Ionicons } from '@expo/vector-icons';
 import type { ImageSourcePropType } from 'react-native';
 
+import { brand, currencyLabel } from '@/config/brand';
 import { giftTier } from '@/lib/theme';
 import type { GiftTierName } from '@/lib/theme';
 
@@ -9,8 +10,8 @@ import { GIFT_ICONS } from './icons';
 
 /**
  * Gift Gallery v2: the catalog follows the first 60 illustrated icons (assets/gifts). Mirrors
- * supabase/migrations/20260929000009_gift_gallery_v2.sql: slugs, names, blips, tiers, render
- * modes, anchors, durations and fills must stay identical to it. 100 blips = $1.00. Gifts are
+ * supabase/migrations/20260929000009_gift_gallery_v2.sql: slugs, names, coins, tiers, render
+ * modes, anchors, durations and fills must stay identical to it. Gifts are
  * gestures, not objects: never a luxury good, vehicle or wealth signifier. Visual only:
  * nothing here charges, counts or records anything.
  */
@@ -22,7 +23,7 @@ export type Gift = {
   /** The catalog slug (also the icon file name). */
   id: string;
   name: string;
-  blips: number;
+  coins: number;
   tier: GiftTierName;
   /** Icon concept: the brief for the illustration. */
   icon: string;
@@ -47,7 +48,7 @@ export type Gift = {
 export type TierInfo = {
   id: GiftTierName;
   label: string;
-  /** Blip range, as printed in the doc. */
+  /** Value range, as printed in the doc. */
   range: string;
   /** How the gift shows on screen. */
   presence: string;
@@ -58,17 +59,17 @@ export type TierInfo = {
 
 export const TIERS: TierInfo[] = [
   {
-    id: 'blips',
-    label: 'Blips',
-    range: '1–9 blips',
+    id: 'entry',
+    label: currencyLabel(),
+    range: `1–9 ${brand.currency.plural}`,
     presence: 'Rail card',
     blurb: 'Everyday acknowledgment',
-    accent: giftTier.blips.accent,
+    accent: giftTier.entry.accent,
   },
   {
     id: 'sparks',
     label: 'Sparks',
-    range: '10–99 blips',
+    range: `10–99 ${brand.currency.plural}`,
     presence: 'Rail card with a puff',
     blurb: 'Showing up for someone',
     accent: giftTier.sparks.accent,
@@ -76,7 +77,7 @@ export const TIERS: TierInfo[] = [
   {
     id: 'glows',
     label: 'Glows',
-    range: '100–499 blips',
+    range: `100–499 ${brand.currency.plural}`,
     presence: 'Follows the creator',
     blurb: 'Real support',
     accent: giftTier.glows.accent,
@@ -84,7 +85,7 @@ export const TIERS: TierInfo[] = [
   {
     id: 'bursts',
     label: 'Bursts',
-    range: '500–1,999 blips',
+    range: `500–1,999 ${brand.currency.plural}`,
     presence: 'Center stage',
     blurb: 'Big moments',
     accent: giftTier.bursts.accent,
@@ -92,7 +93,7 @@ export const TIERS: TierInfo[] = [
   {
     id: 'showers',
     label: 'Showers',
-    range: '2,000–9,999 blips',
+    range: `2,000–9,999 ${brand.currency.plural}`,
     presence: 'Center stage, bigger',
     blurb: 'Spectacle',
     accent: giftTier.showers.accent,
@@ -100,14 +101,14 @@ export const TIERS: TierInfo[] = [
   {
     id: 'sunrise',
     label: 'Sunrise',
-    range: '10,000 blips',
+    range: `10,000 ${brand.currency.plural}`,
     presence: 'Takeover',
     blurb: 'Two only, deliberately',
     accent: giftTier.sunrise.accent,
   },
 ];
 
-/** Stage fill and duration by blips band (spec, Mode C; migration 009). */
+/** Stage fill and duration by value band (spec, Mode C; migration 009). */
 function stageFill(b: number): number {
   return b < 1000 ? 45 : b < 2000 ? 60 : b < 5000 ? 75 : 90;
 }
@@ -124,12 +125,12 @@ const PLACEHOLDER_GLYPH: Record<string, IoniconName> = {
   'the-whole-sky': 'partly-sunny-outline',
 };
 
-function base(slug: string, name: string, blips: number, tier: GiftTierName, concept: string) {
+function base(slug: string, name: string, coins: number, tier: GiftTierName, concept: string) {
   const art = GIFT_ICONS[slug];
   return {
     id: slug,
     name,
-    blips,
+    coins,
     tier,
     icon: concept,
     art,
@@ -141,15 +142,15 @@ function base(slug: string, name: string, blips: number, tier: GiftTierName, con
 }
 
 function rail(
-  tier: 'blips' | 'sparks',
+  tier: 'entry' | 'sparks',
   slug: string,
   name: string,
-  blips: number,
+  coins: number,
   ms: number,
   concept: string,
 ): Gift {
   return {
-    ...base(slug, name, blips, tier, concept),
+    ...base(slug, name, coins, tier, concept),
     renderMode: 'rail',
     anchorPreferred: null,
     anchorFallbacks: [],
@@ -161,14 +162,14 @@ function rail(
 function glow(
   slug: string,
   name: string,
-  blips: number,
+  coins: number,
   ms: number,
   anchor: AnchorName,
   fallbacks: AnchorName[],
   concept: string,
 ): Gift {
   return {
-    ...base(slug, name, blips, 'glows', concept),
+    ...base(slug, name, coins, 'glows', concept),
     renderMode: 'anchor',
     anchorPreferred: anchor,
     anchorFallbacks: fallbacks,
@@ -181,16 +182,16 @@ function stage(
   tier: 'bursts' | 'showers',
   slug: string,
   name: string,
-  blips: number,
+  coins: number,
   concept: string,
 ): Gift {
   return {
-    ...base(slug, name, blips, tier, concept),
+    ...base(slug, name, coins, tier, concept),
     renderMode: 'stage',
     anchorPreferred: null,
     anchorFallbacks: [],
-    durationMs: stageMs(blips),
-    boxFillPct: stageFill(blips),
+    durationMs: stageMs(coins),
+    boxFillPct: stageFill(coins),
   };
 }
 
@@ -206,19 +207,19 @@ function takeover(slug: string, name: string, concept: string): Gift {
 }
 
 export const GIFTS: Gift[] = [
-  // Blips (1-9): rail, 1.2s
-  rail('blips', 'smile', 'Smile', 1, 1200, 'Yellow smiley face'),
-  rail('blips', 'heart', 'Heart', 1, 1200, 'Warm red heart'),
-  rail('blips', 'sparkle', 'Sparkle', 2, 1200, 'Scatter of gold stars'),
-  rail('blips', 'daisy', 'Daisy', 2, 1200, 'White daisy, yellow center'),
-  rail('blips', 'tulip', 'Tulip', 3, 1200, 'Single pink tulip'),
-  rail('blips', 'cherries', 'Cherries', 3, 1200, 'Pair of cherries on a stem'),
-  rail('blips', 'strawberry', 'Strawberry', 5, 1200, 'Ripe strawberry'),
-  rail('blips', 'lucky-clover', 'Lucky Clover', 5, 1200, 'Four-leaf clover'),
-  rail('blips', 'paper-plane', 'Paper Plane', 7, 1200, 'Folded paper plane'),
-  rail('blips', 'heart-shades', 'Heart Shades', 7, 1200, 'Heart-shaped sunglasses'),
-  rail('blips', 'lemon-drop', 'Lemon Drop', 9, 1200, 'Lemon with a leaf'),
-  rail('blips', 'popcorn', 'Popcorn', 9, 1200, 'Striped popcorn bucket'),
+  // Entry tier (1-9): rail, 1.2s
+  rail('entry', 'smile', 'Smile', 1, 1200, 'Yellow grinning face'),
+  rail('entry', 'heart', 'Heart', 1, 1200, 'Warm red heart'),
+  rail('entry', 'sparkle', 'Sparkle', 2, 1200, 'Scatter of gold stars'),
+  rail('entry', 'daisy', 'Daisy', 2, 1200, 'White daisy, yellow center'),
+  rail('entry', 'tulip', 'Tulip', 3, 1200, 'Single pink tulip'),
+  rail('entry', 'cherries', 'Cherries', 3, 1200, 'Pair of cherries on a stem'),
+  rail('entry', 'strawberry', 'Strawberry', 5, 1200, 'Ripe strawberry'),
+  rail('entry', 'lucky-clover', 'Lucky Clover', 5, 1200, 'Four-leaf clover'),
+  rail('entry', 'paper-plane', 'Paper Plane', 7, 1200, 'Folded paper plane'),
+  rail('entry', 'heart-shades', 'Heart Shades', 7, 1200, 'Heart-shaped sunglasses'),
+  rail('entry', 'lemon-drop', 'Lemon Drop', 9, 1200, 'Lemon with a leaf'),
+  rail('entry', 'popcorn', 'Popcorn', 9, 1200, 'Striped popcorn bucket'),
 
   // Sparks (10-99): rail, 1.6-2s
   rail('sparks', 'warm-mug', 'Warm Mug', 10, 1600, 'Steaming blue mug'),
@@ -308,10 +309,3 @@ export function tierInfo(tier: GiftTierName): TierInfo {
 export function tierAccent(tier: GiftTierName): string {
   return giftTier[tier].accent;
 }
-
-/** "1 blip", "1,200 blips". The rate is published openly: 100 blips = $1.00. */
-export function formatBlips(n: number): string {
-  return `${n.toLocaleString('en-US')} ${n === 1 ? 'blip' : 'blips'}`;
-}
-
-export const BLIP_RATE = '100 blips = $1.00';

@@ -1,5 +1,6 @@
 import type { Ionicons } from '@expo/vector-icons';
 
+import { brand } from '@/config/brand';
 import type { Visibility } from '@/lib/posts';
 
 type Meta = {
@@ -10,7 +11,7 @@ type Meta = {
 };
 
 export const VISIBILITY_META: Record<Visibility, Meta> = {
-  public: { label: 'Public', icon: 'globe-outline', explain: 'Anyone on Smiley' },
+  public: { label: 'Public', icon: 'globe-outline', explain: `Anyone on ${brand.appName}` },
   followers: {
     label: 'Followers',
     icon: 'people-outline',

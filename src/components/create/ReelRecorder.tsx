@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Linking, Modal, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
 
+import { brand } from '@/config/brand';
 import { Button, IconButton, Text } from '@/components/ui';
 import { useTheme } from '@/lib/theme';
 
@@ -168,7 +169,7 @@ export function ReelRecorder({
         ) : (
           <View style={[styles.permission, { padding: spacing.xxl, gap: spacing.lg }]}>
             <Text variant="headline" style={{ color: stage.text, textAlign: 'center' }}>
-              Smiley needs your camera and microphone to record a reel.
+              {brand.appName} needs your camera and microphone to record a reel.
             </Text>
             <Button
               title={canAskAgain ? 'Allow' : 'Open Settings'}

@@ -139,7 +139,7 @@ export function GiftOverlay({ ref, motion, hostCap, feed }: Props) {
         const item: SchedItem = {
           id,
           lane: mode,
-          blips: gift.blips,
+          value: gift.coins,
           durationMs:
             mode === 'stage' && gift.renderMode === 'takeover'
               ? TAKEOVER_AS_STAGE.ms

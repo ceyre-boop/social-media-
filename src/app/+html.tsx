@@ -1,6 +1,7 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 import type { PropsWithChildren } from 'react';
 
+import { pageTitle } from '@/config/brand';
 import { brand, palettes } from '@/lib/theme';
 
 const { dark, light } = palettes;
@@ -29,7 +30,7 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
         <meta name="color-scheme" content="dark light" />
         <meta name="theme-color" content={dark.bg} />
-        <title>Smiley</title>
+        <title>{pageTitle()}</title>
         <ScrollViewStyleReset />
         <style dangerouslySetInnerHTML={{ __html: css }} />
       </head>

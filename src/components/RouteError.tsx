@@ -1,6 +1,7 @@
 import type { ErrorBoundaryProps } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
+import { brand } from '@/config/brand';
 import { Button, LogoMark, Text } from '@/components/ui';
 import { useTheme } from '@/lib/theme';
 
@@ -16,7 +17,7 @@ export function RouteError({ error, retry }: ErrorBoundaryProps) {
         Something went wrong
       </Text>
       <Text tone="secondary" align="center" style={styles.body}>
-        Smiley hit an unexpected problem. Your data is safe. Try again.
+        {brand.appName} hit an unexpected problem. Your data is safe. Try again.
       </Text>
       {__DEV__ ? (
         <Text variant="caption" tone="danger" align="center" style={styles.dev}>

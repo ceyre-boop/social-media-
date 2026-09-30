@@ -3,6 +3,8 @@
  * into copy a person can act on. Raw errors are logged in __DEV__ only.
  */
 
+import { brand } from '@/config/brand';
+
 export type ErrorKind =
   | 'network'
   | 'timeout'
@@ -92,7 +94,7 @@ function classify(m: string, c: string, status: number, name: string, raw: strin
 
   // Age rules enforced by the database at signup (migration 004).
   if (m.includes('under_minimum_age')) {
-    return make('age', 'Too young', 'You must be at least 13 to use Smiley.', false);
+    return make('age', 'Too young', `You must be at least 13 to use ${brand.appName}.`, false);
   }
   if (m.includes('invalid_date_of_birth')) {
     return make('age', 'Check your date of birth', 'Enter a real date of birth in the past.', false);
@@ -118,7 +120,7 @@ function classify(m: string, c: string, status: number, name: string, raw: strin
     return make(
       'network',
       "You're offline",
-      "We can't reach Smiley right now. Check your connection and try again.",
+      `We can't reach ${brand.appName} right now. Check your connection and try again.`,
       true,
     );
   }
@@ -174,7 +176,7 @@ function classify(m: string, c: string, status: number, name: string, raw: strin
   if (status >= 500 || /^5\d\d$/.test(c) || /internal server error|bad gateway|service unavailable/.test(m)) {
     return make(
       'server',
-      'Smiley is having trouble',
+      `${brand.appName} is having trouble`,
       'Something broke on our side. Try again in a moment.',
       true,
     );

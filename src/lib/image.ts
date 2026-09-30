@@ -1,5 +1,6 @@
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 import type { ImagePickerAsset } from 'expo-image-picker';
+import { brand } from '@/config/brand';
 
 export const MAX_UPLOAD_BYTES = 15 * 1024 * 1024;
 export const MAX_EDGE = 2048;
@@ -30,7 +31,7 @@ function mimeOf(asset: ImagePickerAsset): string | null {
 
 /** Cheap checks right after picking. Returns a user-facing problem or null. */
 export function checkPickedAsset(asset: ImagePickerAsset): string | null {
-  if (asset.type && asset.type !== 'image') return 'Smiley posts are photos only for now.';
+  if (asset.type && asset.type !== 'image') return `${brand.appName} posts are photos only for now.`;
   const mime = mimeOf(asset);
   if (mime && !ALLOWED_MIME.has(mime)) return 'Use a JPEG, PNG, WebP or HEIC photo.';
   if (asset.fileSize && asset.fileSize > MAX_UPLOAD_BYTES * 4) {

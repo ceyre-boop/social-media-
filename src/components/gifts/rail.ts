@@ -21,7 +21,7 @@ export type RailCard = {
   lastAt: number;
   expiresAt: number;
   durationMs: number;
-  /** Sparks get a particle puff on entry; Blips do not. */
+  /** Sparks get a particle puff on entry; the entry tier does not. */
   puff: boolean;
   /** Full Glow card size (an anchored gift that degraded to the rail). */
   full: boolean;

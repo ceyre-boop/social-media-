@@ -1,13 +1,4 @@
-export {
-  BLIP_RATE,
-  GIFTS,
-  TIERS,
-  findGift,
-  formatBlips,
-  giftsInTier,
-  tierAccent,
-  tierInfo,
-} from './catalog';
+export { GIFTS, TIERS, findGift, giftsInTier, tierAccent, tierInfo } from './catalog';
 export type { Gift, RenderMode, TierInfo } from './catalog';
 export { GiftIcon } from './GiftIcon';
 export { GiftOverlay } from './GiftOverlay';

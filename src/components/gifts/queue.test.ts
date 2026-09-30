@@ -13,10 +13,10 @@ import {
 import type { Lane, SchedItem, SchedOut, SchedState } from './queue';
 
 let n = 0;
-const item = (lane: Lane, blips: number, durationMs = 3000): SchedItem => ({
+const item = (lane: Lane, value: number, durationMs = 3000): SchedItem => ({
   id: ++n,
   lane,
-  blips,
+  value,
   durationMs,
 });
 

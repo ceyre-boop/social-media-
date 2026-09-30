@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 
+import { brand } from '@/config/brand';
 import { Button, LogoMark, Screen, Text, TextField } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { toUserError } from '@/lib/errors';
@@ -26,7 +27,8 @@ const draft = { email: '', dob: '', codeSent: false, resendAt: 0 };
 function dobProblem(dob: string): string | null {
   const iso = dobToIso(dob);
   if (!iso || !isValidPastDate(iso)) return 'Enter a real date in the past, like 04-23-1995.';
-  if (!isAtLeastAge(iso, MIN_AGE)) return `You must be at least ${MIN_AGE} to use Smiley.`;
+  if (!isAtLeastAge(iso, MIN_AGE))
+    return `You must be at least ${MIN_AGE} to use ${brand.appName}.`;
   return null;
 }
 
@@ -138,10 +140,10 @@ export default function SignIn() {
       <View style={styles.header}>
         <LogoMark size={96} />
         <Text variant="display" align="center">
-          Welcome to Smiley
+          Welcome to {brand.appName}
         </Text>
         <Text tone="secondary" align="center">
-          A place you come back to because it feels good.
+          {brand.tagline}
         </Text>
       </View>
 

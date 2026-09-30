@@ -12,6 +12,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { brand } from '@/config/brand';
 import { RouteError } from '@/components/RouteError';
 import { StatusScreen } from '@/components/status-screen';
 import { Button, ToastProvider } from '@/components/ui';
@@ -48,7 +49,7 @@ function RootStack() {
   if (configMissing) {
     return (
       <StatusScreen
-        title="Smiley isn't set up yet"
+        title={`${brand.appName} isn't set up yet`}
         message="This build is missing its server settings."
         detail={
           __DEV__
@@ -76,7 +77,7 @@ function RootStack() {
   }
 
   if (loading || server === 'checking') {
-    return <StatusScreen title="Smiley" spinner />;
+    return <StatusScreen title={brand.appName} spinner />;
   }
 
   // A failed profile fetch must not look like "no profile" (that would route to onboarding).

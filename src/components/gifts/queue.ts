@@ -5,7 +5,7 @@
  *
  *  1. One Anchor, Stage or Takeover at a time.
  *  2. Higher value preempts nothing: it queues. A playing gift always finishes.
- *  3. The queue is ordered by value (blips), then FIFO.
+ *  3. The queue is ordered by value, then FIFO.
  *  4. Depth 8: beyond that, overflow renders as Rail cards (still fully credited).
  *  5. At most 70% of any 60s window may be occupied by Stage or Takeover; past that, the
  *     gift degrades to Rail until the window clears.
@@ -21,8 +21,8 @@ export type Lane = 'anchor' | 'stage' | 'takeover';
 export type SchedItem = {
   id: number;
   lane: Lane;
-  /** Value in blips: the queue order. */
-  blips: number;
+  /** Value in currency units: the queue order. */
+  value: number;
   durationMs: number;
 };
 
@@ -70,7 +70,7 @@ export function occupancy(intervals: Interval[], end: number): number {
 }
 
 function byValue(a: Waiting, b: Waiting): number {
-  return b.blips - a.blips || a.seq - b.seq;
+  return b.value - a.value || a.seq - b.seq;
 }
 
 /** A new gift arrives. */
