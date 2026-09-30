@@ -14,6 +14,11 @@ const config: ExpoConfig = {
   orientation: 'portrait',
   icon: './assets/images/icon.png',
   scheme: 'socialapp',
+  // EAS project "social-app" on Colin's Expo account (2026-09-30). Needed for Expo push
+  // tokens and EAS builds. Its slug must equal `slug` above.
+  extra: {
+    eas: { projectId: 'fcb705be-db51-4bcc-afac-f17bbb7c6c03' },
+  },
   userInterfaceStyle: 'automatic',
   backgroundColor: '#050506',
   android: {
