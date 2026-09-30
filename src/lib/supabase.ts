@@ -1,6 +1,7 @@
 import '@/lib/storage-polyfill';
 
 import { createClient } from '@supabase/supabase-js';
+import Constants from 'expo-constants';
 import { AppState, Platform } from 'react-native';
 
 import type { Database } from '@/lib/db/types';
@@ -10,9 +11,38 @@ import { setOnline } from '@/lib/network';
 const rawUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const rawKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
+const LOOPBACK = new Set(['127.0.0.1', 'localhost', '[::1]']);
+
+/**
+ * Dev only: a local-stack URL (127.0.0.1) means "this computer", which is wrong on a phone.
+ * When the app itself was loaded from another host — a phone browser opening
+ * http://<mac-ip>:8081, or Expo Go connected to the Mac's dev server — point Supabase at
+ * that same host so the phone reaches the Mac's database. Production URLs are untouched.
+ */
+function devReachableUrl(url: string): string {
+  if (!__DEV__) return url;
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return url;
+  }
+  if (!LOOPBACK.has(parsed.hostname)) return url;
+  let host: string | undefined;
+  if (Platform.OS === 'web') {
+    host = typeof window !== 'undefined' ? window.location.hostname : undefined;
+  } else {
+    // "192.168.4.43:8081" when Expo Go loads the bundle from the Mac.
+    host = Constants.expoConfig?.hostUri?.split(':')[0];
+  }
+  if (!host || LOOPBACK.has(host)) return url;
+  parsed.hostname = host;
+  return parsed.toString().replace(/\/$/, '');
+}
+
 /** True when the env vars are missing. The root layout shows a config screen instead of crashing. */
 export const configMissing = !rawUrl || !rawKey;
-export const supabaseUrl = rawUrl ?? '';
+export const supabaseUrl = devReachableUrl(rawUrl ?? '');
 
 const REQUEST_TIMEOUT_MS = 20_000;
 const UPLOAD_TIMEOUT_MS = 60_000;
@@ -64,7 +94,7 @@ const memoryStorage = {
 
 // With missing config we still build a (never-used) client so imports stay safe.
 export const supabase = createClient<Database>(
-  rawUrl ?? 'http://config-missing.invalid',
+  supabaseUrl || 'http://config-missing.invalid',
   rawKey ?? 'config-missing',
   {
     global: { fetch: fetchWithTimeout },
