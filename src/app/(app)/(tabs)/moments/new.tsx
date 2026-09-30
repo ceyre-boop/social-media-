@@ -30,7 +30,12 @@ export default function NewMoment() {
   const [ready, setReady] = useState(false);
   const [photo, setPhoto] = useState<CapturedPhoto | null>(null);
   const [effect, setEffect] = useState<CameraEffectId>('none');
-  const [baked, setBaked] = useState<{ id: CameraEffectId; base64: string } | null>(null);
+  const [baked, setBaked] = useState<{ id: CameraEffectId; token: number; base64: string } | null>(
+    null,
+  );
+  const captureToken = useRef(0);
+  const bakeSeq = useRef(0);
+  const inFlight = useRef(0);
   const [baking, setBaking] = useState(false);
   const [effectsOff, setEffectsOff] = useState(false);
   const [caption, setCaption] = useState('');
@@ -47,27 +52,50 @@ export default function NewMoment() {
     try {
       const shot = await camera.current.takePictureAsync({ quality: 0.9 });
       if (!shot) return;
-      setPhoto(await prepareCapture({ uri: shot.uri, width: shot.width, height: shot.height }));
-      setEffect('none');
-      setBaked(null);
+      const next = await prepareCapture({ uri: shot.uri, width: shot.width, height: shot.height });
+      newCapture();
+      setPhoto(next);
     } catch (e) {
       setError(handleError(e, 'moment capture').message);
     }
   }
 
+  /** A new capture (or a retake): any bake still running belongs to the old photo and is dropped. */
+  function newCapture() {
+    captureToken.current += 1;
+    setEffect('none');
+    setBaked(null);
+  }
+
+  function retake() {
+    if (baking) return;
+    newCapture();
+    setPhoto(null);
+  }
+
   async function chooseEffect(id: CameraEffectId) {
+    if (!photo || baking) return;
     setEffect(id);
-    if (!photo || id === 'none' || baked?.id === id) return;
+    if (id === 'none' || (baked?.id === id && baked.token === captureToken.current)) return;
+    const token = captureToken.current;
+    const seq = ++bakeSeq.current;
+    inFlight.current += 1;
     setBaking(true);
     try {
       const out = await bakeEffect(photo.uri, effectById(id));
-      setBaked({ id, base64: out.base64 });
+      // Stale: the photo changed, or a later bake was started. Drop it.
+      if (token === captureToken.current && seq === bakeSeq.current) {
+        setBaked({ id, token, base64: out.base64 });
+      }
     } catch (e) {
       if (__DEV__) console.warn('camera effect failed', e);
-      setEffectsOff(true);
-      setEffect('none');
+      if (token === captureToken.current) {
+        setEffectsOff(true);
+        setEffect('none');
+      }
     } finally {
-      setBaking(false);
+      inFlight.current -= 1;
+      setBaking(inFlight.current > 0);
     }
   }
 
@@ -76,7 +104,10 @@ export default function NewMoment() {
     setBusy(true);
     setError(null);
     try {
-      const base64 = effect !== 'none' && baked?.id === effect ? baked.base64 : null;
+      const base64 =
+        effect !== 'none' && baked?.id === effect && baked.token === captureToken.current
+          ? baked.base64
+          : null;
       await postMoment(session.user.id, {
         photo,
         bakedBase64: base64,
@@ -169,7 +200,8 @@ export default function NewMoment() {
               <Pressable
                 key={e.id}
                 accessibilityRole="radio"
-                accessibilityState={{ selected: on, busy: on && baking }}
+                accessibilityState={{ selected: on, busy: on && baking, disabled: baking }}
+                disabled={baking}
                 accessibilityLabel={e.label}
                 onPress={() => void chooseEffect(e.id)}
                 style={[styles.effect, on && styles.effectOn]}
@@ -200,12 +232,7 @@ export default function NewMoment() {
         {error ? <Text tone="danger">{error}</Text> : null}
         <View style={styles.actions}>
           <View style={{ flex: 1 }}>
-            <Button
-              title="Retake"
-              variant="secondary"
-              onPress={() => setPhoto(null)}
-              disabled={busy}
-            />
+            <Button title="Retake" variant="secondary" onPress={retake} disabled={busy || baking} />
           </View>
           <View style={{ flex: 1 }}>
             <Button
