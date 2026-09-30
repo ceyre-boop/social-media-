@@ -65,7 +65,9 @@ try {
           { source: '/assets/node_modules/:path*', destination: '/assets/_nm/:path*' },
           { source: '/live/:id', destination: '/live/[id]' },
           { source: '/u/:username', destination: '/u/[username]' },
+          { source: '/p/:id/embed', destination: '/p/[id]/embed' },
           { source: '/p/:id', destination: '/p/[id]' },
+          { source: '/post/:id', destination: '/post/[id]' },
         ],
         headers: [
           { source: '/_expo/(.*)', headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }] },
