@@ -27,6 +27,8 @@ const config: ExpoConfig = {
       foregroundImage: './assets/images/android-icon-foreground.png',
     },
     predictiveBackGestureEnabled: false,
+    // Brand-neutral and provisional: can still change before the first Play Store upload.
+    package: 'com.ceyre222.socialapp',
   },
   web: {
     output: 'static',
