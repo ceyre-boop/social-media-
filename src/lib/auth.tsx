@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 
 import type { Database } from '@/lib/db/types';
 import { toUserError, type UserError } from '@/lib/errors';
+import { releasePushToken } from '@/lib/push';
 import { configMissing, supabase } from '@/lib/supabase';
 
 export type Profile = Pick<
@@ -141,6 +142,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     userInitiatedSignOut.current = true;
+    // While still signed in: this phone stops receiving this account's pushes.
+    await releasePushToken();
     const { error } = await supabase.auth.signOut();
     // Offline (or server down): still leave. Clearing the local session is what matters.
     if (error) await supabase.auth.signOut({ scope: 'local' });

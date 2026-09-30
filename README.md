@@ -56,6 +56,22 @@ required on the sign-in screen.
 | `bun run db:types`  | Regenerate `src/lib/db/types.ts` from local DB |
 | `bun run db:test`   | Run the database (pgTAP) tests                 |
 | `bun run db:reset`  | Reset the local DB (migrations + seed)         |
+| `bun run test:push` | Push pipeline test: functions + DB + stub Expo |
+
+## Push notifications and scheduled jobs
+
+- Jobs: `ops.job_queue` (idempotent enqueue, retry with backoff, dead letter) and `ops.job_runs`
+  (run log). pg_cron calls the Edge Functions `push-dispatch` (every minute), `push-receipts`
+  (every 15 min) and `token-cleanup` (weekly) through pg_net.
+- Local: `bunx supabase functions serve`, then `bun scripts/setup-local-cron.ts` once after each
+  `db reset` (stores the local URL and service-role key in Vault; without it cron runs are logged
+  as `skipped`). Inspect: `select * from ops.job_runs order by id desc limit 20;`
+- **Push needs an EAS project id.** Run `bunx eas-cli init` once (free Expo account). It writes
+  `extra.eas.projectId`; until then the app skips push registration with a dev warning and
+  everything arrives through the in-app banner. Android push needs a development build
+  (`bunx eas-cli build --profile development`); iOS works in Expo Go. Web never gets push.
+- Hosted (later, not done yet): set Vault secrets `project_url` and `service_role_key`, optionally
+  function secrets `EXPO_ACCESS_TOKEN`, and deploy the three functions.
 
 ## Docs
 

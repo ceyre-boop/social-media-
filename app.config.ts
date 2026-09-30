@@ -42,6 +42,7 @@ const config: ExpoConfig = {
     'expo-sqlite',
     'expo-video',
     'expo-font',
+    'expo-notifications',
     [
       'expo-camera',
       {
