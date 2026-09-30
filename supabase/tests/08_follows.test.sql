@@ -11,6 +11,10 @@ $$;
 
 -- alice 1111…, bob 2222…, carol 4444…, dave 5555… (seed.sql)
 
+-- Start from no follows so dev data (e.g. scripts/seed-reels.ts adds
+-- alice→carol and dave→bob) cannot change the counts below. Rolled back.
+delete from public.follows;
+
 set local role authenticated;
 
 select pg_temp.act_as('55555555-5555-4555-8555-555555555555');  -- dave
