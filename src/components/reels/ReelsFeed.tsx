@@ -89,7 +89,12 @@ function newer(a: FeedPost, b: FeedPost): number {
  * loaded pages stay, and posts the server no longer returns inside the fresh page's range
  * (deleted, unfollowed) drop out — never the one being watched.
  */
-function mergeFeed(prev: FeedPost[], page: FeedPost[], pageSize: number, keepId?: string): FeedPost[] {
+function mergeFeed(
+  prev: FeedPost[],
+  page: FeedPost[],
+  pageSize: number,
+  keepId?: string,
+): FeedPost[] {
   const inPage = new Set(page.map((p) => p.id));
   const oldest = page[page.length - 1];
   const complete = page.length < pageSize;
@@ -150,7 +155,7 @@ function Page({
   return (
     <View style={[styles.page, { height, paddingBottom: bottomInset }]} {...pageMark}>
       <LogoMark size={88} />
-      {spinner ? <ActivityIndicator color={c.primary} /> : null}
+      {spinner ? <ActivityIndicator color={c.muted} /> : null}
       {title ? (
         <Text variant="title" tone="onMedia" align="center">
           {title}
@@ -274,9 +279,7 @@ function ReelsFeedInner({
     setPosts((prev) =>
       prev.map((p) => {
         const f = byId.get(p.id);
-        return f
-          ? { ...p, videoUrl: f.videoUrl, posterUrl: f.posterUrl, imageUrl: f.imageUrl }
-          : p;
+        return f ? { ...p, videoUrl: f.videoUrl, posterUrl: f.posterUrl, imageUrl: f.imageUrl } : p;
       }),
     );
   }, []);

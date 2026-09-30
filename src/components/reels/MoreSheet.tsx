@@ -22,7 +22,7 @@ export function MoreSheet({
     <Sheet visible={visible} onClose={onClose} title="Who can see this">
       <View style={{ gap: spacing.lg, paddingTop: spacing.md }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-          <Ionicons name={meta.icon} size={24} color={colors.primary} />
+          <Ionicons name={meta.icon} size={24} color={colors.textSecondary} />
           <View style={{ flex: 1 }}>
             <Text variant="callout" weight="700">
               {meta.label}

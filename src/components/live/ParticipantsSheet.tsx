@@ -36,7 +36,7 @@ export function ParticipantsSheet({ visible, onClose, participants }: Props) {
                 @{p.username}
               </Text>
             </View>
-            <Text variant="caption" tone={p.role === 'viewer' ? 'muted' : 'primary'} weight="700">
+            <Text variant="caption" tone={p.role === 'viewer' ? 'muted' : 'secondary'} weight="700">
               {ROLE_LABEL[p.role]}
             </Text>
           </View>

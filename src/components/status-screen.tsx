@@ -25,7 +25,7 @@ export function StatusScreen({
     >
       <PageTitle title={title} />
       <LogoMark size={72} />
-      {spinner ? <ActivityIndicator color={colors.primary} /> : null}
+      {spinner ? <ActivityIndicator color={colors.muted} /> : null}
       {spinner ? null : (
         <Text accessibilityRole="header" variant="title" align="center">
           {title}

@@ -18,15 +18,14 @@ export function LogoMark({ size = 40 }: { size?: number }) {
   );
 }
 
-/** Solid pink wordmark (no gradient: that needs a dependency). */
+/** Neutral, light-weight wordmark: the logo mark carries the brand color, not the text. */
 export function Wordmark({ size = 24 }: { size?: number }) {
   return (
     <Text
       accessibilityRole="header"
       variant="headline"
-      tone="primary"
-      weight="800"
-      style={{ fontSize: size, lineHeight: size * 1.25, letterSpacing: 0.3 }}
+      weight="600"
+      style={{ fontSize: size, lineHeight: size * 1.25 }}
     >
       {brand.appName}
     </Text>
@@ -37,7 +36,7 @@ export function Brand({ size = 32 }: { size?: number }) {
   return (
     <View style={styles.row}>
       <LogoMark size={size} />
-      <Wordmark size={size * 0.75} />
+      <Wordmark size={size * 0.56} />
     </View>
   );
 }

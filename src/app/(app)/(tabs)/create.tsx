@@ -394,7 +394,7 @@ export default function Create() {
           },
         ]}
       >
-        <Ionicons name="videocam-outline" size={40} color={colors.primary} />
+        <Ionicons name="videocam-outline" size={40} color={colors.textSecondary} />
         <Text variant="headline">Share a reel</Text>
         <Text variant="caption" tone="muted">
           Up to 30 seconds
@@ -487,14 +487,14 @@ export default function Create() {
               return [
                 styles.dropzone,
                 {
-                  borderColor: hovered || state.pressed ? colors.primary : colors.border,
+                  borderColor: hovered || state.pressed ? colors.borderStrong : colors.border,
                   borderRadius: radius.lg,
                   backgroundColor: colors.surface,
                 },
               ];
             }}
           >
-            <Ionicons name="image-outline" size={40} color={colors.primary} />
+            <Ionicons name="image-outline" size={40} color={colors.textSecondary} />
             <Text variant="headline">Choose a photo</Text>
           </Pressable>
         )}

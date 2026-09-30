@@ -7,7 +7,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import { ReelVideo } from '@/components/reels/player/ReelVideo';
 import { usePlayerPool } from '@/components/reels/player/PlayerPool';
-import { Avatar, Chip, IconButton, Text } from '@/components/ui';
+import { Avatar, Chip, Text } from '@/components/ui';
 import { toggleMuted, useMuted } from '@/lib/mute';
 import { signImagePath, type FeedPost } from '@/lib/posts';
 import { stage as c, tintFor, useReducedMotion } from '@/lib/theme';
@@ -17,6 +17,8 @@ import { VISIBILITY_META } from '@/lib/visibility';
 import { MoreSheet } from './MoreSheet';
 
 const RAIL_W = 64;
+/** One glyph size for every action-rail icon. */
+const RAIL_ICON = 26;
 const DOUBLE_TAP_MS = 280;
 const LONG_PRESS_MS = 450;
 const shadow = {
@@ -87,7 +89,7 @@ function RailButton({
       }}
     >
       <Animated.View style={{ transform: [{ scale }] }}>
-        <Ionicons name={icon} size={28} color={color} />
+        <Ionicons name={icon} size={RAIL_ICON} color={color} />
       </Animated.View>
     </Pressable>
   );
@@ -128,10 +130,9 @@ function Rail({
 function MuteButton() {
   const muted = useMuted();
   return (
-    <IconButton
-      icon={muted ? 'volume-mute' : 'volume-high'}
+    <RailButton
+      icon={muted ? 'volume-mute-outline' : 'volume-high-outline'}
       label={muted ? 'Unmute' : 'Mute'}
-      onMedia
       onPress={toggleMuted}
     />
   );

@@ -87,7 +87,7 @@ function ToastCard({ toast, onDismiss }: { toast: Item; onDismiss: (id: number) 
           }}
           style={styles.action}
         >
-          <Text variant="callout" weight="800" tone="primary">
+          <Text variant="callout" weight="800">
             {toast.actionLabel}
           </Text>
         </Pressable>

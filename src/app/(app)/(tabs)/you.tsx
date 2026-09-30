@@ -143,8 +143,8 @@ export default function You() {
               onPress={() => Linking.openURL(linkHref(profile.link_url!))}
               style={[styles.link, { gap: spacing.sm - 2 }]}
             >
-              <Ionicons name="link-outline" size={16} color={colors.primary} />
-              <Text variant="callout" tone="primary" numberOfLines={1} style={styles.linkText}>
+              <Ionicons name="link-outline" size={16} color={colors.textSecondary} />
+              <Text variant="callout" tone="secondary" numberOfLines={1} style={styles.linkText}>
                 {profile.link_url.replace(/^https?:\/\//i, '')}
               </Text>
             </Pressable>

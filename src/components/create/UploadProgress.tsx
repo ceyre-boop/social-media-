@@ -43,7 +43,7 @@ export function UploadProgress({
                 styles.fill,
                 {
                   width: `${percent}%`,
-                  backgroundColor: colors.primary,
+                  backgroundColor: colors.textSecondary,
                   borderRadius: radius.pill,
                 },
               ]}

@@ -5,22 +5,32 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from '@/components/ui';
 import { useTheme } from '@/lib/theme';
 
+import { NAV_ICON_SIZE } from './CreateGlyph';
+
 type IconName = keyof typeof Ionicons.glyphMap;
 
 type Props = TabTriggerSlotProps & {
   label: string;
-  icon: IconName;
-  activeIcon: IconName;
+  /** An Ionicons outline name, or a custom glyph (same 24px box) for Create. */
+  icon: IconName | ((color: string) => React.ReactNode);
   active: boolean;
   /** Layout: sidebar expanded (row + label), sidebar collapsed (icon only). */
   mode: 'side' | 'side-collapsed';
 };
 
-/** A tab trigger rendered as a sidebar row. Forwards trigger props to Pressable. */
-export function NavItem({ label, icon, activeIcon, active, mode, isFocused: _f, ...props }: Props) {
+/**
+ * A tab trigger rendered as a sidebar row. One icon size, one label style, one neutral color;
+ * active changes the color only (accent), never the glyph, weight, size or background.
+ */
+export function NavItem({ label, icon, active, mode, isFocused: _f, ...props }: Props) {
   const { colors, radius, spacing } = useTheme();
   const color = active ? colors.primary : colors.textSecondary;
-  const glyph = <Ionicons name={active ? activeIcon : icon} size={26} color={color} />;
+  const glyph =
+    typeof icon === 'string' ? (
+      <Ionicons name={icon} size={NAV_ICON_SIZE} color={color} />
+    ) : (
+      icon(color)
+    );
 
   return (
     <Pressable
@@ -37,21 +47,14 @@ export function NavItem({ label, icon, activeIcon, active, mode, isFocused: _f, 
             gap: spacing.lg,
             paddingHorizontal: mode === 'side-collapsed' ? 0 : spacing.md,
             borderRadius: radius.pill,
-            backgroundColor: active
-              ? colors.primarySubtle
-              : hovered || state.pressed
-                ? colors.surface2
-                : 'transparent',
+            backgroundColor: hovered || state.pressed ? colors.surface2 : 'transparent',
           },
         ];
       }}
     >
       <View style={styles.sideIcon}>{glyph}</View>
       {mode === 'side' ? (
-        <Text
-          variant="headline"
-          style={{ fontSize: 17, color: active ? colors.primary : colors.text }}
-        >
+        <Text variant="callout" weight="600" style={{ fontSize: 16, color }}>
           {label}
         </Text>
       ) : null}
@@ -67,5 +70,5 @@ const styles = StyleSheet.create({
     cursor: 'pointer',
   },
   sideItemCollapsed: { width: 48, justifyContent: 'center' },
-  sideIcon: { width: 26, alignItems: 'center' },
+  sideIcon: { width: NAV_ICON_SIZE, alignItems: 'center' },
 });

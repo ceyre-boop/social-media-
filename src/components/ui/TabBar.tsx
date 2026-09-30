@@ -40,13 +40,11 @@ type ItemProps = PressableProps & {
   /** Spoken label. Labels are never drawn on the phone pill. */
   label: string;
   active: boolean;
-  /** The Create button: filled pink, always. */
-  emphasized?: boolean;
   children: React.ReactNode;
 };
 
 /** One pill item. Spread trigger props (from expo-router's TabTrigger asChild) onto it. */
-export function TabBarItem({ label, active, emphasized, children, ...props }: ItemProps) {
+export function TabBarItem({ label, active, children, ...props }: ItemProps) {
   const { stage, radius } = useTheme();
   return (
     <Pressable
@@ -64,17 +62,8 @@ export function TabBarItem({ label, active, emphasized, children, ...props }: It
               styles.pill,
               {
                 borderRadius: radius.pill,
-                backgroundColor: emphasized
-                  ? hovered || state.pressed
-                    ? stage.text
-                    : stage.primary
-                  : active
-                    ? stage.glassActive
-                    : hovered || state.pressed
-                      ? stage.control
-                      : 'transparent',
-                borderWidth: emphasized ? 2 : 0,
-                borderColor: emphasized && active ? stage.text : 'transparent',
+                // Active is color-only (the icon); the disc appears on hover/press feedback alone.
+                backgroundColor: hovered || state.pressed ? stage.control : 'transparent',
               },
             ]}
           >

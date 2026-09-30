@@ -94,7 +94,7 @@ export function ViewerOptionsSheet({
               value={hostCap}
               onValueChange={onHostCap}
               accessibilityLabel="Cap incoming animation size"
-              trackColor={{ false: colors.surface3, true: colors.primary }}
+              trackColor={{ false: colors.surface3, true: colors.textSecondary }}
               thumbColor={colors.surface}
             />
           </View>

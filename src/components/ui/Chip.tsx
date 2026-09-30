@@ -8,17 +8,16 @@ import { Text } from './Text';
 type Props = {
   label: string;
   icon?: keyof typeof Ionicons.glyphMap;
-  tone?: 'neutral' | 'primary';
   /** Over photos or video: fixed stage colors. */
   onMedia?: boolean;
 };
 
 /** Small non-interactive pill for status, e.g. post visibility or LIVE. */
-export function Chip({ label, icon, tone = 'neutral', onMedia }: Props) {
+export function Chip({ label, icon, onMedia }: Props) {
   const { colors, radius, spacing, stage } = useTheme();
-  const bg = onMedia ? stage.control : tone === 'primary' ? colors.primarySubtle : colors.surface2;
-  const border = onMedia ? stage.border : tone === 'primary' ? colors.primary : colors.border;
-  const fg = onMedia ? stage.text : tone === 'primary' ? colors.primary : colors.textSecondary;
+  const bg = onMedia ? stage.control : colors.surface2;
+  const border = onMedia ? stage.border : colors.border;
+  const fg = onMedia ? stage.text : colors.textSecondary;
   return (
     <View
       style={{

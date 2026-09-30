@@ -54,7 +54,7 @@ export function SegmentedControl<T extends string>({
                 {
                   borderRadius: radius.sm,
                   backgroundColor: active
-                    ? colors.primary
+                    ? colors.surface3
                     : hovered || state.pressed
                       ? colors.surface2
                       : 'transparent',
@@ -62,16 +62,12 @@ export function SegmentedControl<T extends string>({
               ];
             }}
           >
-            <Ionicons
-              name={s.icon}
-              size={18}
-              color={active ? colors.onPrimary : colors.textSecondary}
-            />
+            <Ionicons name={s.icon} size={18} color={active ? colors.text : colors.textSecondary} />
             <Text
               variant="caption"
               weight="700"
               numberOfLines={1}
-              style={{ color: active ? colors.onPrimary : colors.text, flexShrink: 1 }}
+              style={{ color: active ? colors.text : colors.textSecondary, flexShrink: 1 }}
             >
               {s.label}
             </Text>
